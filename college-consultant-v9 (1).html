@@ -50,6 +50,28 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .add-s{margin:0 12px 12px;padding:8px;border:1px dashed rgba(255,255,255,0.2);border-radius:6px;background:transparent;color:rgba(255,255,255,0.6);font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;width:calc(100% - 24px);transition:all .2s;font-weight:500;flex-shrink:0;}
 .add-s:hover{background:rgba(255,255,255,0.08);border-style:solid;color:#ffffff;}
 
+/* ── SHARE / COLLABORATORS ── */
+.collab-row{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);margin-bottom:7px;}
+.collab-row:last-child{margin-bottom:0;}
+.collab-info{display:flex;align-items:center;gap:9px;}
+.collab-av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;overflow:hidden;}
+.collab-av img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.collab-name{font-size:12.5px;font-weight:500;color:var(--cream);}
+.collab-email{font-size:10.5px;color:var(--muted);margin-top:1px;}
+.collab-badge{font-size:9px;padding:2px 7px;border-radius:10px;font-weight:600;letter-spacing:.04em;}
+.collab-badge.owner{background:rgba(201,168,76,0.15);color:var(--gold);border:1px solid rgba(201,168,76,0.3);}
+.collab-badge.shared{background:rgba(100,200,120,0.12);color:var(--green);border:1px solid rgba(100,200,120,0.3);}
+.share-toggle{padding:5px 12px;border-radius:6px;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;border:1px solid;transition:all .15s;font-weight:500;}
+.share-toggle.add{background:rgba(201,168,76,0.1);border-color:rgba(201,168,76,0.4);color:var(--gold);}
+.share-toggle.add:hover{background:rgba(201,168,76,0.2);}
+.share-toggle.remove{background:rgba(220,50,50,0.08);border-color:rgba(220,50,50,0.3);color:var(--red);}
+.share-toggle.remove:hover{background:rgba(220,50,50,0.15);}
+.share-section-label{font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--gold);text-transform:uppercase;margin:14px 0 8px;}
+.shared-dot{width:7px;height:7px;border-radius:50%;background:var(--blue);flex-shrink:0;box-shadow:0 0 5px rgba(80,140,255,0.6);}
+/* mini avatar stack on profile header */
+.collab-stack{display:flex;align-items:center;}
+.collab-stack .mini-av{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--bg);margin-left:-6px;font-size:8px;font-weight:700;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;}
+.collab-stack .mini-av:first-child{margin-left:0;}
 /* ── STRATEGY PLAN ── */
 .sp-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;}
 .sp-section{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px;}
@@ -844,6 +866,14 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   <div id="meetingContent"></div>
 </div></div>
 
+<!-- Share Student Modal -->
+<div class="mo" id="moShare"><div class="md" style="max-width:440px">
+  <button class="md-close" onclick="closeMo('moShare')">✕</button>
+  <div class="md-title" id="shareTitle">👥 Share Student</div>
+  <p style="font-size:12px;color:var(--muted);margin-bottom:14px">Choose which consultants can view and edit this student's profile. They will see this student appear in their own dashboard in real time.</p>
+  <div id="shareContent"></div>
+</div></div>
+
 <script>
 'use strict';
 // ══════════════════════════════════════════════════════
@@ -1218,7 +1248,10 @@ function renderSidebar(){
         <div class="sc-name">${s.firstName} ${s.lastName}</div>
         <div class="sc-sub">Gr.${s.grade} · GPA ${s.gpa||'—'}</div>
       </div>
-      <div class="urg-dot" style="background:${u.level==='red'?'var(--red)':u.level==='orange'?'var(--orange)':'var(--green)'}"></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0">
+        <div class="urg-dot" style="background:${u.level==='red'?'var(--red)':u.level==='orange'?'var(--orange)':'var(--green)'}"></div>
+        ${(s.sharedWith&&s.sharedWith.length)?`<div class="shared-dot" title="Shared with ${s.sharedWith.length} consultant(s)"></div>`:''}
+      </div>
       <button class="sc-del" onclick="event.stopPropagation();deleteStudent(${s.id})" title="Remove student">✕</button>
     </div>`;
   }).join('');
@@ -1496,6 +1529,17 @@ function openProfile(id){
     <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0">
       <button class="btn btn-gold btn-sm" onclick="openMeetingBrief(${s.id})">⚡ Pre-Meeting Brief</button>
       <button class="btn btn-blue btn-sm" onclick="openParentReport(${s.id})">📄 Parent Report</button>
+      <button class="btn btn-out btn-sm" onclick="openShareModal(${s.id})" style="border-color:rgba(255,255,255,0.2)">👥 Share</button>
+      ${(()=>{
+        const collabs=[...((s.sharedWith||[]).map(uid=>allConsultants.find(c=>c.uid===uid)).filter(Boolean))];
+        const ownerC=s.ownerId?allConsultants.find(c=>c.uid===s.ownerId):null;
+        const all=ownerC?[ownerC,...collabs]:collabs;
+        if(!all.length)return '';
+        const avs=all.slice(0,5).map(c=>c.photo
+          ?`<div class="mini-av" style="background:${c.color}" title="${c.name}"><img src="${c.photo}" style="width:100%;height:100%;border-radius:50%;object-fit:cover"></div>`
+          :`<div class="mini-av" style="background:${c.color};color:var(--bg);font-size:8px;font-weight:700" title="${c.name}">${c.initial||'?'}</div>`).join('');
+        return `<div class="collab-stack" title="${all.map(c=>c.name).join(', ')}" style="margin-top:2px">${avs}${all.length>5?`<div style="font-size:9px;color:var(--muted);margin-left:5px">+${all.length-5}</div>`:''}</div>`;
+      })()}
     </div>`;
   renderOverview(s);
   // Reset other tabs
@@ -2986,7 +3030,11 @@ async function onSignedIn(user){
   // Register presence
   await registerPresence(user);
 
+  // Register user profile in /users collection (for sharing)
+  await registerUserProfile(user);
+
   // Start real-time listeners
+  subscribeUsers();
   subscribeStudents();
   subscribeDeadlines();
   subscribePresence();
@@ -3033,6 +3081,28 @@ function subscribePresence(){
 
 function hashStr(s){let h=0;for(let i=0;i<s.length;i++)h=Math.imul(31,h)+s.charCodeAt(i)|0;return h;}
 
+// ── User profiles (for sharing) ──
+let allConsultants = []; // all known consultants incl. current user
+
+async function registerUserProfile(user){
+  try{
+    await fbDb.collection('users').doc(user.uid).set({
+      uid: user.uid,
+      name: user.displayName || user.email,
+      email: user.email,
+      photo: user.photoURL || null,
+      initial: (user.displayName||user.email||'?')[0].toUpperCase(),
+      color: COLORS[Math.abs(hashStr(user.uid)) % COLORS.length],
+    }, {merge:true});
+  }catch(e){ console.warn('registerUserProfile:', e); }
+}
+
+function subscribeUsers(){
+  fbDb.collection('users').onSnapshot(snap=>{
+    allConsultants = snap.docs.map(d=>d.data());
+  });
+}
+
 // ── Students sync ──
 function subscribeStudents(){
   setSyncStatus('connecting');
@@ -3046,7 +3116,15 @@ function subscribeStudents(){
         // First run — seed demo data to Firestore
         seedToFirestore();
       } else {
-        students = remote.map(r=>deserializeStudent(r));
+        // Filter to only students this consultant owns or has been shared with
+        const uid = fbCurrentUser?.uid;
+        const visible = remote.filter(r=>{
+          if(!r.ownerId) return true; // legacy docs visible to all
+          if(r.ownerId === uid) return true;
+          if((r.sharedWith||[]).includes(uid)) return true;
+          return false;
+        });
+        students = visible.map(r=>deserializeStudent(r));
         globalDeadlines = [];
         students.forEach(s=>(s._deadlines||[]).forEach(d=>globalDeadlines.push({...d,studentId:s.id})));
         renderSidebar(); renderDashboard(); renderEssayTracker(); populateDropdowns(); updateUrgBadge();
@@ -3091,6 +3169,93 @@ function timeAgo(date){
   if(s<3600)return Math.floor(s/60)+'m ago';
   if(s<86400)return Math.floor(s/3600)+'h ago';
   return Math.floor(s/86400)+'d ago';
+}
+
+// ── Share / Collaboration ──
+function openShareModal(sid){
+  const s=students.find(x=>x.id===sid);if(!s)return;
+  document.getElementById('shareTitle').textContent=`👥 Share — ${s.firstName} ${s.lastName}`;
+  renderShareModal(s);
+  openMo('moShare');
+}
+
+function renderShareModal(s){
+  const uid=fbCurrentUser?.uid||'';
+  const owner=allConsultants.find(c=>c.uid===s.ownerId)||
+    (s.ownerId===uid?{uid,name:fbCurrentUser?.displayName||fbCurrentUser?.email,email:fbCurrentUser?.email,photo:fbCurrentUser?.photoURL,color:COLORS[Math.abs(hashStr(uid))%COLORS.length],initial:(fbCurrentUser?.displayName||fbCurrentUser?.email||'?')[0].toUpperCase()}:null);
+  const sharedWith=s.sharedWith||[];
+  const others=allConsultants.filter(c=>c.uid!==s.ownerId);
+
+  function avHtml(c){
+    return c.photo
+      ? `<div class="collab-av" style="background:${c.color}"><img src="${c.photo}" alt="${c.name}"></div>`
+      : `<div class="collab-av" style="background:${c.color};color:var(--bg)">${c.initial||'?'}</div>`;
+  }
+
+  const currentRows=(()=>{
+    const rows=[];
+    if(owner){
+      rows.push(`<div class="collab-row">
+        <div class="collab-info">${avHtml(owner)}<div><div class="collab-name">${owner.name}${owner.uid===uid?' (you)':''}</div><div class="collab-email">${owner.email||''}</div></div></div>
+        <span class="collab-badge owner">Owner</span>
+      </div>`);
+    }
+    sharedWith.forEach(sharedUid=>{
+      const c=allConsultants.find(x=>x.uid===sharedUid);if(!c)return;
+      const canEdit=(s.ownerId===uid||!s.ownerId);
+      rows.push(`<div class="collab-row">
+        <div class="collab-info">${avHtml(c)}<div><div class="collab-name">${c.name}${c.uid===uid?' (you)':''}</div><div class="collab-email">${c.email||''}</div></div></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="collab-badge shared">Access</span>
+          ${canEdit?`<button class="share-toggle remove" onclick="unshareStudent(${s.id},'${sharedUid}')">Remove</button>`:''}
+        </div>
+      </div>`);
+    });
+    return rows.join('');
+  })();
+
+  const availableRows=(()=>{
+    const canEdit=(s.ownerId===uid||!s.ownerId);
+    if(!canEdit) return '<div style="font-size:11px;color:var(--muted)">Only the owner can add collaborators.</div>';
+    const available=others.filter(c=>!sharedWith.includes(c.uid)&&c.uid!==s.ownerId);
+    if(!available.length) return '<div style="font-size:11px;color:var(--muted)">All consultants already have access.</div>';
+    return available.map(c=>`<div class="collab-row">
+      <div class="collab-info">${avHtml(c)}<div><div class="collab-name">${c.name}</div><div class="collab-email">${c.email||''}</div></div></div>
+      <button class="share-toggle add" onclick="shareStudentWith(${s.id},'${c.uid}')">+ Share</button>
+    </div>`).join('');
+  })();
+
+  document.getElementById('shareContent').innerHTML=`
+    <div class="share-section-label">Current Access</div>
+    ${currentRows||'<div style="font-size:11px;color:var(--muted)">No collaborators yet.</div>'}
+    <div class="share-section-label" style="margin-top:16px">Add Consultants</div>
+    ${availableRows}`;
+}
+
+function shareStudentWith(sid, consultantUid){
+  const s=students.find(x=>x.id===sid);if(!s)return;
+  const sw=s.sharedWith||[];
+  if(sw.includes(consultantUid))return;
+  s.sharedWith=[...sw,consultantUid];
+  if(fbDb){
+    fbDb.collection('students').doc(String(sid)).update({sharedWith:s.sharedWith});
+    const c=allConsultants.find(x=>x.uid===consultantUid);
+    logActivity(`shared <strong>${s.firstName} ${s.lastName}</strong> with ${c?.name||'a consultant'}`);
+  }
+  renderShareModal(s);
+  openProfile(sid); // refresh header avatars
+}
+
+function unshareStudent(sid, consultantUid){
+  const s=students.find(x=>x.id===sid);if(!s)return;
+  s.sharedWith=(s.sharedWith||[]).filter(u=>u!==consultantUid);
+  if(fbDb){
+    fbDb.collection('students').doc(String(sid)).update({sharedWith:s.sharedWith});
+    const c=allConsultants.find(x=>x.uid===consultantUid);
+    logActivity(`removed ${c?.name||'a consultant'}'s access to <strong>${s.firstName} ${s.lastName}</strong>`);
+  }
+  renderShareModal(s);
+  openProfile(sid);
 }
 
 // ── Write helpers ──
@@ -3157,6 +3322,7 @@ function deserializeStudent(r){
   if(!s.meetings)s.meetings=[];
   if(!s.strategyPlan)s.strategyPlan={};
   if(!s.summerRec)s.summerRec={};
+  if(!s.sharedWith)s.sharedWith=[];
   return s;
 }
 
@@ -3225,6 +3391,9 @@ function addStudent(){
   // The new student was pushed to students[] — save it
   const s=students[students.length-1];
   if(s&&fbDb){
+    // Tag the creator so sharing works correctly
+    s.ownerId = fbCurrentUser?.uid || null;
+    s.sharedWith = [];
     fbDb.collection('students').doc(String(s.id)).set(serializeStudent(s));
     logActivity(`added new student <strong>${s.firstName} ${s.lastName}</strong>`);
   }
