@@ -3027,7 +3027,11 @@ async function signInWithGoogle(){
   try{
     const provider = new firebase.auth.GoogleAuthProvider();
     provider.setCustomParameters({hd: ''});  // allow any google account
-    await fbAuth.signInWithRedirect(provider);
+    const result = await fbAuth.signInWithPopup(provider);
+    if(result && result.user){
+      fbCurrentUser = result.user;
+      onSignedIn(result.user);
+    }
   }catch(e){
     showAuthError(e.message);
   }
