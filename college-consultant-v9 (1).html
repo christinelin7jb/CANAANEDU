@@ -44,6 +44,9 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .sc-name{font-size:12px;font-weight:500;color:#ffffff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .sc-sub{font-size:9.5px;color:rgba(255,255,255,0.45);margin-top:1px;}
 .urg-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.sc-del{display:none;position:absolute;right:4px;top:50%;transform:translateY(-50%);background:rgba(220,50,50,0.7);border:none;color:#fff;border-radius:4px;width:18px;height:18px;font-size:10px;cursor:pointer;line-height:1;padding:0;}
+.sc:hover .sc-del{display:block;}
+.sc-del:hover{background:var(--red);}
 .add-s{margin:0 12px 12px;padding:8px;border:1px dashed rgba(255,255,255,0.2);border-radius:6px;background:transparent;color:rgba(255,255,255,0.6);font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;width:calc(100% - 24px);transition:all .2s;font-weight:500;flex-shrink:0;}
 .add-s:hover{background:rgba(255,255,255,0.08);border-style:solid;color:#ffffff;}
 
@@ -1180,13 +1183,14 @@ function updateUrgBadge(){
 function renderSidebar(){
   document.getElementById('studentList').innerHTML=students.map(s=>{
     const u=getUrgency(s);
-    return`<div class="sc ${currentStudentId===s.id?'active':''}" onclick="openProfile(${s.id})">
+    return`<div class="sc ${currentStudentId===s.id?'active':''}" onclick="openProfile(${s.id})" style="position:relative">
       <div class="av" style="width:26px;height:26px;font-size:10px;background:${s.color}">${s.firstName[0]}${s.lastName[0]}</div>
       <div class="sc-info">
         <div class="sc-name">${s.firstName} ${s.lastName}</div>
         <div class="sc-sub">Gr.${s.grade} · GPA ${s.gpa||'—'}</div>
       </div>
       <div class="urg-dot" style="background:${u.level==='red'?'var(--red)':u.level==='orange'?'var(--orange)':'var(--green)'}"></div>
+      <button class="sc-del" onclick="event.stopPropagation();deleteStudent(${s.id})" title="Remove student">✕</button>
     </div>`;
   }).join('');
 }
@@ -2522,6 +2526,21 @@ function addStudent(){
   students.push(s);closeMo('moAddStudent');
   ['nFN','nLN','nGPA','nSAT','nACT','nMajor','nECs','nNotes'].forEach(id=>document.getElementById(id).value='');
   renderSidebar();renderDashboard();populateDropdowns();updateUrgBadge();openProfile(s.id);
+}
+
+function deleteStudent(id){
+  const s=students.find(x=>x.id===id);if(!s)return;
+  if(!confirm(`Remove ${s.firstName} ${s.lastName}? This cannot be undone.`))return;
+  students=students.filter(x=>x.id!==id);
+  if(fbDb){
+    fbDb.collection('students').doc(String(id)).delete();
+    logActivity(`removed student <strong>${s.firstName} ${s.lastName}</strong>`);
+  }
+  if(currentStudentId===id){
+    currentStudentId=students.length?students[0].id:null;
+    if(currentStudentId)openProfile(currentStudentId);else goPage('dashboard');
+  }
+  renderSidebar();renderDashboard();populateDropdowns();updateUrgBadge();
 }
 
 // ══════════════════════════════════════════════════════
