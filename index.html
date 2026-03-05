@@ -3502,51 +3502,51 @@ async function seedToFirestore(){
 // by hooking after each function calls renderX we call saveStudentToFirestore
 
 const _origAddNote = addNote;
-function addNote(sid){
+addNote = function(sid){
   _origAddNote(sid);
   const s=students.find(x=>x.id===sid); if(s)saveStudentToFirestore(s);
   logActivity(`added a note for <strong>${students.find(x=>x.id===sid)?.firstName}</strong>`);
-}
+};
 
 const _origAddCourse = addCourse;
-function addCourse(sid,year){
+addCourse = function(sid,year){
   _origAddCourse(sid,year);
   const s=students.find(x=>x.id===sid); if(s)saveStudentToFirestore(s);
-}
+};
 
 const _origDelCourse = delCourse;
-function delCourse(sid,cid){
+delCourse = function(sid,cid){
   _origDelCourse(sid,cid);
   const s=students.find(x=>x.id===sid); if(s)saveStudentToFirestore(s);
-}
+};
 
 const _origSaveTodo = saveTodo;
-function saveTodo(){
+saveTodo = function(){
   _origSaveTodo();
   const s=students.find(x=>x.id===_todoSid); if(s){saveStudentToFirestore(s);logActivity(`updated to-do for <strong>${s.firstName} ${s.lastName}</strong>`);}
-}
+};
 
 const _origToggleTodo = toggleTodo;
-function toggleTodo(sid,tid){
+toggleTodo = function(sid,tid){
   _origToggleTodo(sid,tid);
   const s=students.find(x=>x.id===sid); if(s)saveStudentToFirestore(s);
-}
+};
 
 const _origSaveActivities = saveActivities;
-function saveActivities(){
+saveActivities = function(){
   _origSaveActivities();
   const s=students.find(x=>x.id===_actEditorStudentId);
   if(s){saveStudentToFirestore(s);logActivity(`updated activities for <strong>${s.firstName} ${s.lastName}</strong>`);}
-}
+};
 
 const _origUpdateEssayStatus = updateEssayStatus;
-function updateEssayStatus(sid,eid,status){
+updateEssayStatus = function(sid,eid,status){
   _origUpdateEssayStatus(sid,eid,status);
   const s=students.find(x=>x.id===sid); if(s)saveStudentToFirestore(s);
-}
+};
 
 const _origAddStudent = addStudent;
-function addStudent(){
+addStudent = function(){
   _origAddStudent();
   // The new student was pushed to students[] — save it
   const s=students[students.length-1];
@@ -3557,10 +3557,10 @@ function addStudent(){
     fbDb.collection('students').doc(String(s.id)).set(serializeStudent(s));
     logActivity(`added new student <strong>${s.firstName} ${s.lastName}</strong>`);
   }
-}
+};
 
 const _origAddDeadline = addDeadline;
-function addDeadline(){
+addDeadline = function(){
   _origAddDeadline();
   // Deadlines are saved per-student embedded — find affected student
   const sid=parseInt(document.getElementById('dlStudent')?.value);
@@ -3568,7 +3568,7 @@ function addDeadline(){
   if(s)saveStudentToFirestore(s);
   else saveAllStudentsToFirestore();
   logActivity(`added a deadline`);
-}
+};
 
 // ── Offline fallback: if Firebase not configured, run local mode ──
 function initLocalMode(){
