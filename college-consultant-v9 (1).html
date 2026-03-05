@@ -2593,6 +2593,11 @@ function toggleSetup(){
 
 // ── Bootstrap ──
 async function startApp(){
+  // file:// protocol doesn't support Firebase Auth — go straight to local mode
+  if(location.protocol === 'file:'){
+    initLocalMode();
+    return;
+  }
   const cfg = loadFbConfig();
   document.getElementById('authScreen').style.display='flex';
   document.getElementById('setupGuide').style.display='none';
@@ -2612,6 +2617,18 @@ async function initFirebase(cfg){
     }
     fbAuth = firebase.auth();
     fbDb   = firebase.firestore();
+
+    // Handle redirect result (from signInWithRedirect)
+    try{
+      const result = await fbAuth.getRedirectResult();
+      if(result && result.user){
+        fbCurrentUser = result.user;
+        onSignedIn(result.user);
+        return;
+      }
+    }catch(e){
+      console.warn('Redirect result:', e.message);
+    }
 
     fbAuth.onAuthStateChanged(user=>{
       if(user){
@@ -2641,7 +2658,7 @@ async function signInWithGoogle(){
   try{
     const provider = new firebase.auth.GoogleAuthProvider();
     provider.setCustomParameters({hd: ''});  // allow any google account
-    await fbAuth.signInWithPopup(provider);
+    await fbAuth.signInWithRedirect(provider);
   }catch(e){
     showAuthError(e.message);
   }
