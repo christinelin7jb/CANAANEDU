@@ -36,7 +36,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .sl-wrap{flex:1;overflow-y:auto;padding:0 12px 12px;}
 .sl-lbl{font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:10px 6px 5px;}
 .sc{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px;cursor:pointer;transition:all .18s;border:1px solid transparent;margin-bottom:1px;}
-.sc:hover{background:rgba(255,255,255,0.04);border-color:var(--border);}
+.sc:hover{background:rgba(0,0,0,0.04);border-color:var(--border);}
 .sc.active{background:rgba(201,168,76,0.09);border-color:rgba(201,168,76,0.22);}
 .av{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;color:var(--bg);}
 .sc-info{flex:1;min-width:0;}
@@ -90,7 +90,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .urg-hd.red{background:rgba(224,92,92,0.12);color:var(--red);}
 .urg-hd.orange{background:rgba(240,160,80,0.12);color:var(--orange);}
 .urg-hd.green{background:rgba(46,201,138,0.12);color:var(--green);}
-.urg-card{background:rgba(10,18,32,0.7);border-radius:8px;padding:11px 13px;cursor:pointer;transition:all .18s;border:1px solid transparent;}
+.urg-card{background:#f3f4f6;border-radius:8px;padding:11px 13px;cursor:pointer;transition:all .18s;border:1px solid transparent;}
 .urg-card:hover{border-color:var(--border);transform:translateY(-1px);}
 .urg-card.red{border-left:3px solid var(--red);}
 .urg-card.orange{border-left:3px solid var(--orange);}
@@ -117,13 +117,13 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .tgl{background:rgba(201,168,76,0.13);color:var(--gold);}
 
 /* ── PROGRESS ── */
-.pb{height:4px;background:rgba(255,255,255,0.07);border-radius:10px;overflow:hidden;}
+.pb{height:4px;background:rgba(0,0,0,0.08);border-radius:10px;overflow:hidden;}
 .pf{height:100%;border-radius:10px;transition:width .5s ease;}
 
 /* ── FORM ── */
 .fg{margin-bottom:13px;}
 .fl{display:block;font-size:9.5px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
-.fi,.fse,.fta{width:100%;background:rgba(8,15,30,0.8);border:1px solid rgba(201,168,76,0.16);border-radius:6px;padding:8px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12.5px;outline:none;transition:border-color .18s;}
+.fi,.fse,.fta{width:100%;background:#f9fafb;border:1px solid rgba(0,0,0,0.12);border-radius:6px;padding:8px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12.5px;outline:none;transition:border-color .18s;}
 .fi:focus,.fse:focus,.fta:focus{border-color:var(--gold);box-shadow:0 0 0 2px rgba(201,168,76,0.08);}
 .fse option{background:var(--bg2);}
 .fta{resize:vertical;min-height:80px;line-height:1.6;}
@@ -165,11 +165,11 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .md{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:26px;width:520px;max-width:95vw;max-height:88vh;overflow-y:auto;position:relative;}
 .md-xl{width:760px;}
 .md-title{font-family:'Cormorant Garamond',serif;font-size:19px;color:var(--cream);margin-bottom:18px;}
-.md-close{position:absolute;top:12px;right:12px;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--muted);width:26px;height:26px;border-radius:6px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .18s;}
+.md-close{position:absolute;top:12px;right:12px;background:rgba(0,0,0,0.05);border:1px solid var(--border);color:var(--muted);width:26px;height:26px;border-radius:6px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .18s;}
 .md-close:hover{color:var(--cream);border-color:var(--gold);}
 
 /* ── AI RESPONSE ── */
-.air{background:rgba(8,15,30,0.7);border:1px solid rgba(74,144,217,0.2);border-radius:8px;padding:16px;font-size:12.5px;line-height:1.78;color:var(--text);white-space:pre-wrap;word-wrap:break-word;}
+.air{background:#f3f4f6;border:1px solid rgba(74,144,217,0.2);border-radius:8px;padding:16px;font-size:12.5px;line-height:1.78;color:var(--text);white-space:pre-wrap;word-wrap:break-word;}
 .air h3{font-family:'Cormorant Garamond',serif;color:var(--gold);font-size:14px;margin:13px 0 6px;}
 .air h3:first-child{margin-top:0;}
 .aibadge{display:inline-flex;align-items:center;gap:5px;background:rgba(74,144,217,0.1);border:1px solid rgba(74,144,217,0.25);color:var(--blue);padding:3px 10px;border-radius:12px;font-size:10px;font-weight:600;letter-spacing:.5px;margin-bottom:10px;}
@@ -179,7 +179,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 @keyframes pulse{0%,80%,100%{transform:scale(.6);opacity:.4;}40%{transform:scale(1);opacity:1;}}
 
 /* ── DEADLINE CALENDAR ── */
-.dl-item{display:flex;align-items:center;gap:11px;padding:10px 12px;background:rgba(8,15,30,0.6);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;transition:all .18s;cursor:pointer;}
+.dl-item{display:flex;align-items:center;gap:11px;padding:10px 12px;background:#f3f4f6;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;transition:all .18s;cursor:pointer;}
 .dl-item:hover{border-color:rgba(201,168,76,0.3);}
 .dl-date-box{width:44px;text-align:center;flex-shrink:0;}
 .dl-month{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);}
@@ -197,7 +197,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .essay-row{display:grid;grid-template-columns:2fr 1fr 90px 80px 90px 80px 32px;align-items:center;border-bottom:1px solid rgba(201,168,76,0.05);}
 .essay-row:last-child{border-bottom:none;}
 .essay-row:hover{background:rgba(201,168,76,0.03);}
-.essay-row.hdr{background:rgba(8,15,30,0.5);border-bottom:1px solid var(--border);}
+.essay-row.hdr{background:#f3f4f6;border-bottom:1px solid var(--border);}
 .ec{padding:8px 11px;font-size:12px;}
 .ec.hdr{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);}
 .status-sel{background:transparent;border:none;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;outline:none;padding:2px 4px;border-radius:4px;}
@@ -213,31 +213,31 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .cmp-table tr:last-child td{border-bottom:none;}
 .cmp-table tr:hover td{background:rgba(201,168,76,0.03);cursor:pointer;}
 .bar-cell{display:flex;align-items:center;gap:6px;}
-.mini-bar{width:50px;height:4px;background:rgba(255,255,255,0.07);border-radius:10px;overflow:hidden;}
+.mini-bar{width:50px;height:4px;background:rgba(0,0,0,0.08);border-radius:10px;overflow:hidden;}
 .mini-fill{height:100%;border-radius:10px;}
 
 /* ── TRANSCRIPT ── */
 .tr-year{margin-bottom:16px;}
-.tr-yh{display:flex;align-items:center;justify-content:space-between;padding:9px 13px;background:rgba(8,15,30,0.7);border:1px solid var(--border);border-radius:7px 7px 0 0;cursor:pointer;}
+.tr-yh{display:flex;align-items:center;justify-content:space-between;padding:9px 13px;background:#f3f4f6;border:1px solid var(--border);border-radius:7px 7px 0 0;cursor:pointer;}
 .tr-yh-l{font-family:'Cormorant Garamond',serif;font-size:13.5px;color:var(--cream);display:flex;align-items:center;gap:9px;}
 .tr-yb{border:1px solid var(--border);border-top:none;border-radius:0 0 7px 7px;overflow:hidden;}
 .cr{display:grid;grid-template-columns:2fr 1.2fr 80px 64px 68px 80px 30px;align-items:center;border-bottom:1px solid rgba(201,168,76,0.05);}
 .cr:last-child{border-bottom:none;}
 .cr:hover{background:rgba(201,168,76,0.03);}
-.cr.ch{background:rgba(8,15,30,0.5);border-bottom:1px solid var(--border);}
+.cr.ch{background:#f3f4f6;border-bottom:1px solid var(--border);}
 .cc{padding:8px 11px;font-size:11.5px;}
 .cc.ch{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);}
-.add-cr{display:flex;align-items:center;gap:6px;padding:8px 11px;background:rgba(8,15,30,0.4);border-top:1px dashed rgba(201,168,76,0.13);}
-.mi{background:rgba(8,15,30,0.8);border:1px solid rgba(201,168,76,0.16);border-radius:5px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:11px;padding:4px 7px;outline:none;transition:border-color .18s;}
+.add-cr{display:flex;align-items:center;gap:6px;padding:8px 11px;background:#f9fafb;border-top:1px dashed rgba(201,168,76,0.13);}
+.mi{background:#f9fafb;border:1px solid rgba(0,0,0,0.12);border-radius:5px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:11px;padding:4px 7px;outline:none;transition:border-color .18s;}
 .mi:focus{border-color:var(--gold);}
-.ms{background:rgba(8,15,30,0.8);border:1px solid rgba(201,168,76,0.16);border-radius:5px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:11px;padding:4px 5px;outline:none;cursor:pointer;}
+.ms{background:#f9fafb;border:1px solid rgba(0,0,0,0.12);border-radius:5px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:11px;padding:4px 5px;outline:none;cursor:pointer;}
 .ms option{background:var(--bg2);}
 .del-btn{background:transparent;border:none;color:rgba(224,92,92,0.35);cursor:pointer;font-size:13px;padding:3px;transition:color .18s;line-height:1;}
 .del-btn:hover{color:var(--red);}
 .lb{display:inline-block;font-size:9px;font-weight:700;padding:2px 5px;border-radius:8px;letter-spacing:.3px;}
 .lb-ap{background:rgba(201,168,76,0.17);color:var(--gold);}
 .lb-h{background:rgba(74,144,217,0.17);color:var(--blue);}
-.lb-r{background:rgba(255,255,255,0.06);color:var(--muted);}
+.lb-r{background:rgba(0,0,0,0.06);color:var(--muted);}
 .lb-ib{background:rgba(155,114,207,0.17);color:var(--purple);}
 .gpa-boxes{display:flex;gap:14px;margin-bottom:16px;flex-wrap:wrap;}
 .gb{background:var(--card);border:1px solid var(--border);border-radius:9px;padding:14px 18px;flex:1;min-width:110px;text-align:center;}
@@ -245,7 +245,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .gb-l{font-size:10px;color:var(--muted);margin-top:2px;}
 
 /* ── SCHOOL LIST ITEMS ── */
-.si{display:flex;align-items:center;gap:11px;padding:11px;background:rgba(8,15,30,0.5);border:1px solid rgba(201,168,76,0.08);border-radius:8px;margin-bottom:6px;transition:border-color .18s;}
+.si{display:flex;align-items:center;gap:11px;padding:11px;background:#f3f4f6;border:1px solid rgba(201,168,76,0.08);border-radius:8px;margin-bottom:6px;transition:border-color .18s;}
 .si:hover{border-color:rgba(201,168,76,0.25);}
 .si-info{flex:1;}
 .si-name{font-size:13px;font-weight:500;color:var(--cream);}
@@ -254,7 +254,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .chance-l{font-size:9.5px;color:var(--muted);margin-top:1px;}
 
 /* ── NOTE ── */
-.nc{background:rgba(8,15,30,0.5);border:1px solid rgba(201,168,76,0.08);border-radius:8px;padding:11px 13px;margin-bottom:8px;}
+.nc{background:#f3f4f6;border:1px solid rgba(201,168,76,0.08);border-radius:8px;padding:11px 13px;margin-bottom:8px;}
 .nc-date{font-size:9.5px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;}
 .nc-txt{font-size:12.5px;line-height:1.6;color:var(--text);}
 
@@ -273,7 +273,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .ag-stat{font-size:9px;font-weight:700;margin-top:2px;}
 
 /* ── TO-DO LIST ── */
-.todo-item{display:flex;align-items:flex-start;gap:11px;padding:11px 14px;background:rgba(8,15,30,0.55);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;transition:all .18s;group:todo;}
+.todo-item{display:flex;align-items:flex-start;gap:11px;padding:11px 14px;background:#f9fafb;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;transition:all .18s;group:todo;}
 .todo-item:hover{border-color:rgba(201,168,76,0.25);}
 .todo-item.done{opacity:.5;}
 .todo-item.done .todo-text{text-decoration:line-through;color:var(--muted);}
@@ -294,7 +294,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .todo-actions{display:flex;gap:4px;opacity:0;transition:opacity .15s;flex-shrink:0;}
 .todo-item:hover .todo-actions{opacity:1;}
 .todo-section-hd{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:10px 2px 6px;display:flex;align-items:center;gap:8px;}
-.todo-section-hd .count{background:rgba(255,255,255,0.07);padding:1px 7px;border-radius:8px;font-size:9px;color:var(--text);}
+.todo-section-hd .count{background:rgba(0,0,0,0.08);padding:1px 7px;border-radius:8px;font-size:9px;color:var(--text);}
 
 /* ── SCROLLBAR ── */
 ::-webkit-scrollbar{width:4px;height:4px;}
@@ -1300,7 +1300,7 @@ function renderEssayTracker(){
   const total=allEssays.length,done=allEssays.filter(e=>e.status==='Final').length;
   const byStatus={};ESSAY_STATUS.forEach(st=>{byStatus[st]=allEssays.filter(e=>e.status===st).length;});
   document.getElementById('essayStats').innerHTML=`<div style="display:flex;gap:10px;flex-wrap:wrap">
-    ${ESSAY_STATUS.map(st=>`<div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:7px;padding:8px 12px;text-align:center;flex:1;min-width:80px">
+    ${ESSAY_STATUS.map(st=>`<div style="background:rgba(0,0,0,0.04);border:1px solid var(--border);border-radius:7px;padding:8px 12px;text-align:center;flex:1;min-width:80px">
       <div style="font-size:16px;font-weight:700;color:var(--cream);font-family:'Cormorant Garamond',serif">${byStatus[st]||0}</div>
       <div style="font-size:9.5px;color:${STATUS_COLOR[st]};font-weight:600;margin-top:2px">${st}</div>
     </div>`).join('')}
@@ -1435,11 +1435,11 @@ function renderOverview(s){
         <div class="card">
           <div class="card-hd"><span class="ico">🎯</span>At a Glance</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
-            <div style="background:rgba(8,15,30,0.6);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
+            <div style="background:#f3f4f6;border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
               <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:${agPct(s)>=80?'var(--green)':agPct(s)>=50?'var(--orange)':'var(--red)'}">${agPct(s)}%</div>
               <div style="font-size:10px;color:var(--muted);margin-top:2px">A–G Complete</div>
             </div>
-            <div style="background:rgba(8,15,30,0.6);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
+            <div style="background:#f3f4f6;border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
               <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--purple)">${ep.done}/${ep.total}</div>
               <div style="font-size:10px;color:var(--muted);margin-top:2px">Essays Final</div>
             </div>
@@ -1908,7 +1908,7 @@ async function searchScorecard() {
   out.innerHTML = results.map(r => {
     const p = parseScorecardResult(r);
     const alreadyIn = schoolDB.some(s => s.scorecardId === p.scorecardId || s.name.toLowerCase() === p.name.toLowerCase());
-    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(8,15,30,0.6);border:1px solid var(--border);border-radius:8px;margin-bottom:6px">
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#f3f4f6;border:1px solid var(--border);border-radius:8px;margin-bottom:6px">
       <div style="flex:1">
         <div style="font-size:13px;font-weight:600;color:var(--cream)">${p.name}</div>
         <div style="font-size:10.5px;color:var(--muted);margin-top:2px">${p.city}, ${p.state} · ${p.size ? p.size.toLocaleString() + ' undergrads' : ''}</div>
@@ -2101,7 +2101,7 @@ function renderTodos(s) {
     <div id="todoOpenList">
       ${openUrgent.length ? `<div class="todo-section-hd">🔴 High Priority <span class="count">${openUrgent.length}</span></div>${openUrgent.map(t=>todoCard(t,s.id)).join('')}` : ''}
       ${openNormal.length ? `<div class="todo-section-hd">Open Tasks <span class="count">${openNormal.length}</span></div>${openNormal.map(t=>todoCard(t,s.id)).join('')}` : ''}
-      ${!open.length ? `<div style="padding:24px;text-align:center;color:var(--muted);font-size:12.5px;background:rgba(8,15,30,0.4);border:1px dashed var(--border);border-radius:8px">
+      ${!open.length ? `<div style="padding:24px;text-align:center;color:var(--muted);font-size:12.5px;background:#f9fafb;border:1px dashed var(--border);border-radius:8px">
         <div style="font-size:22px;margin-bottom:8px">✓</div>
         No open tasks — all clear!
       </div>` : ''}
@@ -2124,7 +2124,7 @@ function todoProgressBar(s) {
   if (!total) return '';
   const done = (s.todos||[]).filter(t=>t.done).length;
   const pct = Math.round(done/total*100);
-  return `<div style="background:rgba(8,15,30,0.5);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:14px">
+  return `<div style="background:#f3f4f6;border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:14px">
     <div style="flex:1">
       <div style="display:flex;justify-content:space-between;margin-bottom:5px">
         <span style="font-size:11px;color:var(--muted)">Overall Progress</span>
@@ -2267,7 +2267,7 @@ function renderActList() {
     return;
   }
   el.innerHTML = _pendingActivities.map((a, i) => `
-    <div style="background:rgba(8,15,30,0.6);border:1px solid var(--border);border-radius:9px;padding:14px;margin-bottom:8px">
+    <div style="background:#f3f4f6;border:1px solid var(--border);border-radius:9px;padding:14px;margin-bottom:8px">
       <div style="display:flex;align-items:flex-start;gap:10px">
         <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <div>
