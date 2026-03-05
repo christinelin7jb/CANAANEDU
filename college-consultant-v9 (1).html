@@ -50,6 +50,29 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .add-s{margin:0 12px 12px;padding:8px;border:1px dashed rgba(255,255,255,0.2);border-radius:6px;background:transparent;color:rgba(255,255,255,0.6);font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;width:calc(100% - 24px);transition:all .2s;font-weight:500;flex-shrink:0;}
 .add-s:hover{background:rgba(255,255,255,0.08);border-style:solid;color:#ffffff;}
 
+/* ── STRATEGY PLAN ── */
+.sp-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;}
+.sp-section{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px;}
+.sp-section label{display:block;font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--gold);text-transform:uppercase;margin-bottom:7px;}
+.sp-section textarea{width:100%;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:var(--cream);font-family:'DM Sans',sans-serif;font-size:12px;line-height:1.6;padding:10px;resize:vertical;min-height:110px;box-sizing:border-box;}
+.sp-section textarea:focus{outline:none;border-color:var(--gold);}
+.sp-full{grid-column:1/-1;}
+/* ── SUMMER ── */
+.sum-rec-card{background:rgba(201,168,76,0.07);border:1px solid rgba(201,168,76,0.2);border-radius:10px;padding:14px;margin-bottom:10px;}
+.sum-rec-card h3{color:var(--gold);font-size:13px;margin:0 0 6px;}
+.sum-notes{width:100%;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:var(--cream);font-family:'DM Sans',sans-serif;font-size:12px;line-height:1.6;padding:10px;resize:vertical;min-height:80px;box-sizing:border-box;margin-top:8px;}
+.sum-notes:focus{outline:none;border-color:var(--gold);}
+/* ── PRINT (summer export) ── */
+@media print{
+  body>*:not(#printArea){display:none!important;}
+  #printArea{display:block!important;position:static;padding:32px;color:#111;background:#fff;font-family:Georgia,serif;}
+  #printArea h1{font-size:22px;margin-bottom:4px;}
+  #printArea h2{font-size:15px;color:#555;margin-bottom:20px;font-weight:normal;}
+  #printArea h3{font-size:13px;color:#c9a84c;margin:14px 0 4px;}
+  #printArea p,#printArea li{font-size:12px;line-height:1.7;color:#222;}
+  #printArea .print-footer{margin-top:32px;font-size:10px;color:#888;border-top:1px solid #ddd;padding-top:8px;}
+}
+#printArea{display:none;}
 /* ── MAIN ── */
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 .topbar{padding:16px 26px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:#ffffff;backdrop-filter:blur(12px);flex-shrink:0;z-index:10;}
@@ -562,6 +585,8 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       <div class="tab" data-tab="todos" onclick="switchTab('todos')" id="tab-btn-todos">☑ To-Do</div>
       <div class="tab" data-tab="notes" onclick="switchTab('notes')">Notes</div>
       <div class="tab" data-tab="ai" onclick="switchTab('ai')">AI Analysis</div>
+      <div class="tab" data-tab="stratplan" onclick="switchTab('stratplan')">📅 Strategy Plan</div>
+      <div class="tab" data-tab="summer" onclick="switchTab('summer')">☀ Summer</div>
     </div>
     <div class="tc active" id="tab-overview"><div id="ovContent"></div></div>
     <div class="tc" id="tab-transcript"><div id="trContent"></div></div>
@@ -570,6 +595,8 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
     <div class="tc" id="tab-todos"><div id="todoContent"></div></div>
     <div class="tc" id="tab-notes"><div id="notesContent"></div></div>
     <div class="tc" id="tab-ai"><div id="aiContent"></div></div>
+    <div class="tc" id="tab-stratplan"><div id="stratPlanContent"></div></div>
+    <div class="tc" id="tab-summer"><div id="summerContent"></div></div>
   </div>
 
   <!-- ══ SCHOOL DATABASE ══ -->
@@ -1160,6 +1187,8 @@ function switchTab(tab){
   if(tab==='todos')renderTodos(s);
   if(tab==='notes')renderNotes(s);
   if(tab==='ai')renderAITab(s);
+  if(tab==='stratplan')renderStrategyPlan(s);
+  if(tab==='summer')renderSummerTab(s);
 }
 function openMo(id){document.getElementById(id).classList.add('open');}
 function closeMo(id){document.getElementById(id).classList.remove('open');}
@@ -1474,6 +1503,8 @@ function openProfile(id){
   document.getElementById('essayProfileContent').innerHTML='';
   document.getElementById('notesContent').innerHTML='';
   document.getElementById('aiContent').innerHTML='';
+  document.getElementById('stratPlanContent').innerHTML='';
+  document.getElementById('summerContent').innerHTML='';
   switchTab('overview');
 }
 
@@ -1917,12 +1948,251 @@ Recent notes: ${s.meetings.slice(0,2).map(m=>m.content).join(' | ')||'None'}
   await callClaude(prompt,out,'Analyzing...');
 }
 
+// ══════════════════════════════════════════════════════
+// STRATEGY PLAN TAB
+// ══════════════════════════════════════════════════════
+function renderStrategyPlan(s){
+  const p=s.strategyPlan||{};
+  const lastUpd=p.lastUpdated?`<span style="font-size:10px;color:var(--muted)">Last saved: ${p.lastUpdated}</span>`:'';
+  document.getElementById('stratPlanContent').innerHTML=`
+  <div class="card">
+    <div class="card-hd" style="justify-content:space-between">
+      <span><span class="ico">📅</span>Academic Year Strategy Plan — ${s.firstName} ${s.lastName}</span>
+      ${lastUpd}
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Edit each section directly, then save. Use the AI button to generate a personalised plan as a starting point.</p>
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+      <button class="btn btn-gold btn-sm" onclick="generateStrategyPlanAI(${s.id})">✦ AI Generate Full Plan</button>
+      <button class="btn btn-out btn-sm" onclick="saveStrategyPlan(${s.id})">💾 Save Plan</button>
+    </div>
+    <div id="spAIOut"></div>
+    <div class="sp-grid" style="margin-top:14px">
+      <div class="sp-section sp-full">
+        <label>🎯 Annual Objectives & Goals</label>
+        <textarea id="sp-objectives" placeholder="e.g. Raise SAT to 1450, complete A-G requirements, finalise school list, begin Common App essays…">${p.objectives||''}</textarea>
+      </div>
+      <div class="sp-section">
+        <label>🍂 Fall Semester Actions</label>
+        <textarea id="sp-fall" placeholder="e.g. Take AP exams in Oct, submit EA to USC by Nov 1, draft 3 supplemental essays, shadow at clinic 4hrs/wk…">${p.fall||''}</textarea>
+      </div>
+      <div class="sp-section">
+        <label>🌸 Spring Semester Actions</label>
+        <textarea id="sp-spring" placeholder="e.g. Enrol in AP Calculus BC, retake SAT in March, finalise RD applications, prepare for AP exams…">${p.spring||''}</textarea>
+      </div>
+      <div class="sp-section">
+        <label>☀ Summer Plans</label>
+        <textarea id="sp-summer" placeholder="e.g. Research internship / summer programme, start Common App, shadow, maintain GPA with summer coursework…">${p.summer||''}</textarea>
+      </div>
+      <div class="sp-section sp-full">
+        <label>🚩 Key Milestones & Deadlines</label>
+        <textarea id="sp-milestones" placeholder="e.g. Aug 1 – Common App opens | Nov 1 – EA/ED deadlines | Jan 1 – RD deadline | May – AP exams…">${p.milestones||''}</textarea>
+      </div>
+      <div class="sp-section sp-full">
+        <label>📝 Consultant Notes</label>
+        <textarea id="sp-notes" placeholder="Internal notes for the consulting team…" style="min-height:70px">${p.notes||''}</textarea>
+      </div>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px">
+      <button class="btn btn-gold" onclick="saveStrategyPlan(${s.id})">💾 Save Plan</button>
+    </div>
+  </div>`;
+}
+
+function saveStrategyPlan(sid){
+  const s=students.find(x=>x.id===sid);if(!s)return;
+  s.strategyPlan={
+    objectives:document.getElementById('sp-objectives').value,
+    fall:document.getElementById('sp-fall').value,
+    spring:document.getElementById('sp-spring').value,
+    summer:document.getElementById('sp-summer').value,
+    milestones:document.getElementById('sp-milestones').value,
+    notes:document.getElementById('sp-notes').value,
+    lastUpdated:new Date().toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'})
+  };
+  if(fbDb){saveStudentToFirestore(s);logActivity(`updated strategy plan for <strong>${s.firstName} ${s.lastName}</strong>`);}
+  renderStrategyPlan(s);
+}
+
+async function generateStrategyPlanAI(sid){
+  const s=students.find(x=>x.id===sid);if(!s)return;
+  const out=document.getElementById('spAIOut');if(!out)return;
+  const gpas=calcGPAs(s.transcript);
+  const apCount=(s.transcript||[]).filter(c=>c.level==='AP'||c.level==='IB').length;
+  const missing=getAGStatus(s.transcript,s.grade).filter(r=>r.uc>0&&!r.met).map(r=>r.label.split('—')[0].trim()).join(', ')||'None';
+  const nextDLs=globalDeadlines.filter(d=>d.studentId===s.id&&!d.done&&new Date(d.date)>=new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,5).map(d=>`${d.title}(${formatDate(d.date)})`).join(', ')||'None';
+  const prompt=`You are a senior college admissions consultant. Create a detailed, personalised academic year strategy plan for this student.
+
+STUDENT: ${s.firstName} ${s.lastName}, Grade ${s.grade}
+GPA: ${s.gpa} (UW) / ${gpas.w} (W) | SAT: ${s.sat||'None'} | ACT: ${s.act||'None'}
+Major Interest: ${s.major} | Target Tier: ${tierLabel(s.tier)} | Hook: ${hookLabel(s.hook)||'None'}
+AP/IB courses: ${apCount} | Missing A-G: ${missing}
+Activities: ${s.activities}
+Upcoming deadlines: ${nextDLs}
+Essays: ${(s.essays||[]).map(e=>`${e.title}(${e.status})`).join(', ')||'None'}
+Recent meeting notes: ${s.meetings.slice(0,2).map(m=>m.content).join(' | ')||'None'}
+
+Generate a comprehensive strategy plan structured EXACTLY as follows (use these headings):
+
+### 🎯 Annual Objectives & Goals
+3-5 specific, measurable goals for this academic year tailored to this student's situation.
+
+### 🍂 Fall Semester Actions
+Month-by-month action items for Fall (Aug–Dec). Be specific (e.g. "Submit EA to X by Nov 1", "Retake SAT in Oct").
+
+### 🌸 Spring Semester Actions
+Month-by-month action items for Spring (Jan–May). Include AP prep, RD follow-ups, summer planning.
+
+### ☀ Summer Plans
+Specific recommendations for what this student should do over summer (programmes, internships, coursework, essay work).
+
+### 🚩 Key Milestones & Deadlines
+A concise timeline of the 6-8 most critical dates and milestones for this student.
+
+Be direct, specific, and actionable. Tailor everything to this exact student's profile.`;
+
+  out.innerHTML=`<div class="aibadge">✦ AI Advisor</div><div style="color:var(--muted);font-size:12px;margin-top:8px">Generating personalised strategy plan… <span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div>`;
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1600,messages:[{role:'user',content:prompt}]})});
+    const data=await res.json();
+    const text=data.content?.map(b=>b.text||'').join('\n')||'No response.';
+    // Parse sections and auto-fill textareas
+    const getSection=(heading,txt)=>{const m=txt.match(new RegExp(heading+'([\\s\\S]*?)(?=###|$)'));return m?m[1].trim():'';};
+    const obj=getSection('### 🎯 Annual Objectives & Goals',text);
+    const fall=getSection('### 🍂 Fall Semester Actions',text);
+    const spring=getSection('### 🌸 Spring Semester Actions',text);
+    const sum=getSection('### ☀ Summer Plans',text);
+    const mile=getSection('### 🚩 Key Milestones & Deadlines',text);
+    if(document.getElementById('sp-objectives'))document.getElementById('sp-objectives').value=obj||text;
+    if(fall&&document.getElementById('sp-fall'))document.getElementById('sp-fall').value=fall;
+    if(spring&&document.getElementById('sp-spring'))document.getElementById('sp-spring').value=spring;
+    if(sum&&document.getElementById('sp-summer'))document.getElementById('sp-summer').value=sum;
+    if(mile&&document.getElementById('sp-milestones'))document.getElementById('sp-milestones').value=mile;
+    out.innerHTML=`<div class="aibadge" style="color:var(--green)">✦ Plan generated — review and edit below, then save.</div>`;
+  }catch(e){out.innerHTML=`<div class="air" style="border-color:rgba(224,92,92,.3);color:var(--red)">Error: ${e.message}</div>`;}
+}
+
 async function askStrategy(){
   const q=document.getElementById('stratQ').value.trim();if(!q)return;
   const out=document.getElementById('stratOut');
   const sid=parseInt(document.getElementById('stratStu').value);
   let ctx=sid?`Student context: ${(()=>{const s=students.find(x=>x.id===sid);return`${s.firstName} ${s.lastName}, Gr${s.grade}, GPA${s.gpa}, ${s.major}, ${tierLabel(s.tier)}, activities: ${s.activities}`;})()}\n\n`:`Cohort: ${students.map(s=>`${s.firstName}(Gr${s.grade},GPA${s.gpa})`).join('; ')}\n\n`;
   await callClaude(`You are an expert college admissions consultant. ${ctx}Question: ${q}\n\nProvide expert, actionable advice.`,out,'Consulting AI...');
+}
+
+// ══════════════════════════════════════════════════════
+// SUMMER SCHOOL TAB
+// ══════════════════════════════════════════════════════
+function renderSummerTab(s){
+  const rec=s.summerRec||{};
+  const genAt=rec.generatedAt?`<span style="font-size:10px;color:var(--muted)">Generated: ${rec.generatedAt}</span>`:'';
+  const recHtml=rec.text
+    ? rec.text.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/^###?\s(.+)/gm,'<h3 style="color:var(--gold);font-size:13px;margin:12px 0 4px">$1</h3>').replace(/^[-•]\s/gm,'• ')
+    : '<div style="color:var(--muted);font-size:12px;padding:16px 0">No recommendations yet. Click "AI Generate" to create personalised summer programme recommendations.</div>';
+  document.getElementById('summerContent').innerHTML=`
+  <div class="card">
+    <div class="card-hd" style="justify-content:space-between">
+      <span><span class="ico">☀</span>Summer Programme Recommendations — ${s.firstName} ${s.lastName}</span>
+      ${genAt}
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:12px">AI analyses the student's profile to recommend best-fit summer programmes. Export a polished report for parents.</p>
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+      <button class="btn btn-gold btn-sm" onclick="generateSummerRec(${s.id})">✦ AI Generate Recommendations</button>
+      <button class="btn btn-out btn-sm" onclick="exportSummerReport(${s.id})">📄 Export to PDF</button>
+    </div>
+    <div id="sumAIOut"></div>
+    <div class="sum-rec-card" style="margin-top:10px">
+      <div id="sumRecBody" style="font-size:12.5px;line-height:1.75;color:var(--cream)">${recHtml}</div>
+    </div>
+    <div style="margin-top:14px">
+      <div style="font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--gold);text-transform:uppercase;margin-bottom:6px">📝 Consultant Notes (internal)</div>
+      <textarea class="sum-notes" id="sumNotes" placeholder="Add internal notes for this student's summer planning…">${rec.notes||''}</textarea>
+      <button class="btn btn-out btn-sm" style="margin-top:8px" onclick="saveSummerNotes(${s.id})">Save Notes</button>
+    </div>
+  </div>`;
+}
+
+async function generateSummerRec(sid){
+  const s=students.find(x=>x.id===sid);if(!s)return;
+  const out=document.getElementById('sumAIOut');if(!out)return;
+  const gpas=calcGPAs(s.transcript);
+  const apCount=(s.transcript||[]).filter(c=>c.level==='AP'||c.level==='IB').length;
+  const prompt=`You are a senior college admissions consultant specialising in summer enrichment for competitive applicants.
+
+STUDENT PROFILE:
+Name: ${s.firstName} ${s.lastName} | Grade: ${s.grade} (completing)
+Unweighted GPA: ${s.gpa} | Weighted GPA: ${gpas.w} | SAT: ${s.sat||'None'} | ACT: ${s.act||'None'}
+Intended Major: ${s.major} | Target College Tier: ${tierLabel(s.tier)} | Special Hook: ${hookLabel(s.hook)||'None'}
+AP/IB courses taken: ${apCount}
+Extracurriculars: ${s.activities}
+Recent notes: ${s.meetings.slice(0,2).map(m=>m.content).join(' | ')||'None'}
+
+Generate a comprehensive summer programme recommendation report for this student's PARENTS. The report should:
+
+### Why Summer Programmes Matter
+1-2 sentences on the strategic value for this specific student.
+
+### Top Recommended Programmes (6-8 programmes)
+For each programme provide:
+**[Programme Name]** — [Institution/Organisation]
+- **Why it fits ${s.firstName}:** specific reason tied to their major/profile
+- **Type:** (Research / Leadership / Academic / Pre-College / Arts / STEM / Service)
+- **Typical timeline:** (when to apply, when it runs)
+- **Selectivity:** (Highly Competitive / Competitive / Accessible)
+- **Cost note:** (fully-funded / partial scholarship / fee-based)
+
+### Academic Enrichment Options
+2-3 online or local options if the student cannot travel or needs additional flexibility.
+
+### How to Choose
+3-4 bullet points guiding the family on how to prioritise from the list above.
+
+### Recommended Next Steps
+Specific actions for ${s.firstName} to take in the next 2-4 weeks.
+
+Write in a warm, professional tone suitable for parents. Be specific — do not use generic programmes; tailor recommendations to this student's exact major and profile.`;
+
+  out.innerHTML=`<div class="aibadge">✦ AI Advisor</div><div style="color:var(--muted);font-size:12px;margin-top:8px">Generating summer recommendations… <span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div>`;
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:prompt}]})});
+    const data=await res.json();
+    const text=data.content?.map(b=>b.text||'').join('\n')||'No response.';
+    const ts=new Date().toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    s.summerRec={...(s.summerRec||{}),text,generatedAt:ts};
+    if(fbDb){saveStudentToFirestore(s);logActivity(`generated summer recommendations for <strong>${s.firstName} ${s.lastName}</strong>`);}
+    out.innerHTML=`<div class="aibadge" style="color:var(--green)">✦ Recommendations generated — scroll down to view.</div>`;
+    renderSummerTab(s);
+  }catch(e){out.innerHTML=`<div class="air" style="border-color:rgba(224,92,92,.3);color:var(--red)">Error: ${e.message}</div>`;}
+}
+
+function saveSummerNotes(sid){
+  const s=students.find(x=>x.id===sid);if(!s)return;
+  const notes=document.getElementById('sumNotes')?.value||'';
+  s.summerRec={...(s.summerRec||{}),notes};
+  if(fbDb)saveStudentToFirestore(s);
+  const btn=event.target;btn.textContent='Saved ✓';setTimeout(()=>btn.textContent='Save Notes',1800);
+}
+
+function exportSummerReport(sid){
+  const s=students.find(x=>x.id===sid);if(!s)return;
+  const rec=s.summerRec||{};
+  if(!rec.text){alert('Please generate AI recommendations first.');return;}
+  const fmt=rec.text
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/^###?\s(.+)/gm,'<h3>$1</h3>')
+    .replace(/^[-•]\s(.+)/gm,'<li>$1</li>')
+    .replace(/\n/g,'<br>');
+  let printDiv=document.getElementById('printArea');
+  if(!printDiv){printDiv=document.createElement('div');printDiv.id='printArea';document.body.appendChild(printDiv);}
+  printDiv.innerHTML=`
+    <h1>Summer Programme Recommendations</h1>
+    <h2>${s.firstName} ${s.lastName} — Grade ${s.grade} | ${s.major}</h2>
+    <hr style="border:none;border-top:1px solid #ddd;margin:16px 0">
+    <div>${fmt}</div>
+    ${rec.notes?`<div style="margin-top:24px;padding:12px;background:#f9f6ee;border-left:3px solid #c9a84c;font-size:11px"><strong>Consultant Notes:</strong><br>${rec.notes.replace(/\n/g,'<br>')}</div>`:''}
+    <div class="print-footer">Prepared by Canaan Education Consulting · ${rec.generatedAt||new Date().toLocaleDateString()} · Confidential</div>`;
+  printDiv.style.display='block';
+  window.print();
+  setTimeout(()=>{printDiv.style.display='none';},1000);
 }
 
 // ══════════════════════════════════════════════════════
@@ -2885,6 +3155,8 @@ function deserializeStudent(r){
   if(!s.transcript)s.transcript=[];
   if(!s.activitiesList)s.activitiesList=[];
   if(!s.meetings)s.meetings=[];
+  if(!s.strategyPlan)s.strategyPlan={};
+  if(!s.summerRec)s.summerRec={};
   return s;
 }
 
