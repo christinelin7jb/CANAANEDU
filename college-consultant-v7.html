@@ -1,0 +1,2467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Canaan Education</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#080f1e; --bg2:#0d1829; --bg3:#122035;
+  --gold:#c9a84c; --gold2:#e8c96a; --gold3:#f5e4b0;
+  --cream:#f0ece4; --text:#ddd9d0; --muted:#7a8ea8;
+  --blue:#4a90d9; --green:#2ec98a; --red:#e05c5c; --orange:#f0a050; --purple:#9b72cf;
+  --border:rgba(201,168,76,0.16); --card:rgba(13,24,41,0.85);
+  --urgent:#e05c5c; --soon:#f0a050; --ok:#2ec98a;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 60% 50% at 10% 20%,rgba(201,168,76,0.04),transparent),radial-gradient(ellipse 50% 60% at 90% 80%,rgba(74,144,217,0.04),transparent);pointer-events:none;z-index:0;}
+.app{display:flex;height:100vh;position:relative;z-index:1;}
+
+/* ── SIDEBAR ── */
+.sidebar{width:248px;flex-shrink:0;background:rgba(6,11,22,0.97);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100vh;overflow:hidden;}
+.brand{padding:20px 18px 16px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.brand-chip{display:inline-block;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--bg);font-size:8px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;padding:3px 8px;border-radius:20px;margin-bottom:8px;}
+.brand h1{font-family:'Cormorant Garamond',serif;font-size:21px;color:var(--cream);line-height:1.1;}
+.brand h1 em{font-style:italic;color:var(--gold);}
+.brand p{font-size:10px;color:var(--muted);margin-top:3px;font-weight:300;letter-spacing:.3px;}
+.nav{padding:12px 12px 6px;flex-shrink:0;}
+.nav-lbl{font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:0 6px;margin-bottom:4px;}
+.ni{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:6px;cursor:pointer;transition:all .18s;font-size:12.5px;color:var(--muted);border:1px solid transparent;margin-bottom:1px;}
+.ni:hover{background:rgba(201,168,76,0.07);color:var(--cream);}
+.ni.active{background:rgba(201,168,76,0.11);color:var(--gold);border-color:rgba(201,168,76,0.18);font-weight:500;}
+.ni .ico{font-size:13px;width:15px;text-align:center;flex-shrink:0;}
+.ni .badge{margin-left:auto;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;}
+.sl-wrap{flex:1;overflow-y:auto;padding:0 12px 12px;}
+.sl-lbl{font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:10px 6px 5px;}
+.sc{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px;cursor:pointer;transition:all .18s;border:1px solid transparent;margin-bottom:1px;}
+.sc:hover{background:rgba(255,255,255,0.04);border-color:var(--border);}
+.sc.active{background:rgba(201,168,76,0.09);border-color:rgba(201,168,76,0.22);}
+.av{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;color:var(--bg);}
+.sc-info{flex:1;min-width:0;}
+.sc-name{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sc-sub{font-size:9.5px;color:var(--muted);margin-top:1px;}
+.urg-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.add-s{margin:0 12px 12px;padding:8px;border:1px dashed rgba(201,168,76,0.25);border-radius:6px;background:transparent;color:var(--gold);font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;width:calc(100% - 24px);transition:all .2s;font-weight:500;flex-shrink:0;}
+.add-s:hover{background:rgba(201,168,76,0.07);border-style:solid;}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.topbar{padding:16px 26px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:rgba(6,11,22,0.8);backdrop-filter:blur(12px);flex-shrink:0;z-index:10;}
+.tb-l h2{font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--cream);}
+.tb-l p{font-size:10.5px;color:var(--muted);margin-top:2px;}
+.tb-r{display:flex;gap:7px;align-items:center;}
+.btn{padding:6px 14px;border-radius:6px;border:none;font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;font-weight:500;transition:all .18s;}
+.btn-gold{background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--bg);}
+.btn-gold:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(201,168,76,0.25);}
+.btn-out{background:transparent;border:1px solid var(--border);color:var(--muted);}
+.btn-out:hover{border-color:var(--gold);color:var(--gold);}
+.btn-blue{background:rgba(74,144,217,0.15);border:1px solid rgba(74,144,217,0.3);color:var(--blue);}
+.btn-blue:hover{background:rgba(74,144,217,0.25);}
+.btn-sm{padding:4px 10px;font-size:11px;}
+.btn-red{background:rgba(224,92,92,0.12);border:1px solid rgba(224,92,92,0.25);color:var(--red);}
+.btn-red:hover{background:rgba(224,92,92,0.22);}
+
+/* ── PAGES ── */
+.page{display:none;flex:1;overflow-y:auto;padding:24px 26px;animation:fadeUp .22s ease;}
+.page.active{display:block;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:translateY(0);}}
+
+/* ── CARDS ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px;backdrop-filter:blur(8px);}
+.card-hd{font-family:'Cormorant Garamond',serif;font-size:15px;color:var(--cream);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.card-hd .ico{font-size:16px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+
+/* ── STAT CARDS ── */
+.stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;position:relative;overflow:hidden;}
+.stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--gold),transparent);}
+.stat-ico{font-size:18px;margin-bottom:9px;}
+.stat-v{font-family:'Cormorant Garamond',serif;font-size:28px;color:var(--cream);font-weight:700;line-height:1;}
+.stat-l{font-size:10.5px;color:var(--muted);margin-top:4px;}
+.stat-s{font-size:10px;margin-top:5px;color:var(--muted);}
+
+/* ── URGENCY BOARD ── */
+.urg-col{display:flex;flex-direction:column;gap:8px;}
+.urg-hd{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:6px 10px;border-radius:6px;margin-bottom:4px;display:flex;align-items:center;gap:6px;}
+.urg-hd.red{background:rgba(224,92,92,0.12);color:var(--red);}
+.urg-hd.orange{background:rgba(240,160,80,0.12);color:var(--orange);}
+.urg-hd.green{background:rgba(46,201,138,0.12);color:var(--green);}
+.urg-card{background:rgba(10,18,32,0.7);border-radius:8px;padding:11px 13px;cursor:pointer;transition:all .18s;border:1px solid transparent;}
+.urg-card:hover{border-color:var(--border);transform:translateY(-1px);}
+.urg-card.red{border-left:3px solid var(--red);}
+.urg-card.orange{border-left:3px solid var(--orange);}
+.urg-card.green{border-left:3px solid var(--green);}
+.urg-name{font-size:12.5px;font-weight:600;color:var(--cream);margin-bottom:3px;}
+.urg-reason{font-size:11px;color:var(--muted);line-height:1.4;}
+.urg-meta{font-size:9.5px;color:var(--muted);margin-top:5px;font-family:'DM Mono',monospace;}
+
+/* ── TABLES ── */
+.dt{width:100%;border-collapse:collapse;}
+.dt th{text-align:left;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding:8px 11px;border-bottom:1px solid var(--border);}
+.dt td{padding:10px 11px;font-size:12px;border-bottom:1px solid rgba(201,168,76,0.05);vertical-align:middle;}
+.dt tr:last-child td{border-bottom:none;}
+.dt tr:hover td{background:rgba(201,168,76,0.03);}
+.dt tr.clickable{cursor:pointer;}
+
+/* ── TAGS ── */
+.tag{display:inline-block;padding:2px 7px;border-radius:12px;font-size:9.5px;font-weight:600;}
+.tg{background:rgba(46,201,138,0.13);color:var(--green);}
+.to{background:rgba(240,160,80,0.13);color:var(--orange);}
+.tr{background:rgba(224,92,92,0.13);color:var(--red);}
+.tb{background:rgba(74,144,217,0.13);color:var(--blue);}
+.tp{background:rgba(155,114,207,0.13);color:var(--purple);}
+.tgl{background:rgba(201,168,76,0.13);color:var(--gold);}
+
+/* ── PROGRESS ── */
+.pb{height:4px;background:rgba(255,255,255,0.07);border-radius:10px;overflow:hidden;}
+.pf{height:100%;border-radius:10px;transition:width .5s ease;}
+
+/* ── FORM ── */
+.fg{margin-bottom:13px;}
+.fl{display:block;font-size:9.5px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
+.fi,.fse,.fta{width:100%;background:rgba(8,15,30,0.8);border:1px solid rgba(201,168,76,0.16);border-radius:6px;padding:8px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12.5px;outline:none;transition:border-color .18s;}
+.fi:focus,.fse:focus,.fta:focus{border-color:var(--gold);box-shadow:0 0 0 2px rgba(201,168,76,0.08);}
+.fse option{background:var(--bg2);}
+.fta{resize:vertical;min-height:80px;line-height:1.6;}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+.fr3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px;}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:18px;flex-shrink:0;}
+.tab{padding:8px 13px;font-size:12px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .18s;white-space:nowrap;}
+.tab:hover{color:var(--cream);}
+.tab.active{color:var(--gold);border-bottom-color:var(--gold);font-weight:500;}
+.tc{display:none;}
+.tc.active{display:block;}
+
+/* ── PROFILE ── */
+.ph{display:flex;align-items:flex-start;gap:16px;padding:20px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:18px;position:relative;overflow:hidden;}
+.ph::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--gold),var(--gold2),transparent);}
+.ph-name{font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--cream);}
+.ph-meta{display:flex;gap:12px;margin-top:6px;flex-wrap:wrap;}
+.pm{font-size:11px;color:var(--muted);}
+.pm strong{color:var(--text);font-weight:500;}
+
+/* ── CONF BOXES ── */
+.cb{border-radius:7px;padding:9px 12px;margin-bottom:8px;display:flex;align-items:flex-start;gap:9px;}
+.cb.hi{background:rgba(46,201,138,0.1);border:1px solid rgba(46,201,138,0.2);}
+.cb.md{background:rgba(240,160,80,0.1);border:1px solid rgba(240,160,80,0.2);}
+.cb.lo{background:rgba(224,92,92,0.1);border:1px solid rgba(224,92,92,0.2);}
+.cb-ico{font-size:13px;flex-shrink:0;margin-top:1px;}
+.cb-txt{font-size:11.5px;line-height:1.55;color:var(--text);}
+.cb-lbl{font-weight:600;display:block;margin-bottom:2px;}
+.conf-badge{display:inline-flex;align-items:center;font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;padding:2px 6px;border-radius:8px;}
+.conf-badge.hi{background:rgba(46,201,138,0.15);color:var(--green);}
+.conf-badge.md{background:rgba(240,160,80,0.15);color:var(--orange);}
+.conf-badge.lo{background:rgba(224,92,92,0.15);color:var(--red);}
+
+/* ── MODAL ── */
+.mo{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.75);backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;}
+.mo.open{display:flex;}
+.md{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:26px;width:520px;max-width:95vw;max-height:88vh;overflow-y:auto;position:relative;}
+.md-xl{width:760px;}
+.md-title{font-family:'Cormorant Garamond',serif;font-size:19px;color:var(--cream);margin-bottom:18px;}
+.md-close{position:absolute;top:12px;right:12px;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--muted);width:26px;height:26px;border-radius:6px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .18s;}
+.md-close:hover{color:var(--cream);border-color:var(--gold);}
+
+/* ── AI RESPONSE ── */
+.air{background:rgba(8,15,30,0.7);border:1px solid rgba(74,144,217,0.2);border-radius:8px;padding:16px;font-size:12.5px;line-height:1.78;color:var(--text);white-space:pre-wrap;word-wrap:break-word;}
+.air h3{font-family:'Cormorant Garamond',serif;color:var(--gold);font-size:14px;margin:13px 0 6px;}
+.air h3:first-child{margin-top:0;}
+.aibadge{display:inline-flex;align-items:center;gap:5px;background:rgba(74,144,217,0.1);border:1px solid rgba(74,144,217,0.25);color:var(--blue);padding:3px 10px;border-radius:12px;font-size:10px;font-weight:600;letter-spacing:.5px;margin-bottom:10px;}
+.dots{display:inline-flex;gap:4px;align-items:center;}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--gold);animation:pulse 1.2s ease-in-out infinite;}
+.dot:nth-child(2){animation-delay:.2s;}.dot:nth-child(3){animation-delay:.4s;}
+@keyframes pulse{0%,80%,100%{transform:scale(.6);opacity:.4;}40%{transform:scale(1);opacity:1;}}
+
+/* ── DEADLINE CALENDAR ── */
+.dl-item{display:flex;align-items:center;gap:11px;padding:10px 12px;background:rgba(8,15,30,0.6);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;transition:all .18s;cursor:pointer;}
+.dl-item:hover{border-color:rgba(201,168,76,0.3);}
+.dl-date-box{width:44px;text-align:center;flex-shrink:0;}
+.dl-month{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);}
+.dl-day{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--cream);line-height:1;}
+.dl-info{flex:1;}
+.dl-title{font-size:12.5px;font-weight:500;color:var(--cream);}
+.dl-sub{font-size:10.5px;color:var(--muted);margin-top:1px;}
+.dl-urg{font-size:9px;font-weight:700;padding:2px 6px;border-radius:8px;flex-shrink:0;}
+.dl-urg.red{background:rgba(224,92,92,0.15);color:var(--red);}
+.dl-urg.orange{background:rgba(240,160,80,0.15);color:var(--orange);}
+.dl-urg.green{background:rgba(46,201,138,0.15);color:var(--green);}
+.dl-type{font-size:9px;font-weight:600;padding:2px 6px;border-radius:8px;flex-shrink:0;}
+
+/* ── ESSAY TRACKER ── */
+.essay-row{display:grid;grid-template-columns:2fr 1fr 90px 80px 90px 80px 32px;align-items:center;border-bottom:1px solid rgba(201,168,76,0.05);}
+.essay-row:last-child{border-bottom:none;}
+.essay-row:hover{background:rgba(201,168,76,0.03);}
+.essay-row.hdr{background:rgba(8,15,30,0.5);border-bottom:1px solid var(--border);}
+.ec{padding:8px 11px;font-size:12px;}
+.ec.hdr{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);}
+.status-sel{background:transparent;border:none;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;outline:none;padding:2px 4px;border-radius:4px;}
+
+/* ── COMPARE TABLE ── */
+.cmp-wrap{overflow-x:auto;}
+.cmp-table{min-width:900px;width:100%;border-collapse:collapse;}
+.cmp-table th{text-align:left;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;}
+.cmp-table th:hover{color:var(--gold);}
+.cmp-table th.sort-asc::after{content:' ↑';}
+.cmp-table th.sort-desc::after{content:' ↓';}
+.cmp-table td{padding:9px 10px;font-size:12px;border-bottom:1px solid rgba(201,168,76,0.05);vertical-align:middle;}
+.cmp-table tr:last-child td{border-bottom:none;}
+.cmp-table tr:hover td{background:rgba(201,168,76,0.03);cursor:pointer;}
+.bar-cell{display:flex;align-items:center;gap:6px;}
+.mini-bar{width:50px;height:4px;background:rgba(255,255,255,0.07);border-radius:10px;overflow:hidden;}
+.mini-fill{height:100%;border-radius:10px;}
+
+/* ── TRANSCRIPT ── */
+.tr-year{margin-bottom:16px;}
+.tr-yh{display:flex;align-items:center;justify-content:space-between;padding:9px 13px;background:rgba(8,15,30,0.7);border:1px solid var(--border);border-radius:7px 7px 0 0;cursor:pointer;}
+.tr-yh-l{font-family:'Cormorant Garamond',serif;font-size:13.5px;color:var(--cream);display:flex;align-items:center;gap:9px;}
+.tr-yb{border:1px solid var(--border);border-top:none;border-radius:0 0 7px 7px;overflow:hidden;}
+.cr{display:grid;grid-template-columns:2fr 1.2fr 80px 64px 68px 80px 30px;align-items:center;border-bottom:1px solid rgba(201,168,76,0.05);}
+.cr:last-child{border-bottom:none;}
+.cr:hover{background:rgba(201,168,76,0.03);}
+.cr.ch{background:rgba(8,15,30,0.5);border-bottom:1px solid var(--border);}
+.cc{padding:8px 11px;font-size:11.5px;}
+.cc.ch{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);}
+.add-cr{display:flex;align-items:center;gap:6px;padding:8px 11px;background:rgba(8,15,30,0.4);border-top:1px dashed rgba(201,168,76,0.13);}
+.mi{background:rgba(8,15,30,0.8);border:1px solid rgba(201,168,76,0.16);border-radius:5px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:11px;padding:4px 7px;outline:none;transition:border-color .18s;}
+.mi:focus{border-color:var(--gold);}
+.ms{background:rgba(8,15,30,0.8);border:1px solid rgba(201,168,76,0.16);border-radius:5px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:11px;padding:4px 5px;outline:none;cursor:pointer;}
+.ms option{background:var(--bg2);}
+.del-btn{background:transparent;border:none;color:rgba(224,92,92,0.35);cursor:pointer;font-size:13px;padding:3px;transition:color .18s;line-height:1;}
+.del-btn:hover{color:var(--red);}
+.lb{display:inline-block;font-size:9px;font-weight:700;padding:2px 5px;border-radius:8px;letter-spacing:.3px;}
+.lb-ap{background:rgba(201,168,76,0.17);color:var(--gold);}
+.lb-h{background:rgba(74,144,217,0.17);color:var(--blue);}
+.lb-r{background:rgba(255,255,255,0.06);color:var(--muted);}
+.lb-ib{background:rgba(155,114,207,0.17);color:var(--purple);}
+.gpa-boxes{display:flex;gap:14px;margin-bottom:16px;flex-wrap:wrap;}
+.gb{background:var(--card);border:1px solid var(--border);border-radius:9px;padding:14px 18px;flex:1;min-width:110px;text-align:center;}
+.gb-v{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:var(--cream);}
+.gb-l{font-size:10px;color:var(--muted);margin-top:2px;}
+
+/* ── SCHOOL LIST ITEMS ── */
+.si{display:flex;align-items:center;gap:11px;padding:11px;background:rgba(8,15,30,0.5);border:1px solid rgba(201,168,76,0.08);border-radius:8px;margin-bottom:6px;transition:border-color .18s;}
+.si:hover{border-color:rgba(201,168,76,0.25);}
+.si-info{flex:1;}
+.si-name{font-size:13px;font-weight:500;color:var(--cream);}
+.si-det{font-size:10.5px;color:var(--muted);margin-top:2px;}
+.chance-n{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:700;}
+.chance-l{font-size:9.5px;color:var(--muted);margin-top:1px;}
+
+/* ── NOTE ── */
+.nc{background:rgba(8,15,30,0.5);border:1px solid rgba(201,168,76,0.08);border-radius:8px;padding:11px 13px;margin-bottom:8px;}
+.nc-date{font-size:9.5px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;}
+.nc-txt{font-size:12.5px;line-height:1.6;color:var(--text);}
+
+/* ── DIVIDER ── */
+.dv{height:1px;background:var(--border);margin:14px 0;}
+
+/* ── AUDIT ── */
+.ag-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(201,168,76,0.06);}
+.ag-row:last-child{border-bottom:none;}
+.ag-dot-big{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--bg);flex-shrink:0;}
+.ag-subj{flex:1;}
+.ag-name{font-size:12px;font-weight:500;color:var(--text);}
+.ag-desc{font-size:10px;color:var(--muted);margin-top:1px;}
+.ag-prog{text-align:right;flex-shrink:0;min-width:120px;}
+.ag-frac{font-family:'DM Mono',monospace;font-size:10.5px;color:var(--muted);}
+.ag-stat{font-size:9px;font-weight:700;margin-top:2px;}
+
+/* ── TO-DO LIST ── */
+.todo-item{display:flex;align-items:flex-start;gap:11px;padding:11px 14px;background:rgba(8,15,30,0.55);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;transition:all .18s;group:todo;}
+.todo-item:hover{border-color:rgba(201,168,76,0.25);}
+.todo-item.done{opacity:.5;}
+.todo-item.done .todo-text{text-decoration:line-through;color:var(--muted);}
+.todo-cb{width:18px;height:18px;border-radius:5px;border:2px solid var(--border);cursor:pointer;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:all .18s;background:transparent;}
+.todo-cb:hover{border-color:var(--gold);}
+.todo-cb.checked{background:var(--green);border-color:var(--green);}
+.todo-cb.checked::after{content:'✓';font-size:10px;font-weight:700;color:var(--bg);}
+.todo-text{flex:1;font-size:12.5px;line-height:1.5;color:var(--text);}
+.todo-meta{display:flex;gap:6px;align-items:center;margin-top:4px;flex-wrap:wrap;}
+.todo-pri{font-size:9px;font-weight:700;padding:2px 6px;border-radius:8px;letter-spacing:.3px;}
+.todo-pri.high{background:rgba(224,92,92,0.15);color:var(--red);}
+.todo-pri.med{background:rgba(240,160,80,0.15);color:var(--orange);}
+.todo-pri.low{background:rgba(46,201,138,0.15);color:var(--green);}
+.todo-due{font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);}
+.todo-due.overdue{color:var(--red);}
+.todo-due.soon{color:var(--orange);}
+.todo-cat{font-size:9px;font-weight:600;padding:2px 6px;border-radius:8px;background:rgba(74,144,217,0.12);color:var(--blue);}
+.todo-actions{display:flex;gap:4px;opacity:0;transition:opacity .15s;flex-shrink:0;}
+.todo-item:hover .todo-actions{opacity:1;}
+.todo-section-hd{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:10px 2px 6px;display:flex;align-items:center;gap:8px;}
+.todo-section-hd .count{background:rgba(255,255,255,0.07);padding:1px 7px;border-radius:8px;font-size:9px;color:var(--text);}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(201,168,76,0.15);border-radius:10px;}
+::-webkit-scrollbar-thumb:hover{background:rgba(201,168,76,0.35);}
+
+/* ── GRADE PILLS ── */
+.gp{font-size:8.5px;font-weight:700;padding:2px 5px;border-radius:7px;color:var(--bg);}
+
+@media(max-width:900px){.g4{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.sidebar{display:none}.g2,.fr,.fr3{grid-template-columns:1fr}.page{padding:16px}}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-chip">✦ Consultant Portal</div>
+    <h1>Canaan <em>Education</em></h1>
+    <p>College Admissions Intelligence</p>
+  </div>
+  <div class="nav">
+    <div class="nav-lbl">Navigation</div>
+    <div class="ni active" data-page="dashboard" onclick="goPage('dashboard')"><span class="ico">⬡</span>Command Center</div>
+    <div class="ni" data-page="compare" onclick="goPage('compare')"><span class="ico">⇌</span>Cohort Compare</div>
+    <div class="ni" data-page="calendar" onclick="goPage('calendar')"><span class="ico">◷</span>Deadline Calendar<span class="badge" id="urgBadge">0</span></div>
+    <div class="ni" data-page="essays" onclick="goPage('essays')"><span class="ico">✍</span>Essay Tracker</div>
+    <div class="ni" data-page="schooldb" onclick="goPage('schooldb')"><span class="ico">◉</span>School Database</div>
+    <div class="ni" data-page="strategy" onclick="goPage('strategy')"><span class="ico">◆</span>AI Strategy</div>
+  </div>
+  <div class="sl-wrap">
+    <div class="sl-lbl">Students</div>
+    <div id="studentList"></div>
+  </div>
+  <button class="add-s" onclick="openMo('moAddStudent')">+ Add Student</button>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div class="tb-l">
+      <h2 id="pageTitle">Command Center</h2>
+      <p id="pageSubtitle">Your students at a glance</p>
+    </div>
+    <div class="tb-r">
+      <button class="btn btn-out btn-sm" onclick="exportCSV()">↓ Export</button>
+      <button class="btn btn-gold btn-sm" onclick="openMo('moAddStudent')">+ Student</button>
+    </div>
+  </div>
+
+  <!-- ══ COMMAND CENTER ══ -->
+  <div class="page active" id="page-dashboard">
+    <div class="g4" id="statsGrid" style="margin-bottom:16px"></div>
+    <div class="g2">
+      <div>
+        <div class="card">
+          <div class="card-hd"><span class="ico">🚨</span>Urgent Attention Board</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px" id="urgBoard"></div>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <div class="card-hd"><span class="ico">◷</span>Next 30 Days — Deadlines</div>
+          <div id="upcomingDeadlines"></div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><span class="ico">📊</span>Cohort Grade Distribution</div>
+          <div id="gradeChart"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hd" style="justify-content:space-between;display:flex"><span style="display:flex;align-items:center;gap:8px"><span class="ico">⬡</span>All Students — Quick View</span></div>
+      <table class="dt"><thead><tr><th>Student</th><th>Grade</th><th>GPA</th><th>Test</th><th>Urgency</th><th>AG Status</th><th>Essays</th><th>Next Deadline</th><th></th></tr></thead>
+      <tbody id="dashTableBody"></tbody></table>
+    </div>
+  </div>
+
+  <!-- ══ COHORT COMPARE ══ -->
+  <div class="page" id="page-compare">
+    <div class="card" style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div class="card-hd" style="margin-bottom:0"><span class="ico">⇌</span>Side-by-Side Comparison</div>
+        <div style="display:flex;gap:7px">
+          <select class="fse" id="cmpFilter" style="width:auto;padding:5px 10px;font-size:11px" onchange="renderCompare()">
+            <option value="">All Grades</option>
+            <option value="9">9th Grade</option><option value="10">10th Grade</option>
+            <option value="11">11th Grade</option><option value="12">12th Grade</option>
+          </select>
+          <button class="btn btn-blue btn-sm" onclick="generateAI('cohort','')">AI Cohort Analysis</button>
+        </div>
+      </div>
+      <div class="cmp-wrap"><table class="cmp-table" id="cmpTable">
+        <thead><tr>
+          <th onclick="sortCompare('name')">Student</th>
+          <th onclick="sortCompare('grade')">Grade</th>
+          <th onclick="sortCompare('gpa')">UW GPA</th>
+          <th onclick="sortCompare('wgpa')">W GPA</th>
+          <th onclick="sortCompare('sat')">SAT</th>
+          <th onclick="sortCompare('ap')">AP/IB</th>
+          <th onclick="sortCompare('ag')">A–G %</th>
+          <th onclick="sortCompare('essays')">Essays Done</th>
+          <th onclick="sortCompare('urgency')">Urgency</th>
+          <th>Actions</th>
+        </tr></thead>
+        <tbody id="cmpBody"></tbody>
+      </table></div>
+    </div>
+    <div class="card" id="cohortAIOut"></div>
+  </div>
+
+  <!-- ══ DEADLINE CALENDAR ══ -->
+  <div class="page" id="page-calendar">
+    <div class="g2">
+      <div>
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+            <div class="card-hd" style="margin-bottom:0"><span class="ico">◷</span>All Deadlines</div>
+            <button class="btn btn-gold btn-sm" onclick="openMo('moAddDeadline')">+ Add Deadline</button>
+          </div>
+          <div style="display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap">
+            <button class="btn btn-sm btn-out" onclick="filterDL('')" id="dlf-all">All</button>
+            <button class="btn btn-sm btn-out" onclick="filterDL('ED')" id="dlf-ED">ED</button>
+            <button class="btn btn-sm btn-out" onclick="filterDL('EA')" id="dlf-EA">EA</button>
+            <button class="btn btn-sm btn-out" onclick="filterDL('RD')" id="dlf-RD">RD</button>
+            <button class="btn btn-sm btn-out" onclick="filterDL('Test')" id="dlf-Test">Test</button>
+            <button class="btn btn-sm btn-out" onclick="filterDL('Scholarship')" id="dlf-Scholarship">Scholarship</button>
+            <button class="btn btn-sm btn-out" onclick="filterDL('Other')" id="dlf-Other">Other</button>
+          </div>
+          <div id="dlList"></div>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <div class="card-hd"><span class="ico">🚨</span>Overdue / Critical</div>
+          <div id="dlOverdue"></div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><span class="ico">📅</span>This Month by Student</div>
+          <div id="dlByStudent"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ESSAY TRACKER ══ -->
+  <div class="page" id="page-essays">
+    <div class="card" style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div class="card-hd" style="margin-bottom:0"><span class="ico">✍</span>Essay Tracker — All Students</div>
+        <div style="display:flex;gap:7px">
+          <select class="fse" id="essayStudentFilter" style="width:auto;padding:5px 10px;font-size:11px" onchange="renderEssayTracker()">
+            <option value="">All Students</option>
+          </select>
+          <button class="btn btn-gold btn-sm" onclick="openMo('moAddEssay')">+ Add Essay</button>
+        </div>
+      </div>
+      <div id="essayStats" style="margin-bottom:14px"></div>
+      <div id="essayTable"></div>
+    </div>
+  </div>
+
+  <!-- ══ STUDENT PROFILE ══ -->
+  <div class="page" id="page-profile">
+    <div class="ph" id="profileHeader"></div>
+    <div class="tabs" id="profileTabs">
+      <div class="tab active" data-tab="overview" onclick="switchTab('overview')">Overview</div>
+      <div class="tab" data-tab="transcript" onclick="switchTab('transcript')">📋 Transcript</div>
+      <div class="tab" data-tab="schools" onclick="switchTab('schools')">School List</div>
+      <div class="tab" data-tab="essays_p" onclick="switchTab('essays_p')">✍ Essays</div>
+      <div class="tab" data-tab="todos" onclick="switchTab('todos')" id="tab-btn-todos">☑ To-Do</div>
+      <div class="tab" data-tab="notes" onclick="switchTab('notes')">Notes</div>
+      <div class="tab" data-tab="ai" onclick="switchTab('ai')">AI Analysis</div>
+    </div>
+    <div class="tc active" id="tab-overview"><div id="ovContent"></div></div>
+    <div class="tc" id="tab-transcript"><div id="trContent"></div></div>
+    <div class="tc" id="tab-schools"><div class="card" id="slContent"></div></div>
+    <div class="tc" id="tab-essays_p"><div id="essayProfileContent"></div></div>
+    <div class="tc" id="tab-todos"><div id="todoContent"></div></div>
+    <div class="tc" id="tab-notes"><div id="notesContent"></div></div>
+    <div class="tc" id="tab-ai"><div id="aiContent"></div></div>
+  </div>
+
+  <!-- ══ SCHOOL DATABASE ══ -->
+  <div class="page" id="page-schooldb">
+
+    <!-- API KEY BANNER -->
+    <div class="card" style="margin-bottom:14px;border-color:rgba(74,144,217,0.3);background:rgba(74,144,217,0.05)">
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <div style="font-size:20px">🏛</div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600;color:var(--cream);margin-bottom:3px">College Scorecard API — Official U.S. Department of Education Data</div>
+          <div style="font-size:11.5px;color:var(--muted)">Live admission rates & SAT ranges pulled directly from federal database. Free API key at <strong style="color:var(--blue)">api.data.gov/signup</strong></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          <input class="fi" id="apiKeyInput" placeholder="Paste your API key here" style="width:260px;font-family:'DM Mono',monospace;font-size:11px" oninput="saveApiKey(this.value)">
+          <div id="apiKeyStatus" style="font-size:11px;color:var(--muted);white-space:nowrap"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="g2" style="margin-bottom:14px">
+      <!-- LIVE LOOKUP -->
+      <div class="card" style="margin-bottom:0">
+        <div class="card-hd"><span class="ico">🔍</span>Live School Lookup</div>
+        <p style="font-size:11.5px;color:var(--muted);margin-bottom:12px">Search by name — pulls real data from College Scorecard instantly.</p>
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <input class="fi" id="scSearch" placeholder="e.g. MIT, Stanford, UCLA..." style="flex:1" onkeydown="if(event.key==='Enter')searchScorecard()">
+          <button class="btn btn-blue btn-sm" onclick="searchScorecard()" style="white-space:nowrap">Search</button>
+        </div>
+        <div id="scResults"></div>
+      </div>
+
+      <!-- REFRESH PANEL -->
+      <div class="card" style="margin-bottom:0">
+        <div class="card-hd"><span class="ico">↻</span>Refresh Existing Schools</div>
+        <p style="font-size:11.5px;color:var(--muted);margin-bottom:12px">Re-fetch latest federal data for all schools in your database.</p>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <button class="btn btn-blue btn-sm" onclick="refreshAllSchools()">↻ Refresh All Schools</button>
+          <button class="btn btn-out btn-sm" onclick="openMo('moAddSchool')">+ Add Manually</button>
+        </div>
+        <div id="refreshStatus"></div>
+        <div class="cb md" style="margin-top:10px">
+          <span class="cb-ico">ℹ</span>
+          <div class="cb-txt" style="font-size:11px"><span class="cb-lbl">What College Scorecard provides</span>Official admission rates & SAT scores. Does <strong>not</strong> include ED vs. RD breakdown or GPA minimums — add those manually.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div class="card-hd" style="margin-bottom:0"><span class="ico">◉</span>Your School Database</div>
+        <div style="display:flex;gap:7px;align-items:center">
+          <span id="dbStats" style="font-size:11px;color:var(--muted)"></span>
+          <button class="btn btn-gold btn-sm" onclick="openMo('moAddSchool')">+ Add School</button>
+        </div>
+      </div>
+      <table class="dt" id="schoolTable">
+        <thead><tr><th>School</th><th>Accept %</th><th>SAT 25th</th><th>SAT 75th</th><th>GPA Min</th><th>ED Boost</th><th>Notes</th><th>Source</th><th></th></tr></thead>
+        <tbody id="schoolBody"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><span class="ico">◆</span>Quick Match Calculator</div>
+      <div class="fr3">
+        <div class="fg"><label class="fl">GPA</label><input class="fi" id="calcGpa" type="number" placeholder="3.85" step="0.01"></div>
+        <div class="fg"><label class="fl">SAT</label><input class="fi" id="calcSat" type="number" placeholder="1480"></div>
+        <div class="fg"><label class="fl">ACT</label><input class="fi" id="calcAct" type="number" placeholder="33"></div>
+      </div>
+      <div class="fr">
+        <div class="fg"><label class="fl">Hook</label><select class="fse" id="calcHook"><option value="">None</option><option value="legacy">Legacy</option><option value="athlete">Recruited Athlete</option><option value="firstgen">First-Gen</option><option value="urm">URM</option></select></div>
+        <div class="fg"><label class="fl">Major</label><input class="fi" id="calcMajor" placeholder="Computer Science"></div>
+      </div>
+      <button class="btn btn-gold btn-sm" onclick="calcMatch()">Calculate</button>
+      <div id="calcOut" style="margin-top:14px"></div>
+    </div>
+  </div>
+
+  <!-- ══ AI STRATEGY ══ -->
+  <div class="page" id="page-strategy">
+    <div class="card" style="max-width:800px">
+      <div class="card-hd"><span class="ico">◆</span>AI Strategy Center</div>
+      <div class="fg"><label class="fl">Focus On</label><select class="fse" id="stratStu"><option value="">Entire Cohort</option></select></div>
+      <div class="fg"><label class="fl">Question</label><textarea class="fta" id="stratQ" style="min-height:100px" placeholder="e.g. Which students need the most attention right now? Who should apply ED?"></textarea></div>
+      <button class="btn btn-gold btn-sm" onclick="askStrategy()">Ask AI Advisor</button>
+      <div style="margin-top:16px" id="stratOut"></div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<!-- ══ MODALS ══ -->
+<!-- Add Student -->
+<div class="mo" id="moAddStudent"><div class="md">
+  <button class="md-close" onclick="closeMo('moAddStudent')">✕</button>
+  <div class="md-title">Add New Student</div>
+  <div class="fr"><div class="fg"><label class="fl">First Name</label><input class="fi" id="nFN" placeholder="First"></div><div class="fg"><label class="fl">Last Name</label><input class="fi" id="nLN" placeholder="Last"></div></div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Grade</label><select class="fse" id="nGrade"><option value="9">9th</option><option value="10">10th</option><option value="11">11th</option><option value="12">12th</option></select></div>
+    <div class="fg"><label class="fl">GPA</label><input class="fi" id="nGPA" type="number" placeholder="3.85" step="0.01"></div>
+  </div>
+  <div class="fr"><div class="fg"><label class="fl">SAT</label><input class="fi" id="nSAT" type="number" placeholder="1480"></div><div class="fg"><label class="fl">ACT</label><input class="fi" id="nACT" type="number" placeholder="33"></div></div>
+  <div class="fg"><label class="fl">Major</label><input class="fi" id="nMajor" placeholder="Computer Science"></div>
+  <div class="fg"><label class="fl">Activities & Awards</label><textarea class="fta" id="nECs" style="min-height:70px" placeholder="List ECs, awards, leadership..."></textarea></div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Target Tier</label><select class="fse" id="nTier"><option value="t10">Top 10</option><option value="t25">Top 25</option><option value="t50">Top 50</option><option value="t100">Top 100</option><option value="la">Liberal Arts</option></select></div>
+    <div class="fg"><label class="fl">Hook</label><select class="fse" id="nHook"><option value="">None</option><option value="legacy">Legacy</option><option value="athlete">Athlete</option><option value="firstgen">First-Gen</option><option value="urm">URM</option><option value="intl">International</option></select></div>
+  </div>
+  <div class="fg"><label class="fl">Initial Notes</label><textarea class="fta" id="nNotes" style="min-height:55px"></textarea></div>
+  <div style="display:flex;gap:8px"><button class="btn btn-gold" onclick="addStudent()">Add Student</button><button class="btn btn-out" onclick="closeMo('moAddStudent')">Cancel</button></div>
+</div></div>
+
+<!-- Add Deadline -->
+<div class="mo" id="moAddDeadline"><div class="md">
+  <button class="md-close" onclick="closeMo('moAddDeadline')">✕</button>
+  <div class="md-title">Add Deadline</div>
+  <div class="fg"><label class="fl">Student</label><select class="fse" id="dlStudent"><option value="all">All Students</option></select></div>
+  <div class="fg"><label class="fl">Title</label><input class="fi" id="dlTitle" placeholder="e.g. MIT Early Decision, SAT Test Date"></div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Date</label><input class="fi" id="dlDate" type="date"></div>
+    <div class="fg"><label class="fl">Type</label><select class="fse" id="dlType"><option>ED</option><option>EA</option><option>RD</option><option>Test</option><option>Scholarship</option><option>Financial Aid</option><option>Visit</option><option>Other</option></select></div>
+  </div>
+  <div class="fg"><label class="fl">Notes</label><input class="fi" id="dlNotes" placeholder="Optional notes"></div>
+  <div style="display:flex;gap:8px"><button class="btn btn-gold" onclick="addDeadline()">Add</button><button class="btn btn-out" onclick="closeMo('moAddDeadline')">Cancel</button></div>
+</div></div>
+
+<!-- Add Essay -->
+<div class="mo" id="moAddEssay"><div class="md">
+  <button class="md-close" onclick="closeMo('moAddEssay')">✕</button>
+  <div class="md-title">Add Essay</div>
+  <div class="fg"><label class="fl">Student</label><select class="fse" id="essStudent"></select></div>
+  <div class="fg"><label class="fl">Essay Title / Prompt</label><input class="fi" id="essTitle" placeholder="e.g. Common App Personal Statement, Why MIT?"></div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Type</label><select class="fse" id="essType"><option>Common App</option><option>Supplement</option><option>Scholarship</option><option>Short Answer</option></select></div>
+    <div class="fg"><label class="fl">School (if supplement)</label><input class="fi" id="essSchool" placeholder="e.g. MIT"></div>
+  </div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Word Limit</label><input class="fi" id="essWords" type="number" placeholder="650"></div>
+    <div class="fg"><label class="fl">Due Date</label><input class="fi" id="essDue" type="date"></div>
+  </div>
+  <div style="display:flex;gap:8px"><button class="btn btn-gold" onclick="addEssay()">Add Essay</button><button class="btn btn-out" onclick="closeMo('moAddEssay')">Cancel</button></div>
+</div></div>
+
+<!-- Add School -->
+<div class="mo" id="moAddSchool"><div class="md">
+  <button class="md-close" onclick="closeMo('moAddSchool')">✕</button>
+  <div class="md-title">Add School Manually</div>
+  <div class="cb md" style="margin-bottom:14px">
+    <span class="cb-ico">💡</span>
+    <div class="cb-txt" style="font-size:11px">Tip: Use the <strong>Live School Lookup</strong> in School Database to auto-fill data from College Scorecard instead.</div>
+  </div>
+  <div class="fg"><label class="fl">School Name</label><input class="fi" id="sName" placeholder="Cornell University"></div>
+  <div class="fr"><div class="fg"><label class="fl">Acceptance %</label><input class="fi" id="sAccept" type="number" placeholder="10.6" step="0.1"></div><div class="fg"><label class="fl">ED Boost</label><select class="fse" id="sED"><option value="yes">Yes — Significant</option><option value="modest">Yes — Modest</option><option value="no">No / N/A</option></select></div></div>
+  <div class="fr"><div class="fg"><label class="fl">SAT 25th</label><input class="fi" id="sSAT25" type="number" placeholder="1400"></div><div class="fg"><label class="fl">SAT 75th</label><input class="fi" id="sSAT75" type="number" placeholder="1540"></div></div>
+  <div class="fr"><div class="fg"><label class="fl">Min GPA (typical admits)</label><input class="fi" id="sGPA" type="number" placeholder="3.85" step="0.01"></div><div class="fg"><label class="fl">Data Source</label><select class="fse" id="sSrc"><option>Common Data Set</option><option>School Website</option><option>PrepScholar</option><option>Estimated</option></select></div></div>
+  <div class="fg"><label class="fl">Notes</label><textarea class="fta" id="sNotes" style="min-height:60px" placeholder="Strengths, culture, special programs, ED strategy..."></textarea></div>
+  <div style="display:flex;gap:8px"><button class="btn btn-gold" onclick="addSchool()">Add</button><button class="btn btn-out" onclick="closeMo('moAddSchool')">Cancel</button></div>
+</div></div>
+
+<!-- To-Do Modal -->
+<div class="mo" id="moTodo"><div class="md" style="width:440px">
+  <button class="md-close" onclick="closeMo('moTodo')">✕</button>
+  <div class="md-title" id="todoModalTitle">Add Task</div>
+  <div class="fg">
+    <label class="fl">Task</label>
+    <textarea class="fta" id="todoText" placeholder="e.g. Draft 'Why MIT?' supplement essay" style="min-height:70px" onkeydown="if(event.key==='Enter'&&event.metaKey)saveTodo()"></textarea>
+  </div>
+  <div class="fr3">
+    <div class="fg">
+      <label class="fl">Priority</label>
+      <select class="fse" id="todoPri">
+        <option value="high">🔴 High</option>
+        <option value="med" selected>🟡 Medium</option>
+        <option value="low">🟢 Low</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label class="fl">Category</label>
+      <select class="fse" id="todoCat">
+        <option value="Essays">Essays</option>
+        <option value="Testing">Testing</option>
+        <option value="School Research">School Research</option>
+        <option value="Applications">Applications</option>
+        <option value="Financial Aid">Financial Aid</option>
+        <option value="Visits">Visits</option>
+        <option value="Academic">Academic</option>
+        <option value="General" selected>General</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label class="fl">Due Date</label>
+      <input class="fi" id="todoDue" type="date">
+    </div>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-gold" onclick="saveTodo()">Save Task</button>
+    <button class="btn btn-out" onclick="closeMo('moTodo')">Cancel</button>
+  </div>
+  <div style="font-size:10px;color:var(--muted);margin-top:8px">Cmd/Ctrl + Enter to save quickly</div>
+</div></div>
+
+<!-- Activity Editor Modal -->
+<div class="mo" id="moActivityEditor"><div class="md md-xl" style="max-height:90vh;display:flex;flex-direction:column;">
+  <button class="md-close" onclick="closeMo('moActivityEditor')">✕</button>
+  <div class="md-title" id="actEdTitle">Activities & Awards</div>
+
+  <!-- Structured list -->
+  <div style="flex:1;overflow-y:auto;min-height:0">
+    <div id="actList" style="margin-bottom:16px"></div>
+
+    <!-- AI Chat Box -->
+    <div style="background:rgba(74,144,217,0.06);border:1px solid rgba(74,144,217,0.2);border-radius:10px;padding:16px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:10px">
+        <div class="aibadge" style="margin-bottom:0">✦ AI Activity Organizer</div>
+        <span style="font-size:11px;color:var(--muted)">Type anything — AI will parse and structure it for you</span>
+      </div>
+      <div id="actChatHistory" style="max-height:200px;overflow-y:auto;margin-bottom:10px"></div>
+      <div style="display:flex;gap:8px;align-items:flex-end">
+        <textarea class="fta" id="actChatInput" placeholder="e.g. 'Math olympiad captain since 10th grade, about 5 hrs/week' or paste a whole list of activities..." style="min-height:70px;flex:1;resize:none" onkeydown="if(event.key==='Enter'&&event.metaKey)sendActivityChat()"></textarea>
+        <button class="btn btn-blue btn-sm" onclick="sendActivityChat()" style="white-space:nowrap;align-self:flex-end">Send ↵</button>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-top:6px">Cmd/Ctrl + Enter to send · You can paste a raw list, describe verbally, or type one at a time</div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:8px;padding-top:12px;border-top:1px solid var(--border);flex-shrink:0">
+    <button class="btn btn-gold" onclick="saveActivities()">Save Activities</button>
+    <button class="btn btn-out btn-sm" onclick="addBlankActivity()">+ Add Blank Row</button>
+    <button class="btn btn-out btn-sm" onclick="closeMo('moActivityEditor')">Cancel</button>
+  </div>
+</div></div>
+
+<!-- Parent Report Modal -->
+<div class="mo" id="moReport"><div class="md md-xl">
+  <button class="md-close" onclick="closeMo('moReport')">✕</button>
+  <div class="md-title" id="reportTitle">Parent Progress Report</div>
+  <div id="reportContent"></div>
+</div></div>
+
+<!-- Pre-Meeting Brief Modal -->
+<div class="mo" id="moMeeting"><div class="md md-xl">
+  <button class="md-close" onclick="closeMo('moMeeting')">✕</button>
+  <div class="md-title" id="meetingTitle">Pre-Meeting Brief</div>
+  <div id="meetingContent"></div>
+</div></div>
+
+<script>
+'use strict';
+// ══════════════════════════════════════════════════════
+// CONSTANTS
+// ══════════════════════════════════════════════════════
+const COLORS=['#c9a84c','#4a90d9','#2ec98a','#e05c5c','#9b72cf','#f0a050','#1abc9c','#e67e22','#3498db','#e74c3c'];
+const AG_REQS=[
+  {key:'a',label:'A — History / Social Sci',color:'#e8a838',uc:2,grad:3,desc:'World History, US History, Gov/Econ'},
+  {key:'b',label:'B — English',color:'#4a90d9',uc:4,grad:4,desc:'4 years college-prep English'},
+  {key:'c',label:'C — Mathematics',color:'#2ec98a',uc:3,grad:3,desc:'Algebra I, Geometry, Algebra II+'},
+  {key:'d',label:'D — Lab Science',color:'#9b72cf',uc:2,grad:2,desc:'Bio, Chem, or Physics (lab)'},
+  {key:'e',label:'E — World Language',color:'#e74c3c',uc:2,grad:2,desc:'Same language, consecutive'},
+  {key:'f',label:'F — Visual/Performing Arts',color:'#f39c12',uc:1,grad:1,desc:'Dance, Music, Theatre, Art'},
+  {key:'g',label:'G — College-Prep Elective',color:'#1abc9c',uc:1,grad:0,desc:'Additional approved academic'},
+  {key:'pe',label:'PE — Physical Education',color:'#7f8c8d',uc:0,grad:2,desc:'CA graduation req (not UC)'},
+  {key:'elec',label:'Elective / Other',color:'#95a5a6',uc:0,grad:0,desc:'Non-required'},
+];
+const AG_COLOR={};AG_REQS.forEach(r=>AG_COLOR[r.key]=r.color);
+const GP={'A+':4,'A':4,'A-':3.7,'B+':3.3,'B':3,'B-':2.7,'C+':2.3,'C':2,'C-':1.7,'D+':1.3,'D':1,'D-':0.7,'F':0};
+const GP_IB={'7':4.0,'6':3.7,'5':3.3,'4':3.0,'3':2.0,'2':1.0,'1':0.0};
+const GP_AL={'A*':4.0,'A':4.0,'B':3.0,'C':2.0,'D':1.0,'E':0.0,'U':0.0};
+function chineseToGPA(n){const v=parseFloat(n);if(isNaN(v))return null;if(v>=90)return 4.0;if(v>=85)return 3.7;if(v>=80)return 3.3;if(v>=75)return 3.0;if(v>=70)return 2.7;if(v>=65)return 2.3;if(v>=60)return 2.0;return 0.0;}
+const GRADE_SYSTEMS=[
+  {key:'us',label:'US (A–F)',grades:['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','IP','W']},
+  {key:'ib',label:'IB (1–7)',grades:['7','6','5','4','3','2','1','IP']},
+  {key:'al',label:'A-Level',grades:['A*','A','B','C','D','E','U']},
+  {key:'cn',label:'Chinese (百分制)',grades:[]},
+];
+function gradeToGPA(grade,system){
+  if(!grade||grade==='IP'||grade==='W'||grade==='—')return null;
+  const sys=system||'us';
+  if(sys==='us'){const v=GP[grade];return v!==undefined?v:null;}
+  if(sys==='ib'){const v=GP_IB[String(grade)];return v!==undefined?v:null;}
+  if(sys==='al'){const v=GP_AL[grade];return v!==undefined?v:null;}
+  if(sys==='cn')return chineseToGPA(grade);
+  return null;
+}
+function gradeDisplay(grade,system){
+  if(!grade||grade==='IP'||grade==='W')return grade||'—';
+  const gp=gradeToGPA(grade,system);
+  if(gp===null)return grade;
+  const sys=system||'us';
+  if(sys==='us')return grade;
+  return grade+' <span style="font-size:9px;opacity:.55">≈'+gp.toFixed(1)+'</span>';
+}
+function sysLabel(sys){return({us:'US',ib:'IB',al:'A-Lvl',cn:'CN'})[sys]||sys;}
+function gradeOptions(sys){
+  const s=GRADE_SYSTEMS.find(x=>x.key===sys)||GRADE_SYSTEMS[0];
+  return s.grades.map(g=>'<option>'+g+'</option>').join('');
+}
+const HB={'AP':1,'IB':1,'Honors':0.5,'College':0.5,'Regular':0};
+const ESSAY_STATUS=['Not Started','Brainstorm','Drafting','Revising','Consultant Review','Final'];
+const STATUS_COLOR={'Not Started':'var(--muted)','Brainstorm':'var(--blue)','Drafting':'var(--orange)','Revising':'var(--purple)','Consultant Review':'var(--gold)','Final':'var(--green)'};
+
+// ══════════════════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════════════════
+let currentStudentId=null, cmpSort={col:'urgency',dir:'desc'}, dlFilter='';
+
+let students=[
+  {id:1,firstName:'Emma',lastName:'Chen',grade:12,gpa:3.95,sat:1540,act:35,major:'Computer Science',tier:'t10',hook:'legacy',
+   activities:'Math Olympiad President, Varsity Tennis Captain, Stanford AI Lab intern, Coding club founder, 3x USAMO',
+   activitiesList:[
+     {name:'Math Olympiad',role:'President & Team Captain',description:'Led 40-member team to state finals 3 consecutive years. Qualified for USAMO three times, placed in top 200 nationally.',hours:200,years:'9th–12th'},
+     {name:'Varsity Tennis',role:'Captain',description:'Led team to regional championships senior year. Maintained 4.0 GPA while competing in 30+ matches annually.',hours:180,years:'9th–12th'},
+     {name:'Stanford AI Research Lab',role:'Research Intern',description:'Built NLP model for medical record analysis under Prof. Chen. Co-authored paper submitted to ICML 2025.',hours:300,years:'11th–12th'},
+     {name:'Coding Club',role:'Founder & President',description:'Founded school&#39;s first coding club; grew to 60 members. Organized 3 hackathons with 200+ participants from local schools.',hours:120,years:'10th–12th'},
+   ],
+   meetings:[{date:'2024-11-15',content:'Discussed MIT vs Penn ED. Essay on coding club founding is compelling. Strengthen "why CS" narrative.',tag:'Essays'},{date:'2024-10-20',content:'SAT 1540 (up from 1490). No further testing. Finalized school list.',tag:'Testing'}],
+   color:COLORS[0],transcript:[],essays:[],deadlines:[],todos:[
+    {id:1001,text:'Finalize MIT supplemental essays (Why MIT? + Activity)',priority:'high',category:'Essays',due:'2025-10-25',done:false,createdAt:'2024-11-01'},
+    {id:1002,text:'Request teacher recommendation from Mr. Davidson (AP Calc)',priority:'high',category:'Applications',due:'2025-10-01',done:true,createdAt:'2024-10-01'},
+    {id:1003,text:'Research MIT EECS vs Course 6-3 program differences',priority:'med',category:'School Research',due:null,done:false,createdAt:'2024-11-10'},
+    {id:1004,text:'Common App activities section — finalize order and descriptions',priority:'high',category:'Applications',due:'2025-10-20',done:false,createdAt:'2024-11-05'},
+    {id:1005,text:'Send SAT scores to all schools',priority:'med',category:'Applications',due:'2025-10-30',done:false,createdAt:'2024-11-08'},
+  ]},
+  {id:2,firstName:'Marcus',lastName:'Johnson',grade:11,gpa:3.7,sat:1380,act:null,major:'Business / Economics',tier:'t25',hook:'',
+   activities:'JV Basketball, Student Gov VP, Entrepreneurship club founder, Family business part-time, Model UN',
+   meetings:[{date:'2024-11-01',content:'Summer plan: Wharton Leadership Academy. SAT prep targeting 1450+. Strong entrepreneur narrative.',tag:'Academic'}],
+   color:COLORS[1],transcript:[],essays:[],deadlines:[],todos:[
+    {id:2001,text:'Register for December SAT — target 1450+',priority:'high',category:'Testing',due:'2025-11-01',done:false,createdAt:'2024-11-01'},
+    {id:2002,text:'Apply to Wharton Leadership Academy summer program',priority:'med',category:'Applications',due:'2025-02-01',done:false,createdAt:'2024-11-05'},
+    {id:2003,text:'Get Khan Academy SAT prep schedule set up',priority:'med',category:'Testing',due:null,done:true,createdAt:'2024-10-15'},
+  ]},
+  {id:3,firstName:'Sofia',lastName:'Martinez',grade:10,gpa:3.6,sat:null,act:null,major:'Biology / Pre-Med',tier:'t50',hook:'urm',
+   activities:'Hospital volunteer 200+ hrs, Spanish Club President, Track & Field, Science Olympiad',
+   meetings:[{date:'2024-10-10',content:'GPA on track. Pursue summer research. PSAT prep for sophomore year.',tag:'Academic'}],
+   color:COLORS[2],transcript:[],essays:[],deadlines:[],todos:[
+    {id:3001,text:'Research summer hospital research program applications',priority:'med',category:'Applications',due:'2025-01-15',done:false,createdAt:'2024-11-01'},
+    {id:3002,text:'PSAT score review — identify weak areas',priority:'med',category:'Testing',due:null,done:false,createdAt:'2024-11-05'},
+  ]},
+  {id:4,firstName:'James',lastName:'Park',grade:12,gpa:3.85,sat:1510,act:34,major:'Film & Media Studies',tier:'t25',hook:'',
+   activities:'Film club director, 2 viral short films (50k+ views), News station intern, Photography',
+   meetings:[{date:'2024-11-10',content:'Portfolio review — excellent. USC video and NYU Tisch ED top priorities.',tag:'Essays'}],
+   color:COLORS[3],transcript:[],essays:[],deadlines:[],todos:[
+    {id:4001,text:'Complete NYU Tisch portfolio video — final cut',priority:'high',category:'Applications',due:'2025-10-28',done:true,createdAt:'2024-10-01'},
+    {id:4002,text:'USC Cinematic Arts essay — second draft',priority:'high',category:'Essays',due:'2025-11-20',done:false,createdAt:'2024-11-10'},
+    {id:4003,text:'Book campus visit to NYU Tisch',priority:'low',category:'Visits',due:null,done:false,createdAt:'2024-11-05'},
+  ]},
+  {id:5,firstName:'Aisha',lastName:'Williams',grade:9,gpa:3.5,sat:null,act:null,major:'Undecided',tier:'t50',hook:'firstgen',
+   activities:'Debate team, Art club, Choir, Community garden',
+   meetings:[{date:'2024-09-15',content:'Intro meeting. Gifted writer. Explore broadly in 9th. First-gen hook is meaningful.',tag:'General'}],
+   color:COLORS[4],transcript:[],essays:[],deadlines:[],todos:[
+    {id:5001,text:'Explore summer enrichment programs — debate, writing, STEM',priority:'low',category:'Academic',due:'2025-02-01',done:false,createdAt:'2024-11-01'},
+  ]},
+];
+
+let schoolDB=[
+  {id:1,name:'MIT',acceptance:4,sat25:1510,sat75:1580,gpaMin:3.9,edBoost:'no',notes:'Top STEM, research culture',source:'Estimated',verified:false},
+  {id:2,name:'Harvard',acceptance:3.6,sat25:1460,sat75:1580,gpaMin:3.92,edBoost:'no',notes:'Holistic; hooks matter',source:'Estimated',verified:false},
+  {id:3,name:'Stanford',acceptance:4,sat25:1500,sat75:1570,gpaMin:3.96,edBoost:'no',notes:'Innovation & entrepreneurship',source:'Estimated',verified:false},
+  {id:4,name:'Yale',acceptance:4.5,sat25:1470,sat75:1570,gpaMin:3.9,edBoost:'yes',notes:'Strong humanities, ED boost',source:'Estimated',verified:false},
+  {id:5,name:'Princeton',acceptance:4.7,sat25:1500,sat75:1580,gpaMin:3.9,edBoost:'yes',notes:'No grad professional schools',source:'Estimated',verified:false},
+  {id:6,name:'Columbia',acceptance:3.9,sat25:1490,sat75:1570,gpaMin:3.9,edBoost:'yes',notes:'NYC, Core Curriculum',source:'Estimated',verified:false},
+  {id:7,name:'UPenn',acceptance:6.5,sat25:1470,sat75:1560,gpaMin:3.9,edBoost:'yes',notes:'Wharton top undergrad biz',source:'Estimated',verified:false},
+  {id:8,name:'Duke',acceptance:7.8,sat25:1470,sat75:1560,gpaMin:3.9,edBoost:'yes',notes:'Pre-med strength',source:'Estimated',verified:false},
+  {id:9,name:'Northwestern',acceptance:7,sat25:1450,sat75:1560,gpaMin:3.9,edBoost:'yes',notes:'Journalism, Kellogg pipeline',source:'Estimated',verified:false},
+  {id:10,name:'Johns Hopkins',acceptance:7.5,sat25:1500,sat75:1570,gpaMin:3.9,edBoost:'yes',notes:'Pre-med gold standard',source:'Estimated',verified:false},
+  {id:11,name:'UC Berkeley',acceptance:11.4,sat25:1310,sat75:1530,gpaMin:3.86,edBoost:'no',notes:'Strong STEM, no ED',source:'Estimated',verified:false},
+  {id:12,name:'UCLA',acceptance:11.3,sat25:1290,sat75:1510,gpaMin:3.87,edBoost:'no',notes:'Diverse programs, no ED',source:'Estimated',verified:false},
+  {id:13,name:'U Michigan',acceptance:18,sat25:1360,sat75:1530,gpaMin:3.85,edBoost:'no',notes:'Top public, excellent Ross',source:'Estimated',verified:false},
+  {id:14,name:'Vanderbilt',acceptance:6.7,sat25:1500,sat75:1570,gpaMin:3.9,edBoost:'yes',notes:'Rising prestige, merit aid',source:'Estimated',verified:false},
+  {id:15,name:'NYU Tisch',acceptance:30,sat25:1200,sat75:1440,gpaMin:3.5,edBoost:'modest',notes:'Portfolio critical for arts',source:'Estimated',verified:false},
+  {id:16,name:'USC',acceptance:16,sat25:1350,sat75:1530,gpaMin:3.8,edBoost:'modest',notes:'Film school tier 1',source:'Estimated',verified:false},
+];
+
+let globalDeadlines=[
+  {id:1,studentId:1,title:'MIT Early Decision',date:'2025-11-01',type:'ED',notes:'Emma top choice',done:false},
+  {id:2,studentId:4,title:'NYU Tisch EA',date:'2025-11-01',type:'EA',notes:'James strong portfolio',done:false},
+  {id:3,studentId:1,title:'SAT Final Attempt',date:'2025-10-05',type:'Test',notes:'',done:true},
+  {id:4,studentId:2,title:'SAT Target Date',date:'2025-12-07',type:'Test',notes:'Target 1450+',done:false},
+  {id:5,studentId:4,title:'USC RD Application',date:'2026-01-15',type:'RD',notes:'',done:false},
+  {id:6,studentId:1,title:'Common App RD Deadline',date:'2026-01-01',type:'RD',notes:'Backup schools',done:false},
+];
+
+// ══════════════════════════════════════════════════════
+// SEED DATA
+// ══════════════════════════════════════════════════════
+function seedData(){
+  students[0].transcript=[
+    {id:101,year:9,subject:'English 9 Honors',ag:'b',level:'Honors',grade:'A',credits:10,sem:'Full'},
+    {id:102,year:9,subject:'Algebra II Honors',ag:'c',level:'Honors',grade:'A',credits:10,sem:'Full'},
+    {id:103,year:9,subject:'Biology Honors',ag:'d',level:'Honors',grade:'A-',credits:10,sem:'Full'},
+    {id:104,year:9,subject:'World History',ag:'a',level:'Regular',grade:'A',credits:10,sem:'Full'},
+    {id:105,year:9,subject:'Mandarin Chinese I',ag:'e',level:'Regular',grade:'A',credits:10,sem:'Full'},
+    {id:106,year:9,subject:'PE 9',ag:'pe',level:'Regular',grade:'A',credits:10,sem:'Full'},
+    {id:107,year:10,subject:'AP English Language',ag:'b',level:'AP',grade:'A',credits:10,sem:'Full'},
+    {id:108,year:10,subject:'Pre-Calculus Honors',ag:'c',level:'Honors',grade:'A',credits:10,sem:'Full'},
+    {id:109,year:10,subject:'Chemistry Honors',ag:'d',level:'Honors',grade:'A-',credits:10,sem:'Full'},
+    {id:110,year:10,subject:'AP US History',ag:'a',level:'AP',grade:'A',credits:10,sem:'Full'},
+    {id:111,year:10,subject:'Mandarin Chinese II',ag:'e',level:'Regular',grade:'A',credits:10,sem:'Full'},
+    {id:112,year:10,subject:'PE 10',ag:'pe',level:'Regular',grade:'A',credits:10,sem:'Full'},
+    {id:113,year:11,subject:'AP English Literature',ag:'b',level:'AP',grade:'A-',credits:10,sem:'Full'},
+    {id:114,year:11,subject:'AP Calculus BC',ag:'c',level:'AP',grade:'A',credits:10,sem:'Full'},
+    {id:115,year:11,subject:'AP Physics 1',ag:'d',level:'AP',grade:'A',credits:10,sem:'Full'},
+    {id:116,year:11,subject:'AP Computer Science A',ag:'g',level:'AP',grade:'A',credits:10,sem:'Full'},
+    {id:117,year:11,subject:'Mandarin Chinese III',ag:'e',level:'Regular',grade:'A',credits:10,sem:'Full'},
+    {id:118,year:11,subject:'AP US Government',ag:'a',level:'AP',grade:'A',credits:10,sem:'Full'},
+    {id:119,year:12,subject:'AP English Literature',ag:'b',level:'AP',grade:'A',credits:10,sem:'Full'},
+    {id:120,year:12,subject:'AP Statistics',ag:'c',level:'AP',grade:'A',credits:10,sem:'Full'},
+    {id:121,year:12,subject:'AP Chemistry',ag:'d',level:'AP',grade:'A-',credits:10,sem:'Full'},
+    {id:122,year:12,subject:'Economics / Gov',ag:'a',level:'Regular',grade:'A',credits:10,sem:'Full'},
+    {id:123,year:12,subject:'Visual Arts',ag:'f',level:'Regular',grade:'A',credits:10,sem:'Full'},
+  ];
+  students[0].essays=[
+    {id:1,title:'Common App Personal Statement',type:'Common App',school:'',wordLimit:650,due:'2025-11-01',status:'Revising',drafts:3,lastEdit:'2024-11-10',notes:'Coding club founding angle — strong'},
+    {id:2,title:'Why MIT?',type:'Supplement',school:'MIT',wordLimit:250,due:'2025-11-01',status:'Drafting',drafts:1,lastEdit:'2024-11-12',notes:''},
+    {id:3,title:'Why Penn? (Wharton)',type:'Supplement',school:'UPenn',wordLimit:500,due:'2025-11-01',status:'Not Started',drafts:0,lastEdit:'',notes:'Legacy angle'},
+  ];
+  students[1].transcript=[
+    {id:201,year:9,subject:'English 9',ag:'b',level:'Regular',grade:'B+',credits:10,sem:'Full'},
+    {id:202,year:9,subject:'Algebra II',ag:'c',level:'Regular',grade:'B',credits:10,sem:'Full'},
+    {id:203,year:9,subject:'Biology',ag:'d',level:'Regular',grade:'B+',credits:10,sem:'Full'},
+    {id:204,year:9,subject:'World History',ag:'a',level:'Regular',grade:'A-',credits:10,sem:'Full'},
+    {id:205,year:9,subject:'Spanish I',ag:'e',level:'Regular',grade:'B',credits:10,sem:'Full'},
+    {id:206,year:9,subject:'PE 9',ag:'pe',level:'Regular',grade:'A',credits:10,sem:'Full'},
+    {id:207,year:10,subject:'English 10 Honors',ag:'b',level:'Honors',grade:'B+',credits:10,sem:'Full'},
+    {id:208,year:10,subject:'Pre-Calculus',ag:'c',level:'Regular',grade:'B',credits:10,sem:'Full'},
+    {id:209,year:10,subject:'Chemistry',ag:'d',level:'Regular',grade:'B-',credits:10,sem:'Full'},
+    {id:210,year:10,subject:'US History',ag:'a',level:'Regular',grade:'A',credits:10,sem:'Full'},
+    {id:211,year:10,subject:'Spanish II',ag:'e',level:'Regular',grade:'B+',credits:10,sem:'Full'},
+    {id:212,year:10,subject:'PE 10',ag:'pe',level:'Regular',grade:'A',credits:10,sem:'Full'},
+    {id:213,year:11,subject:'AP English Language',ag:'b',level:'AP',grade:'B',credits:10,sem:'Full'},
+    {id:214,year:11,subject:'AP Statistics',ag:'c',level:'AP',grade:'B+',credits:10,sem:'Full'},
+    {id:215,year:11,subject:'AP Microeconomics',ag:'g',level:'AP',grade:'A-',credits:10,sem:'Full'},
+    {id:216,year:11,subject:'US Gov / Civics',ag:'a',level:'Regular',grade:'A',credits:10,sem:'Full'},
+  ];
+  students[1].essays=[
+    {id:10,title:'Common App Personal Statement',type:'Common App',school:'',wordLimit:650,due:'2026-01-01',status:'Brainstorm',drafts:0,lastEdit:'',notes:'Family business angle to develop'},
+    {id:11,title:'Why Michigan Ross?',type:'Supplement',school:'U Michigan',wordLimit:500,due:'2026-02-01',status:'Not Started',drafts:0,lastEdit:'',notes:''},
+  ];
+  students[2].transcript=[
+    {id:301,year:9,subject:'English 9',ag:'b',level:'Regular',grade:'B',credits:10,sem:'Full'},
+    {id:302,year:9,subject:'Algebra I',ag:'c',level:'Regular',grade:'B+',credits:10,sem:'Full'},
+    {id:303,year:9,subject:'Earth Science',ag:'d',level:'Regular',grade:'A-',credits:10,sem:'Full'},
+    {id:304,year:9,subject:'World History',ag:'a',level:'Regular',grade:'B+',credits:10,sem:'Full'},
+    {id:305,year:9,subject:'Spanish I',ag:'e',level:'Regular',grade:'A',credits:10,sem:'Full'},
+    {id:306,year:9,subject:'PE 9',ag:'pe',level:'Regular',grade:'A',credits:10,sem:'Full'},
+    {id:307,year:10,subject:'English 10',ag:'b',level:'Regular',grade:'B+',credits:10,sem:'Full'},
+    {id:308,year:10,subject:'Geometry',ag:'c',level:'Regular',grade:'B',credits:10,sem:'Full'},
+    {id:309,year:10,subject:'Biology Honors',ag:'d',level:'Honors',grade:'A-',credits:10,sem:'Full'},
+    {id:310,year:10,subject:'US History',ag:'a',level:'Regular',grade:'B+',credits:10,sem:'Full'},
+    {id:311,year:10,subject:'Spanish II',ag:'e',level:'Regular',grade:'A-',credits:10,sem:'Full'},
+    {id:312,year:10,subject:'PE 10',ag:'pe',level:'Regular',grade:'A',credits:10,sem:'Full'},
+  ];
+  students[3].transcript=[
+    {id:401,year:9,subject:'English 9 Honors',ag:'b',level:'Honors',grade:'A',credits:10,sem:'Full'},
+    {id:402,year:9,subject:'Algebra II Honors',ag:'c',level:'Honors',grade:'B+',credits:10,sem:'Full'},
+    {id:403,year:9,subject:'Biology',ag:'d',level:'Regular',grade:'A-',credits:10,sem:'Full'},
+    {id:404,year:9,subject:'World History',ag:'a',level:'Regular',grade:'A',credits:10,sem:'Full'},
+    {id:405,year:9,subject:'French I',ag:'e',level:'Regular',grade:'A',credits:10,sem:'Full'},
+    {id:406,year:9,subject:'Film Foundations',ag:'f',level:'Regular',grade:'A',credits:10,sem:'Full'},
+    {id:407,year:9,subject:'PE 9',ag:'pe',level:'Regular',grade:'A',credits:10,sem:'Full'},
+    {id:408,year:10,subject:'AP English Language',ag:'b',level:'AP',grade:'A',credits:10,sem:'Full'},
+    {id:409,year:10,subject:'Pre-Calculus',ag:'c',level:'Regular',grade:'B+',credits:10,sem:'Full'},
+    {id:410,year:10,subject:'Chemistry',ag:'d',level:'Regular',grade:'B+',credits:10,sem:'Full'},
+    {id:411,year:10,subject:'AP US History',ag:'a',level:'AP',grade:'A-',credits:10,sem:'Full'},
+    {id:412,year:10,subject:'French II',ag:'e',level:'Regular',grade:'A',credits:10,sem:'Full'},
+    {id:413,year:10,subject:'Film Production I',ag:'f',level:'Regular',grade:'A',credits:10,sem:'Full'},
+    {id:414,year:10,subject:'PE 10',ag:'pe',level:'Regular',grade:'A',credits:10,sem:'Full'},
+    {id:415,year:11,subject:'AP English Literature',ag:'b',level:'AP',grade:'A',credits:10,sem:'Full'},
+    {id:416,year:11,subject:'AP Statistics',ag:'c',level:'AP',grade:'B+',credits:10,sem:'Full'},
+    {id:417,year:11,subject:'AP Environmental Sci',ag:'d',level:'AP',grade:'A-',credits:10,sem:'Full'},
+    {id:418,year:11,subject:'AP US Government',ag:'a',level:'AP',grade:'A',credits:10,sem:'Full'},
+    {id:419,year:11,subject:'Film Production II',ag:'f',level:'Regular',grade:'A',credits:10,sem:'Full'},
+    {id:420,year:12,subject:'AP English Literature',ag:'b',level:'AP',grade:'A',credits:10,sem:'Full'},
+    {id:421,year:12,subject:'Economics / Gov',ag:'a',level:'Regular',grade:'A',credits:10,sem:'Full'},
+    {id:422,year:12,subject:'AP Physics 1',ag:'d',level:'AP',grade:'B+',credits:10,sem:'Full'},
+    {id:423,year:12,subject:'Film Thesis',ag:'f',level:'Regular',grade:'A',credits:10,sem:'Full'},
+  ];
+  students[3].essays=[
+    {id:20,title:'Common App Personal Statement',type:'Common App',school:'',wordLimit:650,due:'2025-11-01',status:'Consultant Review',drafts:4,lastEdit:'2024-11-08',notes:'Film/storytelling angle — excellent'},
+    {id:21,title:'Why NYU Tisch?',type:'Supplement',school:'NYU Tisch',wordLimit:500,due:'2025-11-01',status:'Final',drafts:5,lastEdit:'2024-11-09',notes:''},
+    {id:22,title:'USC Cinematic Arts Essay',type:'Supplement',school:'USC',wordLimit:650,due:'2026-01-15',status:'Drafting',drafts:2,lastEdit:'2024-11-11',notes:''},
+  ];
+  students[4].transcript=[
+    {id:501,year:9,subject:'English 9',ag:'b',level:'Regular',grade:'B+',credits:10,sem:'Full'},
+    {id:502,year:9,subject:'Algebra I',ag:'c',level:'Regular',grade:'B',credits:10,sem:'Full'},
+    {id:503,year:9,subject:'Earth Science',ag:'d',level:'Regular',grade:'A-',credits:10,sem:'Full'},
+    {id:504,year:9,subject:'World History',ag:'a',level:'Regular',grade:'B+',credits:10,sem:'Full'},
+    {id:505,year:9,subject:'PE 9',ag:'pe',level:'Regular',grade:'A',credits:10,sem:'Full'},
+    {id:506,year:9,subject:'Art I',ag:'f',level:'Regular',grade:'A',credits:10,sem:'Full'},
+  ];
+}
+
+// ══════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════
+function gradeColor(g){return {9:'#2ec98a',10:'#4a90d9',11:'#c9a84c',12:'#e05c5c'}[g]||'#888';}
+function tierLabel(t){return {t10:'Top 10',t25:'Top 25',t50:'Top 50',t100:'Top 100',la:'Liberal Arts'}[t]||t;}
+function hookLabel(h){return {legacy:'Legacy',athlete:'Athlete',firstgen:'First-Gen',urm:'URM',intl:'International'}[h]||'';}
+function calcGPAs(tr){
+  const v=(tr||[]).map(c=>({...c,_gp:gradeToGPA(c.grade,c.gradeSystem)})).filter(c=>c._gp!==null);
+  if(!v.length)return{uw:'—',w:'—'};
+  const uw=v.reduce((a,c)=>a+c._gp,0)/v.length;
+  const w=v.reduce((a,c)=>a+c._gp+(HB[c.level]||0),0)/v.length;
+  return{uw:uw.toFixed(2),w:Math.min(5,w).toFixed(2)};
+}
+function calcYearGPA(cs){
+  const v=(cs||[]).map(c=>({...c,_gp:gradeToGPA(c.grade,c.gradeSystem)})).filter(c=>c._gp!==null);
+  return v.length?(v.reduce((a,c)=>a+c._gp,0)/v.length).toFixed(2):null;
+}
+function gradeGP(g){return GP[g]!==undefined?GP[g]:null;}
+function gradeCol(g,sys){const p=gradeToGPA(g,sys||'us');if(p===null)return'var(--muted)';if(p>=3.7)return'var(--green)';if(p>=3)return'var(--blue)';if(p>=2)return'var(--orange)';return'var(--red)';}
+function getAGStatus(tr,grade){
+  const done={};AG_REQS.forEach(r=>done[r.key]=0);
+  (tr||[]).forEach(c=>{if(done[c.ag]!==undefined)done[c.ag]+=(c.sem==='Full'?1:0.5);});
+  return AG_REQS.map(r=>{
+    const d=done[r.key]||0,t=Math.max(r.uc,r.grad)||0;
+    return{...r,done:d,target:t,pct:t>0?Math.min(1,d/t):1,met:t>0&&d>=t,ip:grade<12&&d<t};
+  });
+}
+function agPct(s){
+  const ag=getAGStatus(s.transcript||[],s.grade);
+  const uc=ag.filter(r=>r.uc>0);
+  return Math.round(uc.filter(r=>r.met).length/uc.length*100);
+}
+function getUrgency(s){
+  if(s.grade===12){
+    const nextDL=upcomingDLForStudent(s.id,14);
+    if(nextDL)return{level:'red',reason:`Deadline in ${daysUntil(nextDL.date)}d: ${nextDL.title}`};
+    return{level:'red',reason:'Senior — active applications'};
+  }
+  if(s.grade===11&&!s.sat&&!s.act)return{level:'orange',reason:'No test scores yet — schedule SAT/ACT'};
+  if(s.grade===11)return{level:'orange',reason:'Junior — critical planning year'};
+  const conf=getConf(s);
+  if(conf.level==='lo')return{level:'orange',reason:'Profile data incomplete'};
+  return{level:'green',reason:`Grade ${s.grade} — on track`};
+}
+function getConf(s){
+  let sc=0;
+  if(s.gpa)sc+=25;if(s.sat||s.act)sc+=25;
+  if(s.activities&&s.activities.length>20)sc+=20;
+  if(s.meetings&&s.meetings.length>0)sc+=15;
+  if(s.major&&s.major!=='Undecided')sc+=10;if(s.hook)sc+=5;
+  return{score:sc,level:sc>=80?'hi':sc>=50?'md':'lo',label:sc>=80?'High':sc>=50?'Moderate':'Low'};
+}
+function daysUntil(dateStr){
+  const d=new Date(dateStr),t=new Date();
+  return Math.ceil((d-t)/(1000*60*60*24));
+}
+function formatDate(dateStr){
+  if(!dateStr)return'—';
+  const d=new Date(dateStr+'T00:00:00');
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+}
+function upcomingDLForStudent(sid,days){
+  const cutoff=new Date();cutoff.setDate(cutoff.getDate()+days);
+  return globalDeadlines.filter(d=>d.studentId===sid&&!d.done&&new Date(d.date)<=cutoff&&new Date(d.date)>=new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date))[0]||null;
+}
+function essayProgress(s){
+  const es=s.essays||[];
+  if(!es.length)return{done:0,total:0,pct:0};
+  const done=es.filter(e=>e.status==='Final').length;
+  return{done,total:es.length,pct:Math.round(done/es.length*100)};
+}
+
+// ══════════════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════════════
+function goPage(name,title,sub){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.ni').forEach(n=>n.classList.toggle('active',n.dataset.page===name));
+  const el=document.getElementById('page-'+name);
+  if(el)el.classList.add('active');
+  document.getElementById('pageTitle').textContent=title||{dashboard:'Command Center',compare:'Cohort Compare',calendar:'Deadline Calendar',essays:'Essay Tracker',schooldb:'School Database',strategy:'AI Strategy',profile:'Student Profile'}[name]||name;
+  document.getElementById('pageSubtitle').textContent=sub||{dashboard:'Your students at a glance',compare:'Side-by-side analysis of all students',calendar:'Track every deadline across your cohort',essays:'Monitor essay progress for all students',schooldb:'Editable university database & match calculator',strategy:'AI-powered college advising',profile:''}[name]||'';
+  if(name==='compare')renderCompare();
+  if(name==='calendar')renderCalendar();
+  if(name==='essays')renderEssayTracker();
+  if(name==='schooldb')renderSchoolDB();
+}
+function switchTab(tab){
+  document.querySelectorAll('#profileTabs .tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab));
+  document.querySelectorAll('#page-profile .tc').forEach(tc=>tc.classList.toggle('active',tc.id==='tab-'+tab));
+  const s=students.find(x=>x.id===currentStudentId);
+  if(!s)return;
+  if(tab==='transcript')renderTranscript(s);
+  if(tab==='schools')renderSchoolList(s);
+  if(tab==='essays_p')renderEssayProfile(s);
+  if(tab==='todos')renderTodos(s);
+  if(tab==='notes')renderNotes(s);
+  if(tab==='ai')renderAITab(s);
+}
+function openMo(id){document.getElementById(id).classList.add('open');}
+function closeMo(id){document.getElementById(id).classList.remove('open');}
+
+// ══════════════════════════════════════════════════════
+// INIT & RENDER DASHBOARD
+// ══════════════════════════════════════════════════════
+function init(){
+  seedData();
+  renderSidebar();renderDashboard();renderEssayTracker();
+  populateDropdowns();updateUrgBadge();
+  document.getElementById('dlDate').value=new Date().toISOString().split('T')[0];
+}
+
+function updateUrgBadge(){
+  const urgCount=students.filter(s=>getUrgency(s).level==='red').length;
+  document.getElementById('urgBadge').textContent=urgCount;
+  document.getElementById('urgBadge').style.display=urgCount>0?'':'none';
+}
+
+function renderSidebar(){
+  document.getElementById('studentList').innerHTML=students.map(s=>{
+    const u=getUrgency(s);
+    return`<div class="sc ${currentStudentId===s.id?'active':''}" onclick="openProfile(${s.id})">
+      <div class="av" style="width:26px;height:26px;font-size:10px;background:${s.color}">${s.firstName[0]}${s.lastName[0]}</div>
+      <div class="sc-info">
+        <div class="sc-name">${s.firstName} ${s.lastName}</div>
+        <div class="sc-sub">Gr.${s.grade} · GPA ${s.gpa||'—'}</div>
+      </div>
+      <div class="urg-dot" style="background:${u.level==='red'?'var(--red)':u.level==='orange'?'var(--orange)':'var(--green)'}"></div>
+    </div>`;
+  }).join('');
+}
+
+function renderDashboard(){
+  const total=students.length,seniors=students.filter(s=>s.grade===12).length;
+  const tested=students.filter(s=>s.sat);
+  const avgSat=tested.length?Math.round(tested.reduce((a,s)=>a+s.sat,0)/tested.length):'—';
+  const avgGpa=(students.reduce((a,s)=>a+(parseFloat(s.gpa)||0),0)/total).toFixed(2);
+  const urgent=students.filter(s=>getUrgency(s).level==='red').length;
+  document.getElementById('statsGrid').innerHTML=`
+    <div class="stat"><div class="stat-ico">◎</div><div class="stat-v">${total}</div><div class="stat-l">Total Students</div><div class="stat-s">${seniors} seniors this cycle</div></div>
+    <div class="stat"><div class="stat-ico">⭐</div><div class="stat-v">${avgGpa}</div><div class="stat-l">Avg Cohort GPA</div><div class="stat-s">Unweighted</div></div>
+    <div class="stat"><div class="stat-ico">📊</div><div class="stat-v">${avgSat}</div><div class="stat-l">Avg SAT</div><div class="stat-s">${tested.length} students tested</div></div>
+    <div class="stat" style="--before-bg:var(--red)"><div class="stat-ico">🚨</div><div class="stat-v" style="color:var(--red)">${urgent}</div><div class="stat-l">Need Urgent Attention</div><div class="stat-s">Click to review</div></div>`;
+
+  // Urgency board
+  const red=students.filter(s=>getUrgency(s).level==='red');
+  const orange=students.filter(s=>getUrgency(s).level==='orange');
+  const green=students.filter(s=>getUrgency(s).level==='green');
+  document.getElementById('urgBoard').innerHTML=`
+    <div class="urg-col">
+      <div class="urg-hd red">🚨 Urgent (${red.length})</div>
+      ${red.map(s=>`<div class="urg-card red" onclick="openProfile(${s.id})">
+        <div style="display:flex;align-items:center;gap:7px"><div class="av" style="width:22px;height:22px;font-size:9px;background:${s.color}">${s.firstName[0]}${s.lastName[0]}</div><div class="urg-name">${s.firstName} ${s.lastName}</div></div>
+        <div class="urg-reason">${getUrgency(s).reason}</div>
+        <div class="urg-meta">Gr.${s.grade} · ${s.major}</div>
+      </div>`).join('')||'<div style="color:var(--muted);font-size:11px;padding:8px">No urgent students</div>'}
+    </div>
+    <div class="urg-col">
+      <div class="urg-hd orange">⚠ Attention (${orange.length})</div>
+      ${orange.map(s=>`<div class="urg-card orange" onclick="openProfile(${s.id})">
+        <div style="display:flex;align-items:center;gap:7px"><div class="av" style="width:22px;height:22px;font-size:9px;background:${s.color}">${s.firstName[0]}${s.lastName[0]}</div><div class="urg-name">${s.firstName} ${s.lastName}</div></div>
+        <div class="urg-reason">${getUrgency(s).reason}</div>
+        <div class="urg-meta">Gr.${s.grade} · ${s.major}</div>
+      </div>`).join('')||'<div style="color:var(--muted);font-size:11px;padding:8px">None</div>'}
+    </div>
+    <div class="urg-col">
+      <div class="urg-hd green">✓ On Track (${green.length})</div>
+      ${green.map(s=>`<div class="urg-card green" onclick="openProfile(${s.id})">
+        <div style="display:flex;align-items:center;gap:7px"><div class="av" style="width:22px;height:22px;font-size:9px;background:${s.color}">${s.firstName[0]}${s.lastName[0]}</div><div class="urg-name">${s.firstName} ${s.lastName}</div></div>
+        <div class="urg-reason">${getUrgency(s).reason}</div>
+        <div class="urg-meta">Gr.${s.grade} · ${s.major}</div>
+      </div>`).join('')||'<div style="color:var(--muted);font-size:11px;padding:8px">None</div>'}
+    </div>`;
+
+  // Upcoming deadlines
+  const now=new Date(),cutoff=new Date();cutoff.setDate(cutoff.getDate()+30);
+  const soon=globalDeadlines.filter(d=>!d.done&&new Date(d.date)>=now&&new Date(d.date)<=cutoff).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,5);
+  document.getElementById('upcomingDeadlines').innerHTML=soon.length?soon.map(d=>{
+    const s=students.find(x=>x.id===d.studentId);
+    const days=daysUntil(d.date);
+    return`<div class="dl-item" onclick="openProfile(${d.studentId});goPage('profile')">
+      <div class="dl-date-box"><div class="dl-month">${new Date(d.date+'T00:00:00').toLocaleDateString('en-US',{month:'short'})}</div><div class="dl-day">${new Date(d.date+'T00:00:00').getDate()}</div></div>
+      <div class="dl-info"><div class="dl-title">${d.title}</div><div class="dl-sub">${s?s.firstName+' '+s.lastName:'All'}</div></div>
+      <span class="dl-urg ${days<=7?'red':days<=14?'orange':'green'}">${days}d</span>
+    </div>`;
+  }).join(''):'<div style="color:var(--muted);font-size:12px;padding:8px">No deadlines in next 30 days</div>';
+
+  // Grade chart
+  const gc={9:0,10:0,11:0,12:0};students.forEach(s=>gc[s.grade]++);
+  document.getElementById('gradeChart').innerHTML=Object.entries(gc).map(([g,c])=>`
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span style="font-size:11px;color:var(--muted)">Grade ${g}</span>
+        <span style="font-size:11px;font-weight:600;color:var(--text)">${c}</span>
+      </div>
+      <div class="pb"><div class="pf" style="width:${(c/total)*100}%;background:${gradeColor(parseInt(g))}"></div></div>
+    </div>`).join('');
+
+  // Main table
+  document.getElementById('dashTableBody').innerHTML=students.map(s=>{
+    const u=getUrgency(s),ep=essayProgress(s),ag=agPct(s);
+    const nextDL=globalDeadlines.filter(d=>d.studentId===s.id&&!d.done&&new Date(d.date)>=new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date))[0];
+    return`<tr class="clickable" onclick="openProfile(${s.id})">
+      <td><div style="display:flex;align-items:center;gap:8px"><div class="av" style="width:28px;height:28px;font-size:11px;background:${s.color}">${s.firstName[0]}${s.lastName[0]}</div><div><div style="font-weight:500">${s.firstName} ${s.lastName}</div><div style="font-size:10px;color:var(--muted)">${s.major}</div></div></div></td>
+      <td><span class="gp" style="background:${gradeColor(s.grade)}">${s.grade}th</span></td>
+      <td style="font-weight:600">${s.gpa||'—'}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:11px">${s.sat?s.sat:s.act?'ACT '+s.act:'<span style="color:var(--muted)">—</span>'}</td>
+      <td><span style="display:flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:50%;background:${u.level==='red'?'var(--red)':u.level==='orange'?'var(--orange)':'var(--green)'}"></span><span style="font-size:11px">${u.level==='red'?'Urgent':u.level==='orange'?'Attention':'On Track'}</span></span></td>
+      <td><div style="display:flex;align-items:center;gap:6px"><span style="font-size:11px;font-family:'DM Mono',monospace">${ag}%</span><div class="mini-bar"><div class="mini-fill" style="width:${ag}%;background:${ag>=80?'var(--green)':ag>=50?'var(--orange)':'var(--red)'}"></div></div></div></td>
+      <td><span style="font-size:11px">${ep.done}/${ep.total} final</span></td>
+      <td style="font-size:11px;color:var(--muted)">${nextDL?`<span style="color:${daysUntil(nextDL.date)<=14?'var(--orange)':'var(--text)'}">${formatDate(nextDL.date)}</span>`:'—'}</td>
+      <td>
+        <button class="btn btn-blue btn-sm" onclick="event.stopPropagation();openMeetingBrief(${s.id})">⚡ Brief</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════
+// COHORT COMPARE
+// ══════════════════════════════════════════════════════
+function renderCompare(){
+  const filter=document.getElementById('cmpFilter').value;
+  let data=students.filter(s=>!filter||s.grade===parseInt(filter));
+  if(cmpSort.col){
+    data=[...data].sort((a,b)=>{
+      let av=0,bv=0;
+      if(cmpSort.col==='name')return cmpSort.dir==='asc'?a.lastName.localeCompare(b.lastName):b.lastName.localeCompare(a.lastName);
+      if(cmpSort.col==='grade'){av=a.grade;bv=b.grade;}
+      else if(cmpSort.col==='gpa'){av=parseFloat(a.gpa)||0;bv=parseFloat(b.gpa)||0;}
+      else if(cmpSort.col==='wgpa'){av=parseFloat(calcGPAs(a.transcript).w)||0;bv=parseFloat(calcGPAs(b.transcript).w)||0;}
+      else if(cmpSort.col==='sat'){av=a.sat||0;bv=b.sat||0;}
+      else if(cmpSort.col==='ap'){av=(a.transcript||[]).filter(c=>c.level==='AP'||c.level==='IB').length;bv=(b.transcript||[]).filter(c=>c.level==='AP'||c.level==='IB').length;}
+      else if(cmpSort.col==='ag'){av=agPct(a);bv=agPct(b);}
+      else if(cmpSort.col==='essays'){av=essayProgress(a).pct;bv=essayProgress(b).pct;}
+      else if(cmpSort.col==='urgency'){const ul={red:3,orange:2,green:1};av=ul[getUrgency(a).level]||0;bv=ul[getUrgency(b).level]||0;}
+      return cmpSort.dir==='asc'?av-bv:bv-av;
+    });
+  }
+  document.getElementById('cmpBody').innerHTML=data.map(s=>{
+    const u=getUrgency(s),c=getConf(s),ep=essayProgress(s);
+    const gpas=calcGPAs(s.transcript);
+    const apCt=(s.transcript||[]).filter(c=>c.level==='AP'||c.level==='IB').length;
+    const ag=agPct(s);
+    return`<tr onclick="openProfile(${s.id})" style="cursor:pointer">
+      <td><div style="display:flex;align-items:center;gap:8px"><div class="av" style="width:26px;height:26px;font-size:10px;background:${s.color}">${s.firstName[0]}${s.lastName[0]}</div><div><div style="font-weight:500;font-size:12.5px">${s.firstName} ${s.lastName}</div><div style="font-size:10px;color:var(--muted)">${s.major}</div></div></div></td>
+      <td><span class="gp" style="background:${gradeColor(s.grade)}">${s.grade}</span></td>
+      <td><div class="bar-cell"><span style="font-weight:600;font-family:'DM Mono',monospace;font-size:12px">${s.gpa||'—'}</span><div class="mini-bar"><div class="mini-fill" style="width:${s.gpa?(s.gpa/4*100):0}%;background:var(--green)"></div></div></div></td>
+      <td style="font-family:'DM Mono',monospace;font-size:11.5px">${gpas.w}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:11.5px">${s.sat||'—'}</td>
+      <td><div class="bar-cell"><span style="font-weight:600;font-size:12px">${apCt}</span><div class="mini-bar"><div class="mini-fill" style="width:${Math.min(100,apCt/10*100)}%;background:var(--gold)"></div></div></div></td>
+      <td><div class="bar-cell"><span style="font-size:12px;font-family:'DM Mono',monospace">${ag}%</span><div class="mini-bar"><div class="mini-fill" style="width:${ag}%;background:${ag>=80?'var(--green)':ag>=50?'var(--orange)':'var(--red)'}"></div></div></div></td>
+      <td><div class="bar-cell"><span style="font-size:12px">${ep.done}/${ep.total}</span><div class="mini-bar"><div class="mini-fill" style="width:${ep.pct}%;background:var(--purple)"></div></div></div></td>
+      <td><span style="display:flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:50%;background:${u.level==='red'?'var(--red)':u.level==='orange'?'var(--orange)':'var(--green)'}"></span><span style="font-size:11px">${u.reason.substring(0,30)}${u.reason.length>30?'…':''}</span></span></td>
+      <td><div style="display:flex;gap:5px"><button class="btn btn-out btn-sm" onclick="event.stopPropagation();openProfile(${s.id})">View</button><button class="btn btn-blue btn-sm" onclick="event.stopPropagation();openMeetingBrief(${s.id})">Brief</button></div></td>
+    </tr>`;
+  }).join('');
+  // update sort indicators
+  document.querySelectorAll('.cmp-table th').forEach(th=>{th.classList.remove('sort-asc','sort-desc');});
+}
+function sortCompare(col){
+  if(cmpSort.col===col)cmpSort.dir=cmpSort.dir==='asc'?'desc':'asc';
+  else{cmpSort.col=col;cmpSort.dir='desc';}
+  renderCompare();
+}
+
+// ══════════════════════════════════════════════════════
+// DEADLINE CALENDAR
+// ══════════════════════════════════════════════════════
+function renderCalendar(){
+  const now=new Date();
+  let dls=[...globalDeadlines].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  if(dlFilter)dls=dls.filter(d=>d.type===dlFilter);
+  document.getElementById('dlList').innerHTML=dls.map(d=>{
+    const s=students.find(x=>x.id===d.studentId);
+    const days=daysUntil(d.date);
+    const past=days<0,urgCls=d.done?'green':past?'red':days<=7?'red':days<=14?'orange':'green';
+    const dt=new Date(d.date+'T00:00:00');
+    return`<div class="dl-item" style="${d.done?'opacity:.5':''}">
+      <div class="dl-date-box"><div class="dl-month">${dt.toLocaleDateString('en-US',{month:'short'})}</div><div class="dl-day">${dt.getDate()}</div></div>
+      <div class="dl-info">
+        <div class="dl-title">${d.done?'<s>':''} ${d.title} ${d.done?'</s>':''}</div>
+        <div class="dl-sub">${s?s.firstName+' '+s.lastName:'All'} ${d.notes?'· '+d.notes:''}</div>
+      </div>
+      <span class="tag tb" style="font-size:9px">${d.type}</span>
+      <span class="dl-urg ${urgCls}">${d.done?'Done':past?'Overdue':days+'d'}</span>
+      <button onclick="toggleDL(${d.id})" class="btn btn-sm ${d.done?'btn-out':'btn-gold'}" style="padding:3px 8px;font-size:10px">${d.done?'↺':'✓'}</button>
+      <button onclick="deleteDL(${d.id})" class="btn btn-red btn-sm" style="padding:3px 7px;font-size:10px">✕</button>
+    </div>`;
+  }).join('')||'<div style="color:var(--muted);font-size:12px;padding:10px">No deadlines found.</div>';
+  // Overdue
+  const overdue=globalDeadlines.filter(d=>!d.done&&daysUntil(d.date)<0);
+  document.getElementById('dlOverdue').innerHTML=overdue.length?overdue.map(d=>{
+    const s=students.find(x=>x.id===d.studentId);
+    return`<div class="cb lo" style="margin-bottom:6px"><span class="cb-ico">✗</span><div class="cb-txt"><span class="cb-lbl">${d.title}</span>${s?s.firstName+' '+s.lastName:''} — ${Math.abs(daysUntil(d.date))}d overdue</div></div>`;
+  }).join(''):'<div style="color:var(--muted);font-size:12px">No overdue deadlines 🎉</div>';
+  // By student this month
+  const monthEnd=new Date();monthEnd.setDate(monthEnd.getDate()+30);
+  const byS={};globalDeadlines.filter(d=>!d.done&&new Date(d.date)>=now&&new Date(d.date)<=monthEnd).forEach(d=>{if(!byS[d.studentId])byS[d.studentId]=[];byS[d.studentId].push(d);});
+  document.getElementById('dlByStudent').innerHTML=Object.entries(byS).map(([sid,dls])=>{
+    const s=students.find(x=>x.id===parseInt(sid));
+    return`<div style="margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px"><div class="av" style="width:20px;height:20px;font-size:8px;background:${s?.color||'#888'}">${s?.firstName[0]}${s?.lastName[0]}</div><span style="font-size:12px;font-weight:500;color:var(--cream)">${s?.firstName} ${s?.lastName}</span></div>
+      ${dls.map(d=>`<div style="font-size:11px;color:var(--muted);padding:3px 0 3px 27px;border-left:2px solid var(--border);margin-left:10px;padding-left:10px">${d.title} <span style="color:var(--orange)">${daysUntil(d.date)}d</span></div>`).join('')}
+    </div>`;
+  }).join('')||'<div style="color:var(--muted);font-size:12px">No deadlines this month</div>';
+}
+function filterDL(type){dlFilter=type;renderCalendar();}
+function toggleDL(id){const d=globalDeadlines.find(x=>x.id===id);if(d)d.done=!d.done;renderCalendar();renderDashboard();}
+function deleteDL(id){globalDeadlines=globalDeadlines.filter(x=>x.id!==id);renderCalendar();renderDashboard();}
+function addDeadline(){
+  const title=document.getElementById('dlTitle').value.trim();const date=document.getElementById('dlDate').value;
+  if(!title||!date)return;
+  globalDeadlines.push({id:Date.now(),studentId:parseInt(document.getElementById('dlStudent').value)||null,title,date,type:document.getElementById('dlType').value,notes:document.getElementById('dlNotes').value,done:false});
+  closeMo('moAddDeadline');['dlTitle','dlNotes'].forEach(id=>document.getElementById(id).value='');
+  renderCalendar();renderDashboard();updateUrgBadge();
+}
+
+// ══════════════════════════════════════════════════════
+// ESSAY TRACKER
+// ══════════════════════════════════════════════════════
+function renderEssayTracker(){
+  const filterSid=parseInt(document.getElementById('essayStudentFilter').value)||null;
+  let allEssays=[];
+  students.forEach(s=>{if(!filterSid||s.id===filterSid)(s.essays||[]).forEach(e=>allEssays.push({...e,student:s}));});
+  // Stats
+  const total=allEssays.length,done=allEssays.filter(e=>e.status==='Final').length;
+  const byStatus={};ESSAY_STATUS.forEach(st=>{byStatus[st]=allEssays.filter(e=>e.status===st).length;});
+  document.getElementById('essayStats').innerHTML=`<div style="display:flex;gap:10px;flex-wrap:wrap">
+    ${ESSAY_STATUS.map(st=>`<div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:7px;padding:8px 12px;text-align:center;flex:1;min-width:80px">
+      <div style="font-size:16px;font-weight:700;color:var(--cream);font-family:'Cormorant Garamond',serif">${byStatus[st]||0}</div>
+      <div style="font-size:9.5px;color:${STATUS_COLOR[st]};font-weight:600;margin-top:2px">${st}</div>
+    </div>`).join('')}
+    <div style="background:rgba(46,201,138,0.08);border:1px solid rgba(46,201,138,0.2);border-radius:7px;padding:8px 12px;text-align:center;flex:1;min-width:80px">
+      <div style="font-size:16px;font-weight:700;color:var(--green);font-family:'Cormorant Garamond',serif">${total>0?Math.round(done/total*100):0}%</div>
+      <div style="font-size:9.5px;color:var(--green);font-weight:600;margin-top:2px">Complete</div>
+    </div>
+  </div>`;
+  document.getElementById('essayTable').innerHTML=`
+    <div class="essay-row hdr"><div class="ec hdr">Essay / Prompt</div><div class="ec hdr">Student</div><div class="ec hdr">Status</div><div class="ec hdr">Drafts</div><div class="ec hdr">Due Date</div><div class="ec hdr">Word Limit</div><div class="ec hdr"></div></div>
+    ${allEssays.length?allEssays.map(e=>`
+      <div class="essay-row">
+        <div class="ec"><div style="font-weight:500;font-size:12.5px">${e.title}</div><div style="font-size:10px;color:var(--muted);margin-top:2px">${e.type}${e.school?' · '+e.school:''}</div></div>
+        <div class="ec"><div style="display:flex;align-items:center;gap:6px"><div class="av" style="width:20px;height:20px;font-size:8px;background:${e.student.color}">${e.student.firstName[0]}${e.student.lastName[0]}</div><span style="font-size:11.5px">${e.student.firstName}</span></div></div>
+        <div class="ec">
+          <select class="status-sel" style="color:${STATUS_COLOR[e.status]}" onchange="updateEssayStatus(${e.student.id},${e.id},this.value)">
+            ${ESSAY_STATUS.map(st=>`<option value="${st}" ${e.status===st?'selected':''} style="color:${STATUS_COLOR[st]}">${st}</option>`).join('')}
+          </select>
+        </div>
+        <div class="ec" style="font-family:'DM Mono',monospace;font-size:12px">${e.drafts}</div>
+        <div class="ec" style="font-size:11.5px;color:${e.due&&daysUntil(e.due)<=14?'var(--orange)':'var(--muted)'}">${e.due?formatDate(e.due):'—'}</div>
+        <div class="ec" style="font-family:'DM Mono',monospace;font-size:12px">${e.wordLimit||'—'}</div>
+        <div class="ec"><button class="del-btn" onclick="deleteEssay(${e.student.id},${e.id})">✕</button></div>
+      </div>`).join(''):'<div style="padding:16px;color:var(--muted);font-size:12px">No essays tracked yet. Add essays per student in their profile.</div>'}`;
+}
+function updateEssayStatus(sid,eid,status){
+  const s=students.find(x=>x.id===sid);if(!s)return;
+  const e=(s.essays||[]).find(x=>x.id===eid);if(!e)return;
+  e.status=status;renderEssayTracker();
+}
+function deleteEssay(sid,eid){
+  const s=students.find(x=>x.id===sid);if(!s)return;
+  s.essays=(s.essays||[]).filter(x=>x.id!==eid);renderEssayTracker();
+  if(currentStudentId===sid)renderEssayProfile(s);
+}
+function addEssay(){
+  const sid=parseInt(document.getElementById('essStudent').value);const title=document.getElementById('essTitle').value.trim();
+  if(!title||!sid)return;
+  const s=students.find(x=>x.id===sid);if(!s)return;
+  if(!s.essays)s.essays=[];
+  s.essays.push({id:Date.now(),title,type:document.getElementById('essType').value,school:document.getElementById('essSchool').value,wordLimit:parseInt(document.getElementById('essWords').value)||650,due:document.getElementById('essDue').value,status:'Not Started',drafts:0,lastEdit:'',notes:''});
+  closeMo('moAddEssay');['essTitle','essSchool','essWords','essDue'].forEach(id=>document.getElementById(id).value='');
+  renderEssayTracker();if(currentStudentId===sid)renderEssayProfile(s);
+}
+
+// ══════════════════════════════════════════════════════
+// STUDENT PROFILE
+// ══════════════════════════════════════════════════════
+function openProfile(id){
+  currentStudentId=id;
+  const s=students.find(x=>x.id===id);if(!s)return;
+  renderSidebar();
+  goPage('profile',`${s.firstName} ${s.lastName}`,`Grade ${s.grade} · ${s.major}`);
+  const c=getConf(s),u=getUrgency(s);
+  document.getElementById('profileHeader').innerHTML=`
+    <div class="av" style="width:56px;height:56px;font-size:20px;font-weight:700;background:${s.color};flex-shrink:0">${s.firstName[0]}${s.lastName[0]}</div>
+    <div style="flex:1">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div class="ph-name">${s.firstName} ${s.lastName}</div>
+        <span class="conf-badge ${c.level}">${c.label} Profile</span>
+        <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:${u.level==='red'?'var(--red)':u.level==='orange'?'var(--orange)':'var(--green)'}"><span style="width:7px;height:7px;border-radius:50%;background:currentColor"></span>${u.reason}</span>
+      </div>
+      <div class="ph-meta">
+        <div class="pm">📚 Grade <strong>${s.grade}</strong></div>
+        <div class="pm">⭐ GPA <strong>${s.gpa||'—'}</strong></div>
+        ${s.sat?`<div class="pm">📊 SAT <strong>${s.sat}</strong></div>`:''}
+        ${s.act?`<div class="pm">📋 ACT <strong>${s.act}</strong></div>`:''}
+        <div class="pm">🎯 <strong>${s.major}</strong></div>
+        ${s.hook?`<div class="pm">🔑 <strong>${hookLabel(s.hook)}</strong></div>`:''}
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0">
+      <button class="btn btn-gold btn-sm" onclick="openMeetingBrief(${s.id})">⚡ Pre-Meeting Brief</button>
+      <button class="btn btn-blue btn-sm" onclick="openParentReport(${s.id})">📄 Parent Report</button>
+    </div>`;
+  renderOverview(s);
+  // Reset other tabs
+  document.getElementById('slContent').innerHTML='';
+  document.getElementById('essayProfileContent').innerHTML='';
+  document.getElementById('notesContent').innerHTML='';
+  document.getElementById('aiContent').innerHTML='';
+  switchTab('overview');
+}
+
+function renderOverview(s){
+  const c=getConf(s),u=getUrgency(s),gpas=calcGPAs(s.transcript);
+  const agSt=getAGStatus(s.transcript,s.grade);const metAG=agSt.filter(r=>r.uc>0&&r.met).length;
+  const ep=essayProgress(s);
+  const nextDLs=globalDeadlines.filter(d=>d.studentId===s.id&&!d.done&&new Date(d.date)>=new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,3);
+  document.getElementById('ovContent').innerHTML=`
+    <div class="g2">
+      <div>
+        <div class="card">
+          <div class="card-hd"><span class="ico">📊</span>Academic Profile</div>
+          ${pstat('GPA (Unweighted)',s.gpa||'—',s.gpa?'/4.0':'')}
+          ${pstat('Weighted GPA',gpas.w,'/5.0')}
+          ${pstat('SAT',s.sat||'<span style="color:var(--muted)">Not taken</span>',s.sat?'/1600':'')}
+          ${pstat('ACT',s.act||'<span style="color:var(--muted)">Not taken</span>',s.act?'/36':'')}
+          ${pstat('Major',s.major,'')}
+          ${pstat('Target Tier',tierLabel(s.tier),'')}
+          ${s.hook?pstat('Hook',hookLabel(s.hook),''):''}
+        </div>
+        <div class="card">
+          <div class="card-hd"><span class="ico">🏆</span>Activities & Awards</div>
+          <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+            <button class="btn btn-gold btn-sm" onclick="openActivityEditor(${s.id})">✏ Edit Activities</button>
+          </div>
+          ${(()=>{
+            const list = s.activitiesList||[];
+            if(list.length){
+              return list.map(a=>`<div style="padding:10px 0;border-bottom:1px solid rgba(201,168,76,0.06)">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+                  <div>
+                    <div style="font-size:12.5px;font-weight:600;color:var(--cream)">${a.name}</div>
+                    ${a.role?`<div style="font-size:10.5px;color:var(--gold);margin-top:1px">${a.role}</div>`:''}
+                    ${a.description?`<div style="font-size:11.5px;color:var(--text);margin-top:4px;line-height:1.5">${a.description}</div>`:''}
+                  </div>
+                  <div style="text-align:right;flex-shrink:0">
+                    ${a.hours?`<div style="font-size:11px;color:var(--muted)">${a.hours}h/yr</div>`:''}
+                    ${a.years?`<div style="font-size:10px;color:var(--muted);margin-top:2px">${a.years}</div>`:''}
+                  </div>
+                </div>
+              </div>`).join('');
+            } else if(s.activities){
+              return s.activities.split(',').map(a=>`<div style="padding:5px 0;border-bottom:1px solid rgba(201,168,76,0.05);font-size:12px">• ${a.trim()}</div>`).join('');
+            }
+            return '<p style="color:var(--muted);font-size:12px">No activities entered. Click Edit Activities to add.</p>';
+          })()}
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <div class="card-hd"><span class="ico">🎯</span>At a Glance</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+            <div style="background:rgba(8,15,30,0.6);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
+              <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:${agPct(s)>=80?'var(--green)':agPct(s)>=50?'var(--orange)':'var(--red)'}">${agPct(s)}%</div>
+              <div style="font-size:10px;color:var(--muted);margin-top:2px">A–G Complete</div>
+            </div>
+            <div style="background:rgba(8,15,30,0.6);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
+              <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--purple)">${ep.done}/${ep.total}</div>
+              <div style="font-size:10px;color:var(--muted);margin-top:2px">Essays Final</div>
+            </div>
+          </div>
+          <div class="card-hd" style="margin-bottom:8px;font-size:13px"><span class="ico">◷</span>Upcoming Deadlines</div>
+          ${nextDLs.length?nextDLs.map(d=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(201,168,76,0.05)"><span style="font-size:12px">${d.title}</span><span style="font-size:10.5px;color:${daysUntil(d.date)<=14?'var(--orange)':'var(--muted)'}">${formatDate(d.date)}</span></div>`).join(''):'<p style="font-size:11.5px;color:var(--muted)">No upcoming deadlines</p>'}
+          <button class="btn btn-out btn-sm" style="margin-top:10px" onclick="openMo('moAddDeadline')">+ Add Deadline</button>
+        </div>
+        <div class="card">
+          <div class="card-hd"><span class="ico">📅</span>Meeting History</div>
+          ${s.meetings.length?s.meetings.slice(0,3).map(m=>`<div class="nc"><div class="nc-date">${m.date} · ${m.tag}</div><div class="nc-txt">${m.content}</div></div>`).join(''):'<p style="color:var(--muted);font-size:12px">No meetings yet.</p>'}
+        </div>
+      </div>
+    </div>`;
+}
+function pstat(l,v,s){return`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(201,168,76,0.05)"><span style="font-size:11px;color:var(--muted)">${l}</span><span style="font-size:12.5px;font-weight:500;color:var(--text)">${v}<span style="color:var(--muted);font-size:10px">${s}</span></span></div>`;}
+
+function renderTranscript(s){
+  const tr=s.transcript||[],gpas=calcGPAs(tr),agSt=getAGStatus(tr,s.grade);
+  const ap=tr.filter(c=>c.level==='AP'||c.level==='IB').length;
+  const years=[9,10,11,12].filter(y=>y<=s.grade||tr.some(c=>c.year===y));
+  const ucReqs=agSt.filter(r=>r.uc>0),metCount=ucReqs.filter(r=>r.met).length;
+  const allMet=metCount===ucReqs.length;
+  document.getElementById('trContent').innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+      <div style="font-size:11px;color:var(--muted)">GPA shown in US 4.0 scale. Original grades preserved per course.</div>
+      <div style="display:flex;align-items:center;gap:7px">
+        <span style="font-size:11px;color:var(--muted)">Default grade system for new courses:</span>
+        <select class="ms" id="defaultGradeSys-${s.id}" style="font-size:11px;color:var(--blue)" onchange="setDefaultGradeSys(${s.id},this.value)">
+          <option value="us">US (A–F)</option>
+          <option value="ib">IB (1–7)</option>
+          <option value="al">A-Level</option>
+          <option value="cn">Chinese (百分制)</option>
+        </select>
+      </div>
+    </div>
+    <div class="gpa-boxes">
+      <div class="gb"><div class="gb-v">${gpas.uw}</div><div class="gb-l">US GPA (Unweighted)</div></div>
+      <div class="gb"><div class="gb-v">${gpas.w}</div><div class="gb-l">US GPA (Weighted)</div></div>
+      <div class="gb"><div class="gb-v">${ap}</div><div class="gb-l">AP / IB Courses</div></div>
+      <div class="gb"><div class="gb-v">${tr.length}</div><div class="gb-l">Total Courses</div></div>
+      ${(()=>{const sys={};(tr).forEach(c=>{const k=c.gradeSystem||'us';sys[k]=(sys[k]||0)+1;});const keys=Object.keys(sys).filter(k=>k!=='us');return keys.length?keys.map(k=>`<div class="gb" style="border-color:rgba(74,144,217,.3)"><div class="gb-v" style="font-size:18px;color:var(--blue)">${sys[k]}</div><div class="gb-l">${({ib:'IB',al:'A-Level',cn:'Chinese'})[k]||k} courses</div></div>`).join(''):'';})()} 
+    </div>
+      <div class="card" style="margin-bottom:0">
+        <div class="card-hd"><span class="ico">🎓</span>UC A–G Audit</div>
+        <div class="cb ${allMet?'hi':metCount>=ucReqs.length-2?'md':'lo'}" style="margin-bottom:10px">
+          <span class="cb-ico">${allMet?'✓':metCount>=ucReqs.length-2?'⚠':'✗'}</span>
+          <div class="cb-txt"><span class="cb-lbl">${metCount}/${ucReqs.length} categories met</span>${allMet?'All UC A–G requirements satisfied!':s.grade<12?'In progress — based on courses logged':'Missing requirements'}</div>
+        </div>
+        ${ucReqs.map(r=>{const col=r.met?'var(--green)':r.pct>=.5?'var(--orange)':'var(--red)';return`<div class="ag-row">
+          <div class="ag-dot-big" style="background:${r.color}">${r.key.toUpperCase()}</div>
+          <div class="ag-subj"><div class="ag-name">${r.label}</div><div class="ag-desc">${r.desc}</div></div>
+          <div class="ag-prog"><div class="ag-frac">${r.done}/${r.uc} yrs (UC)</div><div class="pb" style="width:110px;margin-top:3px"><div class="pf" style="width:${Math.round(r.pct*100)}%;background:${col}"></div></div><div class="ag-stat" style="color:${col}">${r.met?'✓ MET':r.ip?'In Progress':'✗ MISSING'}</div></div>
+        </div>`;}).join('')}
+      </div>
+      <div class="card" style="margin-bottom:0">
+        <div class="card-hd"><span class="ico">📈</span>Rigor & Flags</div>
+        ${renderRigor(tr,s)}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><span class="ico">📋</span>Course History</div>
+      <p style="font-size:11px;color:var(--muted);margin-bottom:14px">Click year to expand. Use + Add row to log courses.</p>
+      ${years.map(yr=>{const cs=tr.filter(c=>c.year===yr),ygpa=calcYearGPA(cs);return`<div class="tr-year">
+        <div class="tr-yh" onclick="toggleYr(${yr})">
+          <div class="tr-yh-l"><span class="gp" style="background:${gradeColor(yr)}">${yr}th</span>Grade ${yr} — ${['','','','','','','','','','Freshman','Sophomore','Junior','Senior'][yr]}${yr===s.grade?' <span style="font-size:9px;background:rgba(201,168,76,.18);color:var(--gold);padding:2px 6px;border-radius:8px">Current</span>':''}</div>
+          <div style="display:flex;align-items:center;gap:12px">${ygpa?`<span style="font-size:11px;color:var(--muted)">GPA <strong style="color:var(--cream)">${ygpa}</strong></span>`:''}<span style="font-size:10.5px;color:var(--muted)">${cs.length} courses</span></div>
+        </div>
+        <div class="tr-yb" id="tryb-${yr}">
+          <div class="cr ch" style="grid-template-columns:2fr 1.2fr 80px 40px 90px 68px 80px 30px"><div class="cc ch">Course</div><div class="cc ch">Area</div><div class="cc ch">Level</div><div class="cc ch">Sys</div><div class="cc ch">Grade (orig)</div><div class="cc ch">US GPA</div><div class="cc ch">Term</div><div class="cc ch"></div></div>
+          ${cs.map(c=>{const ugpa=gradeToGPA(c.grade,c.gradeSystem);const sys=c.gradeSystem||'us';return`<div class="cr" style="grid-template-columns:2fr 1.2fr 80px 44px 90px 68px 80px 30px"><div class="cc" style="font-weight:500">${c.subject}</div><div class="cc"><span style="display:flex;align-items:center;gap:5px"><div style="width:16px;height:16px;border-radius:50%;background:${AG_COLOR[c.ag]||'#888'};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:var(--bg);flex-shrink:0">${c.ag.toUpperCase()}</div><span style="font-size:10px;color:var(--muted)">${AG_REQS.find(r=>r.key===c.ag)?.label.split('—')[0]?.trim()||c.ag}</span></span></div><div class="cc"><span class="lb ${c.level==='AP'?'lb-ap':c.level==='IB'?'lb-ib':c.level==='Honors'?'lb-h':'lb-r'}">${c.level}</span></div><div class="cc"><span style="font-size:9px;font-weight:700;padding:2px 5px;border-radius:5px;background:rgba(255,255,255,0.06);color:var(--muted);white-space:nowrap">${sysLabel(sys)}</span></div><div class="cc"><span style="font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:${gradeCol(c.grade,sys)}">${c.grade||'—'}</span></div><div class="cc"><span style="font-family:'DM Mono',monospace;font-size:12px;color:${ugpa!==null?(ugpa>=3.7?'var(--green)':ugpa>=3?'var(--blue)':ugpa>=2?'var(--orange)':'var(--red)'):'var(--muted)'}">${ugpa!==null?ugpa.toFixed(2):'—'}</span></div><div class="cc" style="font-size:11px;color:var(--muted)">${c.sem}</div><div class="cc"><button class="del-btn" onclick="delCourse(${s.id},${c.id})">✕</button></div></div>`;}).join('')}
+          <div class="add-cr" style="flex-wrap:wrap;row-gap:5px">
+            <input class="mi" id="cn-${yr}" placeholder="Course name" style="flex:2;min-width:120px">
+            <select class="ms" id="cag-${yr}">${AG_REQS.map(r=>`<option value="${r.key}">${r.key.toUpperCase()} — ${r.label.split('—')[0].trim()}</option>`).join('')}</select>
+            <select class="ms" id="clv-${yr}"><option>Regular</option><option>Honors</option><option>AP</option><option>IB</option><option>College</option></select>
+            <select class="ms" id="csys-${yr}" onchange="updateGradeOpts(${yr})" style="color:var(--blue)">
+              <option value="us">US (A–F)</option>
+              <option value="ib">IB (1–7)</option>
+              <option value="al">A-Level</option>
+              <option value="cn">Chinese (百分制)</option>
+            </select>
+            <select class="ms" id="cgr-${yr}" style="min-width:58px"><option value="">Grade</option>${['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','IP','W'].map(g=>`<option>${g}</option>`).join('')}</select>
+            <input class="mi" id="cgr-cn-${yr}" placeholder="e.g. 92" style="width:62px;display:none">
+            <input class="mi" id="ccr-${yr}" value="10" style="width:38px">
+            <select class="ms" id="csm-${yr}"><option value="Full">Full Yr</option><option value="Sem1">Sem 1</option><option value="Sem2">Sem 2</option></select>
+            <button class="btn btn-gold btn-sm" onclick="addCourse(${s.id},${yr})" style="white-space:nowrap">+ Add</button>
+          </div>
+        </div>
+      </div>`;}).join('')}
+    </div>`;
+  // Sync default grade system picker
+  const defSel=document.getElementById('defaultGradeSys-'+s.id);
+  if(defSel&&s.defaultGradeSys)defSel.value=s.defaultGradeSys;
+  // Pre-set all year grade-system selectors to student default
+  if(s.defaultGradeSys){document.querySelectorAll('[id^="csys-"]').forEach(sel=>sel.value=s.defaultGradeSys);document.querySelectorAll('[id^="csys-"]').forEach(sel=>{const yr=sel.id.replace('csys-','');if(!isNaN(yr))updateGradeOpts(parseInt(yr));});}
+}
+function renderRigor(tr,s){
+  const ap=tr.filter(c=>c.level==='AP').length,ib=tr.filter(c=>c.level==='IB').length,hon=tr.filter(c=>c.level==='Honors').length,reg=tr.filter(c=>c.level==='Regular'&&c.ag!=='pe'&&c.ag!=='elec').length;
+  const tot=ap+ib+hon+reg,rigorPct=tot>0?Math.round((ap+ib+hon)/tot*100):0;
+  let lvl='lo',msg='Low rigor for target tier';
+  if(ap+ib>=8){lvl='hi';msg='Excellent rigor — competitive for T10';}
+  else if(ap+ib>=5){lvl='hi';msg='Strong rigor — competitive for T25';}
+  else if(ap+ib>=3){lvl='md';msg='Moderate — consider more AP courses';}
+  else if(hon>=4){lvl='md';msg='Good honors — add AP in 11th/12th';}
+  const flags=[];
+  const ag=getAGStatus(tr,s.grade);
+  ag.filter(r=>r.uc>0&&!r.met).forEach(r=>flags.push({t:'lo',m:`<strong>${r.label.split('—')[0].trim()}</strong> needs ${(r.uc-r.done).toFixed(1)} more year(s)`}));
+  if((s.sat||0)<1200&&s.grade>=11)flags.push({t:'md',m:'Test scores below competitive range for target tier'});
+  const weak=tr.filter(c=>{const p=gradeToGPA(c.grade,c.gradeSystem);return p!==null&&p<2.0;});
+  if(weak.length)flags.push({t:'lo',m:`${weak.length} course(s) with C− or below: ${weak.map(c=>c.subject).join(', ')}`});
+  if(ap+ib>=8&&ag.filter(r=>r.uc>0).every(r=>r.met))flags.push({t:'hi',m:'Exceptional rigor + all A–G met — strong for top schools'});
+  return`<div class="cb ${lvl}" style="margin-bottom:10px"><span class="cb-ico">${lvl==='hi'?'✓':'⚠'}</span><div class="cb-txt"><span class="cb-lbl">${msg}</span>${rigorPct}% advanced coursework</div></div>
+    ${[['AP',ap],['IB',ib],['Honors',hon],['Regular (Academic)',reg]].map(([l,n])=>`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px"><span style="font-size:11px;color:var(--muted)">${l}</span><div style="display:flex;align-items:center;gap:6px"><div class="mini-bar" style="width:70px"><div class="mini-fill" style="width:${tot>0?Math.round(n/tot*100):0}%;background:var(--gold)"></div></div><span style="font-size:11px;font-family:'DM Mono',monospace">${n}</span></div></div>`).join('')}
+    <div class="dv"></div>
+    <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Advisor Flags</div>
+    ${flags.map(f=>`<div class="cb ${f.t}" style="margin-bottom:5px"><span class="cb-ico">${f.t==='lo'?'✗':f.t==='md'?'⚠':'✓'}</span><div class="cb-txt" style="font-size:11.5px">${f.m}</div></div>`).join('')||'<div class="cb hi"><span class="cb-ico">✓</span><div class="cb-txt">No major flags</div></div>'}`;
+}
+function toggleYr(yr){const b=document.getElementById('tryb-'+yr);if(b)b.style.display=b.style.display==='none'?'':'none';}
+function setDefaultGradeSys(sid,sys){
+  const s=students.find(x=>x.id===sid);if(s)s.defaultGradeSys=sys;
+  // update all open year-selectors to match
+  document.querySelectorAll('[id^="csys-"]').forEach(sel=>sel.value=sys);
+  document.querySelectorAll('[id^="cgr-"]').forEach(sel=>{
+    const yr=sel.id.replace('cgr-','');
+    if(!isNaN(yr))updateGradeOpts(parseInt(yr));
+  });
+}
+function updateGradeOpts(yr){
+  const sys=document.getElementById('csys-'+yr).value;
+  const sel=document.getElementById('cgr-'+yr);
+  const cn=document.getElementById('cgr-cn-'+yr);
+  if(sys==='cn'){sel.style.display='none';cn.style.display='';cn.placeholder='e.g. 92';}
+  else{sel.style.display='';cn.style.display='none';}
+  sel.innerHTML='<option value="">Grade</option>';
+  const opts={us:['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','IP','W'],ib:['7','6','5','4','3','2','1','IP'],al:['A*','A','B','C','D','E','U']};
+  if(opts[sys])opts[sys].forEach(g=>{const o=document.createElement('option');o.value=g;o.textContent=g;sel.appendChild(o);});
+}
+function addCourse(sid,year){
+  const s=students.find(x=>x.id===sid);if(!s)return;
+  const name=document.getElementById('cn-'+year).value.trim();if(!name)return;
+  if(!s.transcript)s.transcript=[];
+  const sys=document.getElementById('csys-'+year).value||'us';
+  const gradeRaw=sys==='cn'?document.getElementById('cgr-cn-'+year).value.trim():document.getElementById('cgr-'+year).value;
+  const grade=gradeRaw||'IP';
+  s.transcript.push({id:Date.now(),year,subject:name,ag:document.getElementById('cag-'+year).value,level:document.getElementById('clv-'+year).value,gradeSystem:sys,grade,credits:parseInt(document.getElementById('ccr-'+year).value)||10,sem:document.getElementById('csm-'+year).value});
+  const gpas=calcGPAs(s.transcript);if(gpas.uw!=='—')s.gpa=gpas.uw;
+  renderTranscript(s);renderSidebar();
+}
+function delCourse(sid,cid){
+  const s=students.find(x=>x.id===sid);if(!s||!confirm('Remove course?'))return;
+  s.transcript=s.transcript.filter(c=>c.id!==cid);
+  const gpas=calcGPAs(s.transcript);if(gpas.uw!=='—')s.gpa=gpas.uw;
+  renderTranscript(s);
+}
+
+function renderSchoolList(s){
+  const matches=getMatchSchools(s);
+  document.getElementById('slContent').innerHTML=`<div class="card-hd"><span class="ico">🏫</span>Recommended School List</div>
+    <div style="display:flex;gap:6px;margin-bottom:12px"><span class="tag tr">● Reach</span><span class="tag to">● Match</span><span class="tag tg">● Safety</span></div>
+    ${matches.map((m,i)=>`<div class="si"><div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);width:18px">${i+1}</div><div style="width:7px;height:7px;border-radius:50%;background:${m.type==='safety'?'var(--green)':m.type==='match'?'var(--orange)':'var(--red)'};flex-shrink:0"></div><div class="si-info"><div class="si-name">${m.name}</div><div class="si-det">${m.detail}</div></div><div style="text-align:right"><div class="chance-n" style="color:${m.chance>40?'var(--green)':m.chance>15?'var(--orange)':'var(--red)'}">${m.chance}%</div><div class="chance-l">Est. chance</div></div></div>`).join('')}
+    <p style="font-size:10px;color:var(--muted);margin-top:8px">* Estimates based on school database. Verify data in School Database for accuracy.</p>`;
+}
+function getMatchSchools(s){
+  const sat=s.sat||(s.act?s.act*46:1200);
+  const hb={legacy:1.5,athlete:2.2,firstgen:1.2,urm:1.3,'':1}[s.hook||'']||1;
+  return schoolDB.map(sc=>{
+    const fit=(sat-sc.sat25)/(sc.sat75-sc.sat25+1);
+    const gfit=s.gpa>=sc.gpaMin?1:(parseFloat(s.gpa)||0)/sc.gpaMin;
+    let ch=sc.acceptance*fit*gfit*hb*1.5;ch=Math.max(1,Math.min(88,Math.round(ch)));
+    const type=ch>=40?'safety':ch>=15?'match':'reach';
+    return{name:sc.name,detail:sc.notes,chance:ch,type};
+  }).sort((a,b)=>b.chance-a.chance).slice(0,10);
+}
+
+function renderEssayProfile(s){
+  const es=s.essays||[];
+  document.getElementById('essayProfileContent').innerHTML=`
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div class="card-hd" style="margin-bottom:0"><span class="ico">✍</span>Essays for ${s.firstName}</div>
+        <button class="btn btn-gold btn-sm" onclick="document.getElementById('essStudent').value=${s.id};openMo('moAddEssay')">+ Add Essay</button>
+      </div>
+      ${es.length?`
+        <div class="essay-row hdr"><div class="ec hdr">Essay</div><div class="ec hdr">School</div><div class="ec hdr">Status</div><div class="ec hdr">Drafts</div><div class="ec hdr">Due</div><div class="ec hdr">Words</div><div class="ec hdr"></div></div>
+        ${es.map(e=>`<div class="essay-row">
+          <div class="ec"><div style="font-weight:500;font-size:12.5px">${e.title}</div><div style="font-size:10px;color:var(--muted)">${e.type}</div></div>
+          <div class="ec" style="font-size:11.5px">${e.school||'—'}</div>
+          <div class="ec"><select class="status-sel" style="color:${STATUS_COLOR[e.status]}" onchange="updateEssayStatus(${s.id},${e.id},this.value)">${ESSAY_STATUS.map(st=>`<option value="${st}" ${e.status===st?'selected':''} style="color:${STATUS_COLOR[st]}">${st}</option>`).join('')}</select></div>
+          <div class="ec" style="font-family:'DM Mono',monospace;font-size:12px">${e.drafts}</div>
+          <div class="ec" style="font-size:11.5px;color:${e.due&&daysUntil(e.due)<=14?'var(--orange)':'var(--muted)'}">${e.due?formatDate(e.due):'—'}</div>
+          <div class="ec" style="font-family:'DM Mono',monospace;font-size:12px">${e.wordLimit||'—'}</div>
+          <div class="ec"><button class="del-btn" onclick="deleteEssay(${s.id},${e.id})">✕</button></div>
+        </div>`).join('')}
+        ${e=>e.notes?`<div class="nc" style="margin-top:8px"><div class="nc-date">Notes</div><div class="nc-txt">${e.notes}</div></div>`:''}
+      `:'<p style="color:var(--muted);font-size:12.5px">No essays tracked yet. Click + Add Essay to start.</p>'}
+    </div>`;
+}
+
+function renderNotes(s){
+  document.getElementById('notesContent').innerHTML=`
+    <div class="card">
+      <div class="card-hd"><span class="ico">📝</span>Meeting Notes</div>
+      ${s.meetings.map(m=>`<div class="nc"><div class="nc-date">${m.date} · <span class="tag tb" style="font-size:9px">${m.tag}</span></div><div class="nc-txt">${m.content}</div></div>`).join('')||'<p style="color:var(--muted);font-size:12px;margin-bottom:14px">No notes yet.</p>'}
+      <div class="dv"></div>
+      <div style="font-size:12px;font-weight:600;color:var(--cream);margin-bottom:10px">Add Note</div>
+      <div class="fg"><textarea class="fta" id="newNote" placeholder="Meeting notes..." style="min-height:80px"></textarea></div>
+      <div class="fr">
+        <div class="fg"><label class="fl">Date</label><input type="date" class="fi" id="noteDate" value="${new Date().toISOString().split('T')[0]}"></div>
+        <div class="fg"><label class="fl">Category</label><select class="fse" id="noteTag"><option>General</option><option>Academic</option><option>Essays</option><option>Testing</option><option>School List</option><option>Parent</option><option>Financial Aid</option></select></div>
+      </div>
+      <button class="btn btn-gold btn-sm" onclick="addNote(${s.id})">Save Note</button>
+    </div>`;
+}
+function addNote(sid){
+  const s=students.find(x=>x.id===sid);if(!s)return;
+  const content=document.getElementById('newNote').value.trim();if(!content)return;
+  s.meetings.unshift({date:document.getElementById('noteDate').value,content,tag:document.getElementById('noteTag').value});
+  renderNotes(s);renderOverview(s);
+}
+
+function renderAITab(s){
+  document.getElementById('aiContent').innerHTML=`
+    <div class="card">
+      <div class="card-hd"><span class="ico">◆</span>AI Analysis</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:14px">Generate deep, personalized strategy using Claude AI.</p>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px">
+        <button class="btn btn-gold btn-sm" onclick="generateAI('full','${s.id}')">Full Strategy</button>
+        <button class="btn btn-out btn-sm" onclick="generateAI('schools','${s.id}')">School List</button>
+        <button class="btn btn-out btn-sm" onclick="generateAI('essays','${s.id}')">Essay Topics</button>
+        <button class="btn btn-out btn-sm" onclick="generateAI('timeline','${s.id}')">Timeline</button>
+        <button class="btn btn-out btn-sm" onclick="generateAI('transcript','${s.id}')">Transcript Review</button>
+      </div>
+      <div id="aiOut"></div>
+    </div>`;
+}
+
+// ══════════════════════════════════════════════════════
+// PRE-MEETING BRIEF
+// ══════════════════════════════════════════════════════
+async function openMeetingBrief(sid){
+  const s=students.find(x=>x.id===sid);if(!s)return;
+  document.getElementById('meetingTitle').textContent=`⚡ Pre-Meeting Brief — ${s.firstName} ${s.lastName}`;
+  const out=document.getElementById('meetingContent');
+  out.innerHTML=`<div class="aibadge">✦ Generating brief <span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div>`;
+  openMo('moMeeting');
+  const gpas=calcGPAs(s.transcript);
+  const agSt=getAGStatus(s.transcript,s.grade);const missing=agSt.filter(r=>r.uc>0&&!r.met).map(r=>r.label.split('—')[0].trim()).join(', ')||'None';
+  const notes=s.meetings.slice(0,3).map(m=>`[${m.date}] ${m.content}`).join('\n')||'No previous meetings';
+  const nextDLs=globalDeadlines.filter(d=>d.studentId===s.id&&!d.done&&new Date(d.date)>=new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,3).map(d=>`${d.title} (${formatDate(d.date)})`).join(', ')||'None';
+  const essays=(s.essays||[]).map(e=>`${e.title}: ${e.status}`).join(', ')||'None tracked';
+  const prompt=`You are an expert college admissions consultant. Generate a CONCISE pre-meeting brief (max 400 words) for a consulting session with this student.
+
+STUDENT: ${s.firstName} ${s.lastName}, Grade ${s.grade}
+GPA: ${s.gpa} (UW) / ${gpas.w} (W) | SAT: ${s.sat||'None'} | Major: ${s.major} | Target: ${tierLabel(s.tier)} | Hook: ${hookLabel(s.hook)||'None'}
+Activities: ${s.activities}
+Missing A-G: ${missing}
+AP/IB count: ${(s.transcript||[]).filter(c=>c.level==='AP'||c.level==='IB').length}
+Recent meetings: ${notes}
+Upcoming deadlines: ${nextDLs}
+Essays: ${essays}
+
+Structure the brief as:
+### Where We Left Off
+1-2 sentences on last meeting's key takeaways.
+
+### Urgent Items for Today
+Bulleted list of 3-4 most important things to cover THIS session, prioritized by urgency.
+
+### Open Loops
+What was promised or pending from last session?
+
+### Quick Wins
+1-2 specific actions the student can take this week.
+
+### Watch Out For
+Any concerning patterns to probe during the meeting.
+
+Be direct and specific. This is a working brief for the consultant, not a student-facing document.`;
+  await callClaude(prompt,out,'Preparing your brief...');
+}
+
+// ══════════════════════════════════════════════════════
+// PARENT REPORT
+// ══════════════════════════════════════════════════════
+async function openParentReport(sid){
+  const s=students.find(x=>x.id===sid);if(!s)return;
+  document.getElementById('reportTitle').textContent=`📄 Parent Report — ${s.firstName} ${s.lastName}`;
+  const out=document.getElementById('reportContent');
+  out.innerHTML=`<div class="aibadge">✦ Generating parent report <span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div>`;
+  openMo('moReport');
+  const gpas=calcGPAs(s.transcript);
+  const agSt=getAGStatus(s.transcript,s.grade);
+  const metAG=agSt.filter(r=>r.uc>0&&r.met).length,totalAG=agSt.filter(r=>r.uc>0).length;
+  const ep=essayProgress(s);
+  const nextDLs=globalDeadlines.filter(d=>d.studentId===s.id&&!d.done&&new Date(d.date)>=new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,3).map(d=>`${d.title} due ${formatDate(d.date)}`).join('; ')||'None currently';
+  const prompt=`You are a professional college admissions consultant writing a formal progress report to parents.
+
+STUDENT: ${s.firstName} ${s.lastName}, Grade ${s.grade}
+Unweighted GPA: ${s.gpa} | Weighted GPA: ${gpas.w} | SAT: ${s.sat||'Not yet taken'} | ACT: ${s.act||'Not taken'}
+Major Interest: ${s.major} | Target Tier: ${tierLabel(s.tier)}
+AP/IB Courses to Date: ${(s.transcript||[]).filter(c=>c.level==='AP'||c.level==='IB').length}
+UC A-G Progress: ${metAG}/${totalAG} categories complete
+Essays: ${ep.done} final of ${ep.total} total
+Upcoming Deadlines: ${nextDLs}
+Activities: ${s.activities}
+Recent Meeting Notes: ${s.meetings.slice(0,2).map(m=>m.content).join(' | ')||'None'}
+
+Write a professional parent-facing progress report. Tone: warm, expert, reassuring but honest. Format:
+
+### Progress Summary
+2-3 sentences on where ${s.firstName} stands overall.
+
+### Academic Standing
+Current GPA, rigor, and how it positions them for target schools.
+
+### College Readiness
+A-G progress, testing status, and what's on track vs. needs attention.
+
+### Application Progress
+Essay and deadline status.
+
+### Recommended Next Steps
+3 specific action items for the family/student this month.
+
+### Consultant's Note
+One paragraph of candid professional perspective.
+
+Write in first-person as the consultant. Use ${s.firstName}'s name throughout. Keep total length under 500 words. Professional but not cold.`;
+  await callClaude(prompt,out,'Generating parent report...');
+  // Add print button after generation
+  setTimeout(()=>{
+    const printBtn=document.createElement('div');
+    printBtn.style.cssText='margin-top:14px;display:flex;gap:8px;';
+    printBtn.innerHTML=`<button class="btn btn-gold btn-sm" onclick="window.print()">🖨 Print / Save PDF</button>`;
+    out.appendChild(printBtn);
+  },100);
+}
+
+// ══════════════════════════════════════════════════════
+// AI ENGINE
+// ══════════════════════════════════════════════════════
+async function callClaude(prompt,outEl,loadMsg){
+  outEl.innerHTML=`<div class="aibadge">✦ AI Advisor</div><div style="color:var(--muted);font-size:12px;margin-top:8px">${loadMsg} <span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div>`;
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const data=await res.json();
+    const text=data.content?.map(b=>b.text||'').join('\n')||'No response.';
+    const fmt=text.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/^###?\s(.+)/gm,'<h3>$1</h3>');
+    outEl.innerHTML=`<div class="aibadge">✦ AI Advisor · ${new Date().toLocaleTimeString()}</div><div class="air">${fmt}</div>`;
+  }catch(e){outEl.innerHTML=`<div class="air" style="border-color:rgba(224,92,92,.3);color:var(--red)">Error: ${e.message}</div>`;}
+}
+
+async function generateAI(type,sid){
+  const id=sid?parseInt(sid):currentStudentId;
+  const s=students.find(x=>x.id===id);
+  const out=document.getElementById(type==='cohort'?'cohortAIOut':'aiOut');
+  if(!out)return;
+  if(!s&&type!=='cohort')return;
+  let prompt='';
+  const base=s?`You are an expert college admissions consultant.
+Student: ${s.firstName} ${s.lastName}, Grade ${s.grade}, GPA ${s.gpa} (UW) / ${calcGPAs(s.transcript).w} (W), SAT ${s.sat||'none'}, ACT ${s.act||'none'}
+Major: ${s.major}, Target: ${tierLabel(s.tier)}, Hook: ${hookLabel(s.hook)||'none'}
+APs: ${(s.transcript||[]).filter(c=>c.level==='AP'||c.level==='IB').length}
+Activities: ${s.activities}
+A-G: ${agPct(s)}% complete, Missing: ${getAGStatus(s.transcript,s.grade).filter(r=>r.uc>0&&!r.met).map(r=>r.key.toUpperCase()).join(', ')||'None'}
+Essays: ${(s.essays||[]).map(e=>`${e.title}(${e.status})`).join(', ')||'None'}
+Recent notes: ${s.meetings.slice(0,2).map(m=>m.content).join(' | ')||'None'}
+`:'';
+
+  if(type==='full')prompt=`${base}\nProvide a comprehensive strategy report: strengths, weaknesses, strategic recommendations (top 5), narrative differentiation, school list strategy, and grade-specific priorities. Be specific and direct.`;
+  else if(type==='schools')prompt=`${base}\nRecommend 12 colleges (4 reach, 5 match, 3 safety) with specific fit rationale for THIS student, ED/EA timing, and key supplement angles.`;
+  else if(type==='essays')prompt=`${base}\nSuggest 3 compelling Common App essay topics with opening lines, a core narrative thread, and supplement strategies for their top 3 schools.`;
+  else if(type==='timeline')prompt=`${base}\nCreate a month-by-month action plan from now through final deadlines. Grade ${s.grade} specific. Include 3 most critical actions right now.`;
+  else if(type==='transcript'){
+    const tr=s.transcript||[];const gpas=calcGPAs(tr);
+    prompt=`${base}\nTranscript analysis: UW GPA ${gpas.uw}, W GPA ${gpas.w}, ${tr.filter(c=>c.level==='AP'||c.level==='IB').length} AP/IB courses.\nCourse list: ${tr.map(c=>`${c.subject}(Gr${c.year},${c.level},${c.grade||'IP'})`).join('; ')}\n\nProvide: overall assessment, UC A-G compliance, rigor analysis, grade trends, specific course recommendations, and red flags for admissions.`;
+  }
+  else if(type==='cohort'){
+    const summary=students.map(s=>`${s.firstName} ${s.lastName}(Gr${s.grade},GPA${s.gpa},SAT${s.sat||'—'},${tierLabel(s.tier)},${getUrgency(s).level} urgency)`).join('; ');
+    prompt=`You are an expert college admissions consultant. Cohort of ${students.length} students: ${summary}\n\nProvide: (1) who needs most urgent attention and why, (2) patterns you notice across the cohort, (3) strategic priorities for the next 30 days, (4) students most likely to have breakout outcomes.`;
+    out.innerHTML='';
+  }
+  await callClaude(prompt,out,'Analyzing...');
+}
+
+async function askStrategy(){
+  const q=document.getElementById('stratQ').value.trim();if(!q)return;
+  const out=document.getElementById('stratOut');
+  const sid=parseInt(document.getElementById('stratStu').value);
+  let ctx=sid?`Student context: ${(()=>{const s=students.find(x=>x.id===sid);return`${s.firstName} ${s.lastName}, Gr${s.grade}, GPA${s.gpa}, ${s.major}, ${tierLabel(s.tier)}, activities: ${s.activities}`;})()}\n\n`:`Cohort: ${students.map(s=>`${s.firstName}(Gr${s.grade},GPA${s.gpa})`).join('; ')}\n\n`;
+  await callClaude(`You are an expert college admissions consultant. ${ctx}Question: ${q}\n\nProvide expert, actionable advice.`,out,'Consulting AI...');
+}
+
+// ══════════════════════════════════════════════════════
+// SCHOOL DB + COLLEGE SCORECARD API
+// ══════════════════════════════════════════════════════
+const SC_BASE = 'https://api.data.gov/ed/collegescorecard/v1/schools';
+const SC_FIELDS = 'school.name,id,admissions.admission_rate.overall,admissions.sat_scores.25th_percentile.overall,admissions.sat_scores.75th_percentile.overall,admissions.act_scores.25th_percentile.cumulative,admissions.act_scores.75th_percentile.cumulative,school.city,school.state,school.school_url,latest.student.size';
+
+let _apiKey = '';
+
+function saveApiKey(val) {
+  _apiKey = val.trim();
+  const status = document.getElementById('apiKeyStatus');
+  if (_apiKey.length > 10) {
+    status.textContent = '✓ Key saved';
+    status.style.color = 'var(--green)';
+  } else {
+    status.textContent = '';
+  }
+}
+
+function getApiKey() {
+  const inp = document.getElementById('apiKeyInput');
+  if (inp && inp.value.trim()) _apiKey = inp.value.trim();
+  return _apiKey;
+}
+
+async function fetchScorecard(params) {
+  const key = getApiKey();
+  if (!key) {
+    alert('Please enter your College Scorecard API key at the top of the School Database page.\n\nGet a free key at: api.data.gov/signup');
+    return null;
+  }
+  const url = `${SC_BASE}?api_key=${key}&${params}&fields=${SC_FIELDS}&per_page=10`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      if (res.status === 403) { alert('Invalid API key. Get one free at api.data.gov/signup'); return null; }
+      throw new Error(err.message || `HTTP ${res.status}`);
+    }
+    return await res.json();
+  } catch(e) {
+    console.error('Scorecard error:', e);
+    alert('Error fetching data: ' + e.message);
+    return null;
+  }
+}
+
+function parseScorecardResult(r) {
+  const adm = r['admissions.admission_rate.overall'];
+  const sat25 = r['admissions.sat_scores.25th_percentile.overall'];
+  const sat75 = r['admissions.sat_scores.75th_percentile.overall'];
+  return {
+    name: r['school.name'],
+    scorecardId: r['id'],
+    acceptance: adm != null ? Math.round(adm * 1000) / 10 : null,
+    sat25: sat25 || null,
+    sat75: sat75 || null,
+    city: r['school.city'],
+    state: r['school.state'],
+    size: r['latest.student.size'],
+  };
+}
+
+async function searchScorecard() {
+  const q = document.getElementById('scSearch').value.trim();
+  if (!q) return;
+  const out = document.getElementById('scResults');
+  out.innerHTML = `<div style="color:var(--muted);font-size:12px;padding:8px 0">Searching <span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div>`;
+  const data = await fetchScorecard(`school.name=${encodeURIComponent(q)}&school.degrees_awarded.predominant=3&school.operating=1`);
+  if (!data) { out.innerHTML = ''; return; }
+  const results = (data.results || []).slice(0, 8);
+  if (!results.length) { out.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:8px">No results found. Try a different name.</div>'; return; }
+  out.innerHTML = results.map(r => {
+    const p = parseScorecardResult(r);
+    const alreadyIn = schoolDB.some(s => s.scorecardId === p.scorecardId || s.name.toLowerCase() === p.name.toLowerCase());
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(8,15,30,0.6);border:1px solid var(--border);border-radius:8px;margin-bottom:6px">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600;color:var(--cream)">${p.name}</div>
+        <div style="font-size:10.5px;color:var(--muted);margin-top:2px">${p.city}, ${p.state} · ${p.size ? p.size.toLocaleString() + ' undergrads' : ''}</div>
+        <div style="display:flex;gap:10px;margin-top:5px;flex-wrap:wrap">
+          ${p.acceptance != null ? `<span style="font-size:11px;color:var(--text)">Accept: <strong style="color:${p.acceptance<10?'var(--red)':p.acceptance<20?'var(--orange)':'var(--green)'}">${p.acceptance}%</strong></span>` : '<span style="font-size:11px;color:var(--muted)">Admit rate: N/A</span>'}
+          ${p.sat25 ? `<span style="font-size:11px;color:var(--text)">SAT: <strong>${p.sat25}–${p.sat75}</strong></span>` : ''}
+        </div>
+      </div>
+      <div>
+        ${alreadyIn
+          ? `<span class="conf-badge hi">In Database</span>`
+          : `<button class="btn btn-gold btn-sm" onclick="addFromScorecard(${JSON.stringify(p).split('"').join('&quot;')})">+ Add</button>`}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function addFromScorecard(p) {
+  // p comes in as object from onclick — decode HTML entities
+  if (typeof p === 'string') {
+    try { p = JSON.parse(p.replace(/&quot;/g, '"')); } catch(e) { return; }
+  }
+  schoolDB.push({
+    id: Date.now(),
+    scorecardId: p.scorecardId,
+    name: p.name,
+    acceptance: p.acceptance || 10,
+    sat25: p.sat25 || 1200,
+    sat75: p.sat75 || 1450,
+    gpaMin: 3.7,         // not in Scorecard — user fills manually
+    edBoost: 'no',       // not in Scorecard — user fills manually
+    notes: `${p.city}, ${p.state}`,
+    source: 'College Scorecard',
+    sourceDate: new Date().toLocaleDateString('en-US',{month:'short',year:'numeric'}),
+    verified: true,
+  });
+  renderSchoolDB();
+  updateDbStats();
+  // Show confirmation in results
+  document.getElementById('scResults').innerHTML = `<div class="cb hi"><span class="cb-ico">✓</span><div class="cb-txt"><span class="cb-lbl">${p.name} added!</span>GPA min and ED boost not available from Scorecard — edit those in the table.</div></div>` + document.getElementById('scResults').innerHTML;
+}
+
+async function refreshAllSchools() {
+  const key = getApiKey();
+  if (!key) { alert('Enter your API key first.'); return; }
+  const status = document.getElementById('refreshStatus');
+  const toRefresh = schoolDB.filter(s => s.name && !s.name.includes('NYU') || schoolDB.indexOf(s) >= 0);
+  status.innerHTML = `<div style="color:var(--muted);font-size:12px">Refreshing ${schoolDB.length} schools <span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div>`;
+  let updated = 0, failed = [];
+  for (const school of schoolDB) {
+    await new Promise(r => setTimeout(r, 180)); // rate limit
+    const searchName = school.name.replace(/&/g, 'and');
+    const data = await fetchScorecard(`school.name=${encodeURIComponent(searchName)}&school.degrees_awarded.predominant=3&school.operating=1`).catch(() => null);
+    if (!data || !data.results || !data.results.length) { failed.push(school.name); continue; }
+    // Pick best match
+    const match = data.results.find(r => r['school.name'].toLowerCase().includes(school.name.toLowerCase().split(' ')[0])) || data.results[0];
+    const p = parseScorecardResult(match);
+    if (p.acceptance != null) { school.acceptance = p.acceptance; }
+    if (p.sat25) { school.sat25 = p.sat25; school.sat75 = p.sat75; }
+    school.scorecardId = p.scorecardId;
+    school.source = 'College Scorecard';
+    school.sourceDate = new Date().toLocaleDateString('en-US',{month:'short',year:'numeric'});
+    school.verified = true;
+    updated++;
+    status.innerHTML = `<div style="color:var(--muted);font-size:12px">Updated ${updated}/${schoolDB.length}... <span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div>`;
+  }
+  renderSchoolDB(); updateDbStats();
+  status.innerHTML = `<div class="cb hi" style="margin-top:6px"><span class="cb-ico">✓</span><div class="cb-txt"><span class="cb-lbl">Refresh complete — ${updated} schools updated</span>${failed.length ? 'Could not find: ' + failed.join(', ') : 'All schools refreshed successfully.'}</div></div>`;
+}
+
+function updateDbStats() {
+  const el = document.getElementById('dbStats');
+  if (!el) return;
+  const live = schoolDB.filter(s => s.source === 'College Scorecard').length;
+  el.textContent = `${schoolDB.length} schools · ${live} live from Scorecard · ${schoolDB.length - live} manual`;
+}
+
+let editCell=null;
+function renderSchoolDB(){
+  document.getElementById('schoolBody').innerHTML=schoolDB.map(s=>`<tr>
+    <td>
+      <div style="font-weight:600;font-size:13px">${s.name}</div>
+      ${s.sourceDate ? `<div style="font-size:9.5px;color:var(--muted);margin-top:1px">Updated ${s.sourceDate}</div>` : ''}
+    </td>
+    <td>
+      <span class="editable" onclick="startEdit(${s.id},'acceptance',this)" style="font-family:'DM Mono',monospace;font-size:12px">${s.acceptance != null ? s.acceptance+'%' : '—'}</span>
+      ${s.source==='College Scorecard' ? `<button class="btn btn-sm" style="margin-left:5px;font-size:9px;padding:2px 6px;background:rgba(74,144,217,0.12);border:1px solid rgba(74,144,217,0.25);color:var(--blue)" onclick="refreshOneSchool(${s.id})">↻</button>` : ''}
+    </td>
+    <td style="font-family:'DM Mono',monospace;font-size:11px">${s.sat25||'—'}</td>
+    <td style="font-family:'DM Mono',monospace;font-size:11px">${s.sat75||'—'}</td>
+    <td><span class="editable" onclick="startEdit(${s.id},'gpaMin',this)">${s.gpaMin||'—'}</span></td>
+    <td>
+      <select class="ms" onchange="updateSchoolField(${s.id},'edBoost',this.value)" style="font-size:11px;padding:3px 5px">
+        <option value="yes" ${s.edBoost==='yes'?'selected':''}>Yes ✓</option>
+        <option value="modest" ${s.edBoost==='modest'?'selected':''}>Modest</option>
+        <option value="no" ${s.edBoost==='no'?'selected':''}>No</option>
+      </select>
+    </td>
+    <td><span class="editable" onclick="startEdit(${s.id},'notes',this)" style="font-size:11px;color:var(--muted);max-width:160px;display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.notes||'—'}</span></td>
+    <td>
+      <span class="conf-badge ${s.source==='College Scorecard'?'hi':s.verified?'hi':'lo'}" style="font-size:8.5px">
+        ${s.source==='College Scorecard'?'🏛 Scorecard':s.verified?'Verified':'Estimated'}
+      </span>
+    </td>
+    <td><button class="btn btn-red btn-sm" onclick="deleteSchool(${s.id})">✕</button></td>
+  </tr>`).join('');
+  document.querySelectorAll('.editable').forEach(el=>{el.style.cursor='pointer';el.title='Click to edit';el.style.textDecoration='underline dotted';});
+  updateDbStats();
+}
+
+function updateSchoolField(id, field, value) {
+  const s = schoolDB.find(x => x.id === id);
+  if (s) s[field] = value;
+}
+
+async function refreshOneSchool(id) {
+  const school = schoolDB.find(x => x.id === id);
+  if (!school) return;
+  const data = await fetchScorecard(`school.name=${encodeURIComponent(school.name)}&school.degrees_awarded.predominant=3&school.operating=1`);
+  if (!data || !data.results || !data.results.length) { alert('Could not find ' + school.name + ' in College Scorecard.'); return; }
+  const p = parseScorecardResult(data.results[0]);
+  if (p.acceptance != null) school.acceptance = p.acceptance;
+  if (p.sat25) { school.sat25 = p.sat25; school.sat75 = p.sat75; }
+  school.source = 'College Scorecard';
+  school.sourceDate = new Date().toLocaleDateString('en-US',{month:'short',year:'numeric'});
+  school.verified = true;
+  renderSchoolDB();
+}
+
+function startEdit(id,field,el){
+  const s=schoolDB.find(x=>x.id===id);if(!s)return;
+  const inp=document.createElement('input');inp.value=s[field]||'';inp.className='fi';inp.style.cssText='width:80px;padding:3px 6px;font-size:12px;';
+  const orig=el.innerHTML;el.innerHTML='';el.appendChild(inp);inp.focus();inp.select();
+  const commit=()=>{const v=inp.value.trim();s[field]=isNaN(parseFloat(v))?v:parseFloat(v);if(s.source==='College Scorecard'&&(field==='acceptance'||field==='sat25'||field==='sat75'))s.source='Scorecard (edited)';renderSchoolDB();};
+  inp.onblur=commit;inp.onkeydown=e=>{if(e.key==='Enter')inp.blur();if(e.key==='Escape'){el.innerHTML=orig;}};
+}
+function verifySchool(id){const s=schoolDB.find(x=>x.id===id);if(s){s.verified=true;s.source='Verified';renderSchoolDB();}}
+function deleteSchool(id){if(!confirm('Remove school?'))return;schoolDB=schoolDB.filter(x=>x.id!==id);renderSchoolDB();}
+function addSchool(){
+  const name=document.getElementById('sName').value.trim();if(!name)return;
+  schoolDB.push({id:Date.now(),name,acceptance:parseFloat(document.getElementById('sAccept').value)||10,sat25:parseInt(document.getElementById('sSAT25').value)||1300,sat75:parseInt(document.getElementById('sSAT75').value)||1500,gpaMin:parseFloat(document.getElementById('sGPA').value)||3.7,edBoost:document.getElementById('sED').value,notes:document.getElementById('sNotes').value,source:document.getElementById('sSrc').value,verified:document.getElementById('sSrc').value!=='Estimated'});
+  closeMo('moAddSchool');['sName','sAccept','sSAT25','sSAT75','sGPA','sNotes'].forEach(id=>document.getElementById(id).value='');
+  renderSchoolDB();
+}
+function calcMatch(){
+  const gpa=parseFloat(document.getElementById('calcGpa').value),sat=parseInt(document.getElementById('calcSat').value),act=parseInt(document.getElementById('calcAct').value);
+  if(!gpa)return;
+  const satScore=sat||(act?act*46:1200),hb={legacy:1.5,athlete:2.2,firstgen:1.2,urm:1.3,'':1}[document.getElementById('calcHook').value]||1;
+  const results=schoolDB.map(s=>{let ch=s.acceptance*((satScore-(s.sat25||1200))/((s.sat75||1500)-(s.sat25||1200)+1))*(gpa>=(s.gpaMin||3.0)?1:gpa/(s.gpaMin||3.0))*hb*1.5;ch=Math.max(1,Math.min(88,Math.round(ch)));return{...s,chance:ch,type:ch>=40?'safety':ch>=15?'match':'reach'};}).sort((a,b)=>b.chance-a.chance).slice(0,12);
+  document.getElementById('calcOut').innerHTML=results.map(s=>`<div class="si"><div class="si-info"><div class="si-name">${s.name}</div><div class="si-det">${s.notes}</div><span class="conf-badge ${s.source==='College Scorecard'?'hi':s.verified?'hi':'lo'}" style="font-size:8px;margin-top:3px">${s.source==='College Scorecard'?'🏛 Live':'Est.'}</span></div><div style="text-align:right"><div class="chance-n" style="color:${s.type==='safety'?'var(--green)':s.type==='match'?'var(--orange)':'var(--red)'}">${s.chance}%</div><span class="tag ${s.type==='safety'?'tg':s.type==='match'?'to':'tr'}">${s.type}</span></div></div>`).join('');
+}
+
+// ══════════════════════════════════════════════════════
+// TO-DO LIST
+// ══════════════════════════════════════════════════════
+const TODO_CATS = ['Essays','Testing','School Research','Applications','Financial Aid','Visits','Academic','General'];
+const TODO_PRI  = ['high','med','low'];
+
+function renderTodos(s) {
+  if (!s.todos) s.todos = [];
+  const open   = s.todos.filter(t => !t.done);
+  const closed = s.todos.filter(t =>  t.done);
+  const openUrgent  = open.filter(t => t.priority === 'high');
+  const openNormal  = open.filter(t => t.priority !== 'high');
+
+  // Update tab badge
+  const tabBtn = document.getElementById('tab-btn-todos');
+  if (tabBtn) {
+    const overdue = open.filter(t => t.due && daysUntil(t.due) < 0).length;
+    tabBtn.textContent = overdue > 0 ? `☑ To-Do 🔴${overdue}` : open.length > 0 ? `☑ To-Do (${open.length})` : '☑ To-Do';
+  }
+
+  document.getElementById('todoContent').innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+      <div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--cream)">To-Do List</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">${open.length} open · ${closed.length} completed</div>
+      </div>
+      <div style="display:flex;gap:7px">
+        <select class="fse" id="todoFilterCat" style="width:auto;padding:5px 10px;font-size:11px" onchange="renderTodos(students.find(x=>x.id===${s.id}))">
+          <option value="">All Categories</option>
+          ${TODO_CATS.map(c=>`<option value="${c}">${c}</option>`).join('')}
+        </select>
+        <button class="btn btn-gold btn-sm" onclick="openAddTodo(${s.id})">+ Add Task</button>
+      </div>
+    </div>
+
+    ${todoProgressBar(s)}
+
+    <div id="todoOpenList">
+      ${openUrgent.length ? `<div class="todo-section-hd">🔴 High Priority <span class="count">${openUrgent.length}</span></div>${openUrgent.map(t=>todoCard(t,s.id)).join('')}` : ''}
+      ${openNormal.length ? `<div class="todo-section-hd">Open Tasks <span class="count">${openNormal.length}</span></div>${openNormal.map(t=>todoCard(t,s.id)).join('')}` : ''}
+      ${!open.length ? `<div style="padding:24px;text-align:center;color:var(--muted);font-size:12.5px;background:rgba(8,15,30,0.4);border:1px dashed var(--border);border-radius:8px">
+        <div style="font-size:22px;margin-bottom:8px">✓</div>
+        No open tasks — all clear!
+      </div>` : ''}
+    </div>
+
+    ${closed.length ? `
+      <div class="todo-section-hd" style="margin-top:8px;cursor:pointer" onclick="toggleCompletedTodos()">
+        Completed <span class="count">${closed.length}</span>
+        <span id="completedChevron" style="margin-left:auto;color:var(--muted);font-size:11px">▼ show</span>
+      </div>
+      <div id="todoCompletedList" style="display:none">
+        ${closed.map(t=>todoCard(t,s.id)).join('')}
+        <button class="btn btn-red btn-sm" style="margin-top:8px;font-size:10px" onclick="clearCompleted(${s.id})">✕ Clear All Completed</button>
+      </div>` : ''}
+  `;
+}
+
+function todoProgressBar(s) {
+  const total = (s.todos||[]).length;
+  if (!total) return '';
+  const done = (s.todos||[]).filter(t=>t.done).length;
+  const pct = Math.round(done/total*100);
+  return `<div style="background:rgba(8,15,30,0.5);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:14px">
+    <div style="flex:1">
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+        <span style="font-size:11px;color:var(--muted)">Overall Progress</span>
+        <span style="font-size:11px;font-weight:600;color:var(--cream)">${done}/${total} done</span>
+      </div>
+      <div class="pb" style="height:6px"><div class="pf" style="width:${pct}%;background:${pct>=80?'var(--green)':pct>=40?'var(--gold)':'var(--blue)'}"></div></div>
+    </div>
+    <div style="font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:700;color:${pct>=80?'var(--green)':pct>=40?'var(--gold)':'var(--blue)'};flex-shrink:0">${pct}%</div>
+  </div>`;
+}
+
+function todoCard(t, sid) {
+  const filterCat = document.getElementById('todoFilterCat')?.value || '';
+  if (filterCat && t.category !== filterCat) return '';
+  const days = t.due ? daysUntil(t.due) : null;
+  const dueCls = days !== null ? (days < 0 ? 'overdue' : days <= 3 ? 'soon' : '') : '';
+  const dueLabel = days !== null ? (days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? 'Due today' : `Due in ${days}d`) : '';
+  return `<div class="todo-item ${t.done?'done':''}" id="todo-${t.id}">
+    <div class="todo-cb ${t.done?'checked':''}" onclick="toggleTodo(${sid},${t.id})"></div>
+    <div style="flex:1;min-width:0">
+      <div class="todo-text">${escHtml(t.text)}</div>
+      <div class="todo-meta">
+        ${t.priority ? `<span class="todo-pri ${t.priority}">${t.priority}</span>` : ''}
+        ${t.category ? `<span class="todo-cat">${t.category}</span>` : ''}
+        ${dueLabel ? `<span class="todo-due ${dueCls}">📅 ${dueLabel} (${formatDate(t.due)})</span>` : ''}
+      </div>
+    </div>
+    <div class="todo-actions">
+      <button class="btn btn-out btn-sm" style="font-size:10px;padding:3px 7px" onclick="editTodo(${sid},${t.id})">✎</button>
+      <button class="btn btn-red btn-sm" style="font-size:10px;padding:3px 7px" onclick="deleteTodo(${sid},${t.id})">✕</button>
+    </div>
+  </div>`;
+}
+
+function toggleTodo(sid, tid) {
+  const s = students.find(x => x.id === sid); if (!s) return;
+  const t = (s.todos||[]).find(x => x.id === tid); if (!t) return;
+  t.done = !t.done;
+  t.completedAt = t.done ? new Date().toISOString().split('T')[0] : null;
+  renderTodos(s);
+}
+
+function deleteTodo(sid, tid) {
+  const s = students.find(x => x.id === sid); if (!s) return;
+  s.todos = (s.todos||[]).filter(x => x.id !== tid);
+  renderTodos(s);
+}
+
+function clearCompleted(sid) {
+  const s = students.find(x => x.id === sid); if (!s) return;
+  if (!confirm('Remove all completed tasks?')) return;
+  s.todos = (s.todos||[]).filter(t => !t.done);
+  renderTodos(s);
+}
+
+function toggleCompletedTodos() {
+  const el = document.getElementById('todoCompletedList');
+  const ch = document.getElementById('completedChevron');
+  if (!el) return;
+  const shown = el.style.display !== 'none';
+  el.style.display = shown ? 'none' : 'block';
+  if (ch) ch.textContent = shown ? '▼ show' : '▲ hide';
+}
+
+// ── ADD / EDIT TODO MODAL ──
+let _todoEditId = null;
+let _todoSid = null;
+
+function openAddTodo(sid) {
+  _todoSid = sid; _todoEditId = null;
+  document.getElementById('todoModalTitle').textContent = 'Add Task';
+  document.getElementById('todoText').value = '';
+  document.getElementById('todoPri').value = 'med';
+  document.getElementById('todoCat').value = 'General';
+  document.getElementById('todoDue').value = '';
+  openMo('moTodo');
+  setTimeout(()=>document.getElementById('todoText').focus(),100);
+}
+
+function editTodo(sid, tid) {
+  const s = students.find(x => x.id === sid); if (!s) return;
+  const t = (s.todos||[]).find(x => x.id === tid); if (!t) return;
+  _todoSid = sid; _todoEditId = tid;
+  document.getElementById('todoModalTitle').textContent = 'Edit Task';
+  document.getElementById('todoText').value = t.text;
+  document.getElementById('todoPri').value = t.priority || 'med';
+  document.getElementById('todoCat').value = t.category || 'General';
+  document.getElementById('todoDue').value = t.due || '';
+  openMo('moTodo');
+  setTimeout(()=>document.getElementById('todoText').focus(),100);
+}
+
+function saveTodo() {
+  const text = document.getElementById('todoText').value.trim();
+  if (!text) { document.getElementById('todoText').focus(); return; }
+  const s = students.find(x => x.id === _todoSid); if (!s) return;
+  if (!s.todos) s.todos = [];
+  const payload = {
+    text,
+    priority: document.getElementById('todoPri').value,
+    category: document.getElementById('todoCat').value,
+    due: document.getElementById('todoDue').value || null,
+    done: false,
+  };
+  if (_todoEditId) {
+    const t = s.todos.find(x => x.id === _todoEditId);
+    if (t) Object.assign(t, payload);
+  } else {
+    s.todos.unshift({id: Date.now(), ...payload, createdAt: new Date().toISOString().split('T')[0]});
+  }
+  closeMo('moTodo');
+  renderTodos(s);
+}
+
+// ══════════════════════════════════════════════════════
+// ACTIVITY EDITOR
+// ══════════════════════════════════════════════════════
+let _actEditorStudentId = null;
+let _pendingActivities = [];   // working copy while modal is open
+let _actChatMsgs = [];         // chat history for display
+
+function openActivityEditor(sid) {
+  _actEditorStudentId = sid;
+  const s = students.find(x => x.id === sid);
+  if (!s) return;
+  document.getElementById('actEdTitle').textContent = `Activities & Awards — ${s.firstName} ${s.lastName}`;
+  // Deep copy existing list
+  _pendingActivities = JSON.parse(JSON.stringify(s.activitiesList || []));
+  _actChatMsgs = [];
+  document.getElementById('actChatHistory').innerHTML = '';
+  document.getElementById('actChatInput').value = '';
+  renderActList();
+  openMo('moActivityEditor');
+}
+
+function renderActList() {
+  const el = document.getElementById('actList');
+  if (!_pendingActivities.length) {
+    el.innerHTML = `<div style="color:var(--muted);font-size:12px;padding:10px 0">No activities yet. Type in the chat box below to add some, or click "+ Add Blank Row".</div>`;
+    return;
+  }
+  el.innerHTML = _pendingActivities.map((a, i) => `
+    <div style="background:rgba(8,15,30,0.6);border:1px solid var(--border);border-radius:9px;padding:14px;margin-bottom:8px">
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div>
+            <div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Activity Name</div>
+            <input class="mi" value="${escHtml(a.name||'')}" oninput="_pendingActivities[${i}].name=this.value" style="width:100%;font-weight:600">
+          </div>
+          <div>
+            <div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Role / Title</div>
+            <input class="mi" value="${escHtml(a.role||'')}" oninput="_pendingActivities[${i}].role=this.value" style="width:100%;color:var(--gold)">
+          </div>
+          <div style="grid-column:span 2">
+            <div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Description / Impact</div>
+            <textarea class="mi" oninput="_pendingActivities[${i}].description=this.value" style="width:100%;min-height:52px;resize:vertical;line-height:1.5">${escHtml(a.description||'')}</textarea>
+          </div>
+          <div>
+            <div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Hours / Year</div>
+            <input class="mi" type="number" value="${a.hours||''}" oninput="_pendingActivities[${i}].hours=parseInt(this.value)||0" placeholder="e.g. 150" style="width:100%">
+          </div>
+          <div>
+            <div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Years Active</div>
+            <input class="mi" value="${escHtml(a.years||'')}" oninput="_pendingActivities[${i}].years=this.value" placeholder="e.g. 9th–12th" style="width:100%">
+          </div>
+        </div>
+        <button onclick="_pendingActivities.splice(${i},1);renderActList()" class="del-btn" style="font-size:15px;margin-top:2px">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+function addBlankActivity() {
+  _pendingActivities.push({name:'',role:'',description:'',hours:0,years:''});
+  renderActList();
+  // Scroll to bottom of modal
+  const list = document.getElementById('actList');
+  setTimeout(() => list.scrollIntoView({behavior:'smooth',block:'end'}), 50);
+}
+
+function saveActivities() {
+  const s = students.find(x => x.id === _actEditorStudentId);
+  if (!s) return;
+  s.activitiesList = _pendingActivities.filter(a => a.name.trim());
+  // Keep legacy string for AI prompts
+  s.activities = s.activitiesList.map(a => `${a.name}${a.role?' ('+a.role+')':''}${a.hours?' '+a.hours+'h/yr':''}`).join(', ');
+  closeMo('moActivityEditor');
+  renderOverview(s);
+}
+
+function escHtml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function addChatBubble(role, text) {
+  const el = document.getElementById('actChatHistory');
+  const isUser = role === 'user';
+  el.innerHTML += `<div style="display:flex;justify-content:${isUser?'flex-end':'flex-start'};margin-bottom:8px">
+    <div style="max-width:85%;padding:9px 13px;border-radius:${isUser?'12px 12px 3px 12px':'12px 12px 12px 3px'};background:${isUser?'rgba(201,168,76,0.15)':'rgba(74,144,217,0.12)'};border:1px solid ${isUser?'rgba(201,168,76,0.25)':'rgba(74,144,217,0.2)'};font-size:12px;line-height:1.55;color:var(--text)">
+      ${isUser ? escHtml(text) : text}
+    </div>
+  </div>`;
+  el.scrollTop = el.scrollHeight;
+}
+
+async function sendActivityChat() {
+  const input = document.getElementById('actChatInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  addChatBubble('user', msg);
+
+  const s = students.find(x => x.id === _actEditorStudentId);
+  const existing = _pendingActivities.length
+    ? `Current activities in their profile:\n${_pendingActivities.map(a => `- ${a.name}${a.role?' | '+a.role:''}${a.description?' | '+a.description:''}${a.hours?' | '+a.hours+'h/yr':''}${a.years?' | '+a.years:''}`).join('\n')}\n\n`
+    : '';
+
+  // Loading indicator
+  const loadId = 'actLoad' + Date.now();
+  document.getElementById('actChatHistory').innerHTML += `<div id="${loadId}" style="display:flex;justify-content:flex-start;margin-bottom:8px"><div style="padding:9px 13px;border-radius:12px;background:rgba(74,144,217,0.12);border:1px solid rgba(74,144,217,0.2)"><span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div></div>`;
+  document.getElementById('actChatHistory').scrollTop = 99999;
+
+  const prompt = `You are a college admissions consultant helping organize a student's extracurricular activities.
+
+Student: ${s?.firstName} ${s?.lastName}, Grade ${s?.grade}
+${existing}
+
+The consultant just said: "${msg}"
+
+Your job: extract, organize, or update the activity list based on what the consultant said. The consultant might:
+- Describe activities verbally ("she does tennis captain, 3 hrs/week")
+- Paste a raw list
+- Ask to edit/remove/add a specific activity
+- Provide more details about an existing activity
+
+Respond conversationally in 1-2 sentences confirming what you're adding/changing, then output a JSON block with the FULL updated activity list (not just the changes).
+
+Output format — respond with your message first, then a JSON block exactly like this:
+\`\`\`json
+[
+  {
+    "name": "Activity Name",
+    "role": "Role or Title (e.g. President, Volunteer, Captain)",
+    "description": "Brief description of what they did and any impact/achievements",
+    "hours": 150,
+    "years": "9th–12th"
+  }
+]
+\`\`\`
+
+Rules:
+- hours = total hours per YEAR (estimate if not given, e.g. "3 hrs/week" during school year ≈ 120)
+- years = grade range active (e.g. "10th–12th", "11th–12th", "9th")
+- description should be specific and achievement-oriented, max 2 sentences
+- role should be a title/position, not a description
+- If the consultant doesn't mention role/hours/years, leave them as empty string / 0
+- Preserve ALL existing activities unless explicitly told to remove one`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,messages:[{role:'user',content:prompt}]})
+    });
+    const data = await res.json();
+    const text = (data.content||[]).map(b=>b.text||'').join('');
+
+    // Remove loading bubble
+    const loadEl = document.getElementById(loadId);
+    if (loadEl) loadEl.remove();
+
+    // Parse JSON from response
+    const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
+    const chatText = text.replace(/```json[\s\S]*?```/g,'').trim();
+
+    if (jsonMatch) {
+      try {
+        const parsed = JSON.parse(jsonMatch[1]);
+        _pendingActivities = parsed.map(a => ({
+          name: a.name || '',
+          role: a.role || '',
+          description: a.description || '',
+          hours: parseInt(a.hours) || 0,
+          years: a.years || '',
+        }));
+        renderActList();
+        addChatBubble('ai', (chatText || 'Updated the activity list.') + ` <span style="color:var(--green);font-size:10px">✓ ${_pendingActivities.length} activities</span>`);
+      } catch(e) {
+        addChatBubble('ai', 'I parsed the info but had trouble formatting it. ' + chatText);
+      }
+    } else {
+      addChatBubble('ai', chatText || text);
+    }
+  } catch(e) {
+    const loadEl = document.getElementById(loadId);
+    if (loadEl) loadEl.remove();
+    addChatBubble('ai', `<span style="color:var(--red)">Error: ${e.message}</span>`);
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// STUDENT CRUD
+// ══════════════════════════════════════════════════════
+function addStudent(){
+  const fn=document.getElementById('nFN').value.trim(),ln=document.getElementById('nLN').value.trim();
+  if(!fn||!ln)return;
+  const s={id:Date.now(),firstName:fn,lastName:ln,grade:parseInt(document.getElementById('nGrade').value),gpa:parseFloat(document.getElementById('nGPA').value)||null,sat:parseInt(document.getElementById('nSAT').value)||null,act:parseInt(document.getElementById('nACT').value)||null,major:document.getElementById('nMajor').value||'Undecided',tier:document.getElementById('nTier').value,hook:document.getElementById('nHook').value,activities:document.getElementById('nECs').value||'',meetings:document.getElementById('nNotes').value?[{date:new Date().toISOString().split('T')[0],content:document.getElementById('nNotes').value,tag:'General'}]:[],color:COLORS[students.length%COLORS.length],transcript:[],essays:[],deadlines:[]};
+  students.push(s);closeMo('moAddStudent');
+  ['nFN','nLN','nGPA','nSAT','nACT','nMajor','nECs','nNotes'].forEach(id=>document.getElementById(id).value='');
+  renderSidebar();renderDashboard();populateDropdowns();updateUrgBadge();openProfile(s.id);
+}
+
+// ══════════════════════════════════════════════════════
+// POPULATE DROPDOWNS
+// ══════════════════════════════════════════════════════
+function populateDropdowns(){
+  ['stratStu','essayStudentFilter'].forEach(selId=>{
+    const sel=document.getElementById(selId);
+    const first=sel.options[0];sel.innerHTML='';sel.appendChild(first);
+    students.forEach(s=>{const o=document.createElement('option');o.value=s.id;o.textContent=`${s.firstName} ${s.lastName} (Gr.${s.grade})`;sel.appendChild(o);});
+  });
+  ['dlStudent','essStudent'].forEach(selId=>{
+    const sel=document.getElementById(selId);sel.innerHTML='';
+    if(selId==='dlStudent'){const o=document.createElement('option');o.value='all';o.textContent='All Students';sel.appendChild(o);}
+    students.forEach(s=>{const o=document.createElement('option');o.value=s.id;o.textContent=`${s.firstName} ${s.lastName}`;sel.appendChild(o);});
+  });
+}
+
+function exportCSV(){
+  const rows=students.map(s=>({name:`${s.firstName} ${s.lastName}`,grade:s.grade,gpa:s.gpa,sat:s.sat||'',agPct:agPct(s)+'%',essays:`${essayProgress(s).done}/${essayProgress(s).total}`,urgency:getUrgency(s).level}));
+  const csv=[Object.keys(rows[0]).join(','),...rows.map(r=>Object.values(r).map(v=>`"${v}"`).join(','))].join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='cohort.csv';a.click();
+}
+
+// ══════════════════════════════════════════════════════
+// START
+// ══════════════════════════════════════════════════════
+init();
+</script>
+</body>
+</html>
