@@ -3555,7 +3555,7 @@ function showAuthError(msg){
 
 async function signOut(){
   if(_presenceRef) await _presenceRef.delete().catch(()=>{});
-  [_unsubStudents,_unsubDeadlines,_unsubFeed].forEach(u=>{if(u)u();});
+  [_unsubStudents,_unsubDeadlines,_unsubFeed,_unsubInvitations].forEach(u=>{if(u)u();});
   await fbAuth.signOut();
   location.reload();
 }
@@ -3732,7 +3732,8 @@ let _pendingInvites = []; // invites TO me (pending)
 
 function subscribeInvitations(){
   if(!fbDb||!fbCurrentUser) return;
-  const myEmail = fbCurrentUser.email.toLowerCase();
+  const myEmail = (fbCurrentUser.email||'').toLowerCase();
+  if(!myEmail){console.warn('subscribeInvitations: no email on current user');return;}
   // Single-field query only (no composite index required)
   _unsubInvitations = fbDb.collection('invitations')
     .where('toEmail','==',myEmail)
@@ -3741,6 +3742,8 @@ function subscribeInvitations(){
       _pendingInvites = snap.docs.map(d=>({id:d.id,...d.data()})).filter(d=>d.status==='pending');
       updateNotifBadge(_pendingInvites.length);
       renderNotifList();
+    }, err=>{
+      console.error('subscribeInvitations failed:',err.code||err.message);
     });
 }
 
