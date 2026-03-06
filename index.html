@@ -3822,37 +3822,44 @@ async function sendInvitation(sid){
     const fromName=fbCurrentUser?.displayName||fbCurrentUser?.email||'Your colleague';
 
     if(fbDb&&fbCurrentUser){
-      try{
-        await fbDb.collection('invitations').add({
-            studentId:s.id, studentName:`${s.firstName} ${s.lastName}`,
-            fromUid:fbCurrentUser.uid, fromName,
-            fromEmail:(fbCurrentUser.email||'').toLowerCase(),
-            toEmail, status:'pending',
-            createdAt:firebase.firestore.FieldValue.serverTimestamp(),
-          });
-        firestoreOk=true;
-        logActivity(`invited <em>${toEmail}</em> to collaborate on <strong>${s.firstName} ${s.lastName}</strong>`);
-      }catch(err){
-        errMsg=err.message||err.code||'Unknown error';
-        console.error('Firestore invite failed:',errMsg);
-      }
-    } else {
-      errMsg = !fbDb ? 'Not connected to database' : 'Not logged in';
-    }
-
-    if(firestoreOk){
+      // Optimistic update: show success immediately, write in background
+      firestoreOk=true;
       input.value='';
       setBtnState('✓ Sent!',false,'#2a7a4b','#fff');
       setFeedback(`✅ Invitation sent to <strong>${toEmail}</strong>. They'll see a 🔔 notification when they log in.`,'#1a6b3a');
       setTimeout(resetBtn,3500);
+      logActivity(`invited <em>${toEmail}</em> to collaborate on <strong>${s.firstName} ${s.lastName}</strong>`);
+
+      // Show optimistic pending row immediately
+      const pendingEl=document.getElementById('pendingInviteSection');
+      if(pendingEl&&!pendingEl.querySelector(`[data-email="${toEmail}"]`)){
+        if(!pendingEl.children.length)
+          pendingEl.innerHTML='<div class="share-section-label" style="margin-top:14px">Pending Invitations</div>';
+        pendingEl.innerHTML+=`<div class="collab-row" data-email="${toEmail}">
+          <div class="collab-info">
+            <div class="collab-av" style="background:#444;color:var(--muted);font-size:11px">✉</div>
+            <div><div class="collab-name">${toEmail}</div><div class="collab-email">Invitation sent — awaiting response</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px"><span class="pending-tag">Pending</span></div>
+        </div>`;
+      }
+
+      // Background write
+      fbDb.collection('invitations').add({
+        studentId:s.id, studentName:`${s.firstName} ${s.lastName}`,
+        fromUid:fbCurrentUser.uid, fromName,
+        fromEmail:(fbCurrentUser.email||'').toLowerCase(),
+        toEmail, status:'pending',
+        createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+      }).catch(err=>console.error('Firestore invite write failed:',err));
     } else {
       resetBtn();
-      setFeedback(`❌ Failed to send: ${errMsg}. Please try again.`,'#c0392b');
+      setFeedback(`❌ ${!fbDb?'Not connected to database':'Not logged in'}. Please try again.`,'#c0392b');
     }
 
-    // Show pending row in modal
+    // Show pending row in modal (refresh from server after short delay)
     if(firestoreOk&&fbDb){
-      fbDb.collection('invitations').where('studentId','==',s.id).get()
+      setTimeout(()=>fbDb.collection('invitations').where('studentId','==',s.id).get()
         .then(snap=>{
           if(!snap||snap.empty)return;
           const rows=snap.docs.filter(d=>d.data().status==='pending').map(d=>{
@@ -3869,7 +3876,7 @@ async function sendInvitation(sid){
           }).join('');
           const el=document.getElementById('pendingInviteSection');
           if(el)el.innerHTML=`<div class="share-section-label" style="margin-top:14px">Pending Invitations</div>${rows}`;
-        }).catch(()=>{});
+        }).catch(()=>{}), 5000);
     }
   }catch(err){
     console.error('sendInvitation unexpected error:',err);
