@@ -3782,31 +3782,73 @@ function renderNotifList(){
     </div>`).join('');
 }
 
-async function sendInvitation(sid, toEmail){
-  toEmail=toEmail.trim().toLowerCase();
-  if(!toEmail||!toEmail.includes('@')){alert('Please enter a valid email address.');return;}
-  const s=students.find(x=>x.id===sid); if(!s) return;
-  if(toEmail===fbCurrentUser.email.toLowerCase()){alert("You can't invite yourself.");return;}
-  // Check duplicate
-  const existing=await fbDb.collection('invitations')
-    .where('studentId','==',sid).where('toEmail','==',toEmail).where('status','==','pending').get();
-  if(!existing.empty){alert('An invitation has already been sent to this email.');return;}
-  // Check if already a collaborator
-  if((s.sharedWith||[]).some(uid=>{ const c=allConsultants.find(x=>x.uid===uid); return c&&c.email&&c.email.toLowerCase()===toEmail; })){
-    alert('This consultant already has access.');return;
+async function sendInvitation(sid){
+  const input=document.getElementById('inviteEmailInput');
+  const feedback=document.getElementById('inviteFeedback');
+  const btn=document.getElementById('sendInviteBtn');
+  if(!input)return;
+  const toEmail=input.value.trim().toLowerCase();
+
+  function setFeedback(msg,color){if(feedback)feedback.innerHTML=`<span style="color:${color||'var(--muted)'}">${msg}</span>`;}
+
+  if(!toEmail||!toEmail.includes('@')){setFeedback('Please enter a valid email address.','var(--red)');return;}
+
+  const s=students.find(x=>x.id===sid);if(!s)return;
+
+  if(!fbDb||!fbCurrentUser){
+    setFeedback('Firebase not connected. Please sign in to send invitations.','var(--red)');return;
   }
-  await fbDb.collection('invitations').add({
-    studentId: sid,
-    studentName: `${s.firstName} ${s.lastName}`,
-    fromUid: fbCurrentUser.uid,
-    fromName: fbCurrentUser.displayName||fbCurrentUser.email,
-    fromEmail: fbCurrentUser.email.toLowerCase(),
-    toEmail,
-    status: 'pending',
-    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-  });
-  logActivity(`invited <em>${toEmail}</em> to collaborate on <strong>${s.firstName} ${s.lastName}</strong>`);
-  openShareModal(sid); // refresh modal
+  if(toEmail===fbCurrentUser.email.toLowerCase()){setFeedback("You can't invite yourself.",'var(--orange)');return;}
+
+  // Check if already a collaborator (local check — no Firestore query needed)
+  if((s.sharedWith||[]).some(u=>{ const c=allConsultants.find(x=>x.uid===u); return c&&c.email&&c.email.toLowerCase()===toEmail; })){
+    setFeedback('This consultant already has access.','var(--orange)');return;
+  }
+
+  if(btn){btn.disabled=true;btn.textContent='Sending…';}
+  setFeedback('Sending invitation…','var(--muted)');
+
+  try{
+    await fbDb.collection('invitations').add({
+      studentId: sid,
+      studentName: `${s.firstName} ${s.lastName}`,
+      fromUid: fbCurrentUser.uid,
+      fromName: fbCurrentUser.displayName||fbCurrentUser.email,
+      fromEmail: fbCurrentUser.email.toLowerCase(),
+      toEmail,
+      status: 'pending',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    logActivity(`invited <em>${toEmail}</em> to collaborate on <strong>${s.firstName} ${s.lastName}</strong>`);
+    input.value='';
+    setFeedback(`✓ Invitation sent to ${toEmail}. They'll see a notification when they log in.`,'var(--green)');
+    // Refresh pending section
+    if(fbDb){
+      fbDb.collection('invitations').where('studentId','==',sid).where('status','==','pending').get()
+        .then(snap=>{
+          if(!snap||snap.empty)return;
+          const rows=snap.docs.map(d=>{
+            const inv=d.data();
+            return `<div class="collab-row">
+              <div class="collab-info">
+                <div class="collab-av" style="background:#444;color:var(--muted);font-size:11px">✉</div>
+                <div><div class="collab-name">${inv.toEmail}</div><div class="collab-email">Invitation sent — awaiting response</div></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="pending-tag">Pending</span>
+                <button class="share-toggle remove" onclick="cancelInvitation('${d.id}',${sid})">Cancel</button>
+              </div>
+            </div>`;
+          }).join('');
+          const el=document.getElementById('pendingInviteSection');
+          if(el)el.innerHTML=`<div class="share-section-label" style="margin-top:14px">Pending Invitations</div>${rows}`;
+        }).catch(()=>{});
+    }
+  }catch(err){
+    setFeedback(`Error: ${err.message||'Could not send invitation. Check your connection.'}`, 'var(--red)');
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='Send Invite';}
+  }
 }
 
 async function acceptInvitation(inviteId, studentId, fromName){
@@ -3836,19 +3878,17 @@ async function cancelInvitation(inviteId, sid){
 }
 
 // ── Share / Collaboration ──
-async function openShareModal(sid){
+function openShareModal(sid){
   const s=students.find(x=>x.id===sid);if(!s)return;
   document.getElementById('shareTitle').textContent=`👥 Share — ${s.firstName} ${s.lastName}`;
-  document.getElementById('shareContent').innerHTML='<div style="color:var(--muted);font-size:12px;padding:8px 0">Loading…</div>';
   openMo('moShare');
-  await renderShareModal(s);
+  renderShareModal(s); // no await — renders sync part immediately, loads pending async
 }
 
 async function renderShareModal(s){
   const uid=fbCurrentUser?.uid||'';
   const isOwner=(s.ownerId===uid||!s.ownerId);
 
-  // Helper: build a mini self-object for current user when not yet in allConsultants
   function meObj(){
     return {uid,name:fbCurrentUser?.displayName||fbCurrentUser?.email,email:fbCurrentUser?.email,
       photo:fbCurrentUser?.photoURL,color:COLORS[Math.abs(hashStr(uid))%COLORS.length],
@@ -3880,43 +3920,49 @@ async function renderShareModal(s){
     </div>`),
   ].join('');
 
-  // ── Pending invitations sent FROM this owner FOR this student ──
-  let pendingRows='';
-  if(fbDb&&isOwner){
-    try{
-      const snap=await fbDb.collection('invitations')
-        .where('studentId','==',s.id).where('status','==','pending').get();
-      pendingRows=snap.docs.map(d=>{
-        const inv=d.data();
-        return `<div class="collab-row">
-          <div class="collab-info">
-            <div class="collab-av" style="background:#444;color:var(--muted);font-size:11px">✉</div>
-            <div><div class="collab-name">${inv.toEmail}</div><div class="collab-email">Invitation sent — awaiting response</div></div>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <span class="pending-tag">Pending</span>
-            <button class="share-toggle remove" onclick="cancelInvitation('${d.id}',${s.id})">Cancel</button>
-          </div>
-        </div>`;
-      }).join('');
-    }catch(e){ /* ignore */ }
-  }
-
   // ── Invite input (owner only) ──
   const inviteSection=isOwner?`
     <div class="share-section-label">Invite by Email</div>
     <div class="invite-row">
       <input class="invite-input" id="inviteEmailInput" type="email" placeholder="colleague@canaanedu.com" onkeydown="if(event.key==='Enter')sendInvitation(${s.id},this.value)">
-      <button class="invite-send" onclick="sendInvitation(${s.id},document.getElementById('inviteEmailInput').value)">Send Invite</button>
+      <button class="invite-send" id="sendInviteBtn" onclick="sendInvitation(${s.id})">Send Invite</button>
     </div>
-    <p style="font-size:10.5px;color:var(--muted);margin:0 0 4px">Your colleague will receive a notification and must accept before accessing this profile.</p>
+    <div id="inviteFeedback" style="font-size:10.5px;color:var(--muted);margin:4px 0 4px">Your colleague will receive a notification and must accept before accessing this profile.</div>
   `:'<p style="font-size:11px;color:var(--muted)">Only the owner can invite collaborators.</p>';
 
+  // Render immediately (no Firestore await blocking)
   document.getElementById('shareContent').innerHTML=`
     ${inviteSection}
     <div class="share-section-label" style="margin-top:14px">Collaborators with Access</div>
     ${currentRows||'<div style="font-size:11px;color:var(--muted);padding:6px 0">No collaborators yet.</div>'}
-    ${pendingRows?`<div class="share-section-label" style="margin-top:14px">Pending Invitations</div>${pendingRows}`:''}`;
+    <div id="pendingInviteSection"></div>`;
+
+  // Load pending invitations in background (non-blocking)
+  if(fbDb&&isOwner){
+    fbDb.collection('invitations')
+      .where('studentId','==',s.id)
+      .where('status','==','pending')
+      .get()
+      .then(snap=>{
+        if(!snap||snap.empty)return;
+        const rows=snap.docs.map(d=>{
+          const inv=d.data();
+          return `<div class="collab-row">
+            <div class="collab-info">
+              <div class="collab-av" style="background:#444;color:var(--muted);font-size:11px">✉</div>
+              <div><div class="collab-name">${inv.toEmail}</div><div class="collab-email">Invitation sent — awaiting response</div></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="pending-tag">Pending</span>
+              <button class="share-toggle remove" onclick="cancelInvitation('${d.id}',${s.id})">Cancel</button>
+            </div>
+          </div>`;
+        }).join('');
+        const el=document.getElementById('pendingInviteSection');
+        if(el)el.innerHTML=`<div class="share-section-label" style="margin-top:14px">Pending Invitations</div>${rows}`;
+      })
+      .catch(()=>{}); // index may not exist — silently skip
+  }
 }
 
 
