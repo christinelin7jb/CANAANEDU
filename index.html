@@ -1277,6 +1277,7 @@ function goPage(name,title,sub){
   if(el)el.classList.add('active');
   document.getElementById('pageTitle').textContent=title||{dashboard:'Command Center',compare:'Cohort Compare',calendar:'Deadline Calendar',essays:'Essay Tracker',schooldb:'School Database',strategy:'AI Strategy',profile:'Student Profile'}[name]||name;
   document.getElementById('pageSubtitle').textContent=sub||{dashboard:'Your students at a glance',compare:'Side-by-side analysis of all students',calendar:'Track every deadline across your cohort',essays:'Monitor essay progress for all students',schooldb:'Editable university database & match calculator',strategy:'AI-powered college advising',profile:''}[name]||'';
+  if(name==='dashboard')renderDashboard();
   if(name==='compare')renderCompare();
   if(name==='calendar')renderCalendar();
   if(name==='essays')renderEssayTracker();
