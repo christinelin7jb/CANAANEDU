@@ -3784,75 +3784,70 @@ function renderNotifList(){
 }
 
 async function sendInvitation(sid){
-  // Read inputs
-  const input=document.getElementById('inviteEmailInput');
-  const feedback=document.getElementById('inviteFeedback');
   const btn=document.getElementById('sendInviteBtn');
-
+  const input=document.getElementById('inviteEmailInput');
   function setFeedback(msg,color){
     const el=document.getElementById('inviteFeedback');
-    if(el)el.innerHTML=`<span style="color:${color||'var(--muted)'};font-size:11px">${msg}</span>`;
+    if(el)el.innerHTML=`<span style="color:${color};font-size:11px;font-weight:600">${msg}</span>`;
+  }
+  function setBtnState(txt,disabled,bg){
+    if(!btn)return;
+    btn.textContent=txt; btn.disabled=disabled;
+    btn.style.background=bg||''; btn.style.color='';
   }
 
-  if(!input){alert('Input not found — please close and reopen the share modal.');return;}
+  if(!input){setFeedback('❌ Error: input not found — please close and reopen.','var(--red)');return;}
   const toEmail=input.value.trim().toLowerCase();
-  if(!toEmail||!toEmail.includes('@')){setFeedback('Please enter a valid email address.','var(--red)');input.focus();return;}
+  if(!toEmail||!toEmail.includes('@')){setFeedback('❌ Please enter a valid email.','var(--red)');input.focus();return;}
 
-  // Student lookup — use == to handle string/number mismatch from Firestore
-  const s=students.find(x=>x.id==sid);
-  if(!s){setFeedback('Student not found. Please close and reopen.','var(--red)');return;}
+  const s=students.find(x=>String(x.id)===String(sid));
+  if(!s){setFeedback('❌ Student not found. Close and reopen.','var(--red)');return;}
 
-  if(fbCurrentUser&&toEmail===fbCurrentUser.email.toLowerCase()){setFeedback("You can't invite yourself.",'var(--orange)');return;}
-
-  // Check already a collaborator
-  if((s.sharedWith||[]).some(u=>{const c=allConsultants.find(x=>x.uid===u);return c&&c.email&&c.email.toLowerCase()===toEmail;})){
-    setFeedback('This consultant already has access.','var(--orange)');return;
+  if(fbCurrentUser&&toEmail===fbCurrentUser.email.toLowerCase()){setFeedback("❌ Can't invite yourself.",'#c9622a');return;}
+  if((s.sharedWith||[]).some(u=>{const c=(allConsultants||[]).find(x=>x.uid===u);return c&&c.email&&c.email.toLowerCase()===toEmail;})){
+    setFeedback('⚠️ Already has access.','#c9622a');return;
   }
 
-  if(btn){btn.disabled=true;btn.textContent='Sending…';}
-  setFeedback('Saving invitation…','var(--muted)');
+  setBtnState('Sending…',true,'#888');
+  setFeedback('Sending…','var(--muted)');
 
-  const fromName=fbCurrentUser?.displayName||fbCurrentUser?.email||'A colleague';
+  // Build mailto NOW (synchronous — must happen before any await to avoid popup blocker)
+  const fromName=fbCurrentUser?.displayName||fbCurrentUser?.email||'Your colleague';
   const portalUrl='https://canaanedu-consultant-portal.web.app';
+  const mailtoHref=`mailto:${toEmail}?subject=${encodeURIComponent(`Invitation: collaborate on ${s.firstName} ${s.lastName}'s profile`)}&body=${encodeURIComponent(`Hi,\n\n${fromName} has invited you to collaborate on ${s.firstName} ${s.lastName}'s college application profile in the Canaan Education Consultant Portal.\n\nSign in with your Google account here:\n${portalUrl}\n\nOnce logged in, click the 🔔 bell icon at the top to accept the invitation.\n\nBest regards,\nCanaan Education`)}`;
 
-  // 1) Write to Firestore (powers in-portal notification bell)
+  // Click <a> synchronously BEFORE any await (avoids popup blocker)
+  const a=document.createElement('a');
+  a.href=mailtoHref; a.style.display='none';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+
+  // Now write to Firestore for in-portal bell notification
   let firestoreOk=false;
   if(fbDb&&fbCurrentUser){
     try{
       await fbDb.collection('invitations').add({
-        studentId: s.id,
-        studentName: `${s.firstName} ${s.lastName}`,
-        fromUid: fbCurrentUser.uid,
-        fromName,
-        fromEmail: fbCurrentUser.email.toLowerCase(),
-        toEmail,
-        status: 'pending',
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        studentId:s.id, studentName:`${s.firstName} ${s.lastName}`,
+        fromUid:fbCurrentUser.uid, fromName,
+        fromEmail:fbCurrentUser.email.toLowerCase(),
+        toEmail, status:'pending',
+        createdAt:firebase.firestore.FieldValue.serverTimestamp(),
       });
       firestoreOk=true;
       logActivity(`invited <em>${toEmail}</em> to collaborate on <strong>${s.firstName} ${s.lastName}</strong>`);
-    }catch(err){
-      console.error('Firestore invite write failed:',err);
-      // Continue to mailto even if Firestore fails
-    }
+    }catch(err){console.error('Firestore invite failed:',err.code||err.message);}
   }
 
-  // 2) Open mailto so invited colleague actually gets an email
-  const emailSubject=`Invitation to collaborate on ${s.firstName} ${s.lastName}'s profile`;
-  const emailBody=`Hi,\n\n${fromName} has invited you to collaborate on ${s.firstName} ${s.lastName}'s college application profile in the Canaan Education Consultant Portal.\n\nPlease sign in with your Google account to accept:\n${portalUrl}\n\nOnce you log in, you will see a notification (🔔) at the top of the page — click it to accept the invitation.\n\nBest regards,\nCanaan Education`;
-  const mailtoLink=`mailto:${toEmail}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
-  window.open(mailtoLink,'_self');
-
-  // 3) Show success and refresh pending section
+  // Show clear confirmation
   input.value='';
-  if(btn){btn.disabled=false;btn.textContent='Send Invite';}
+  setBtnState('✓ Sent!',false,'#2a7a4b');
+  setFeedback(
+    `✅ Invite sent to <strong>${toEmail}</strong>. `+
+    (firestoreOk?'🔔 Portal notification queued — they\'ll see it when they log in.':'📧 Email opened. (Portal notification skipped — check Firestore connection.)'),
+    '#2a7a4b'
+  );
+  setTimeout(()=>setBtnState('Send Invite',false,''),3500);
 
-  const notifNote=firestoreOk
-    ? 'They will also see a 🔔 notification when they log in to the portal.'
-    : '(In-portal notification unavailable — Firestore write failed, but the email will still work.)';
-  setFeedback(`✓ Email opened to ${toEmail}. ${notifNote}`,'var(--green)');
-
-  // Refresh pending rows if Firestore worked
+  // Show pending row in modal
   if(firestoreOk&&fbDb){
     fbDb.collection('invitations').where('studentId','==',s.id).get()
       .then(snap=>{
@@ -3867,8 +3862,7 @@ async function sendInvitation(sid){
             <div style="display:flex;align-items:center;gap:8px">
               <span class="pending-tag">Pending</span>
               <button class="share-toggle remove" onclick="cancelInvitation('${d.id}',${s.id})">Cancel</button>
-            </div>
-          </div>`;
+            </div></div>`;
         }).join('');
         const el=document.getElementById('pendingInviteSection');
         if(el)el.innerHTML=`<div class="share-section-label" style="margin-top:14px">Pending Invitations</div>${rows}`;
