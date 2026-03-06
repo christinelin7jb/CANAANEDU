@@ -252,7 +252,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 @keyframes pulse{0%,80%,100%{transform:scale(.6);opacity:.4;}40%{transform:scale(1);opacity:1;}}
 
 /* ── DEADLINE CALENDAR ── */
-.dl-item{display:flex;align-items:center;gap:11px;padding:10px 12px;background:rgba(8,15,30,0.6);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;transition:all .18s;cursor:pointer;}
+.dl-item{display:flex;align-items:center;gap:11px;padding:10px 12px;background:#ffffff;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;transition:all .18s;cursor:pointer;}
 .dl-item:hover{border-color:rgba(201,168,76,0.3);}
 .dl-date-box{width:44px;text-align:center;flex-shrink:0;}
 .dl-month{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);}
@@ -270,7 +270,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .essay-row{display:grid;grid-template-columns:2fr 1fr 90px 80px 90px 80px 32px;align-items:center;border-bottom:1px solid rgba(201,168,76,0.05);}
 .essay-row:last-child{border-bottom:none;}
 .essay-row:hover{background:rgba(201,168,76,0.03);}
-.essay-row.hdr{background:rgba(8,15,30,0.5);border-bottom:1px solid var(--border);}
+.essay-row.hdr{background:rgba(0,0,0,0.04);border-bottom:1px solid var(--border);}
 .ec{padding:8px 11px;font-size:12px;}
 .ec.hdr{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);}
 .status-sel{background:transparent;border:none;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;outline:none;padding:2px 4px;border-radius:4px;}
@@ -291,19 +291,19 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 
 /* ── TRANSCRIPT ── */
 .tr-year{margin-bottom:16px;}
-.tr-yh{display:flex;align-items:center;justify-content:space-between;padding:9px 13px;background:rgba(8,15,30,0.7);border:1px solid var(--border);border-radius:7px 7px 0 0;cursor:pointer;}
+.tr-yh{display:flex;align-items:center;justify-content:space-between;padding:9px 13px;background:rgba(26,54,114,0.08);border:1px solid var(--border);border-radius:7px 7px 0 0;cursor:pointer;}
 .tr-yh-l{font-family:'Cormorant Garamond',serif;font-size:13.5px;color:var(--cream);display:flex;align-items:center;gap:9px;}
 .tr-yb{border:1px solid var(--border);border-top:none;border-radius:0 0 7px 7px;overflow:hidden;}
 .cr{display:grid;grid-template-columns:2fr 1.2fr 80px 64px 68px 80px 30px;align-items:center;border-bottom:1px solid rgba(201,168,76,0.05);}
 .cr:last-child{border-bottom:none;}
 .cr:hover{background:rgba(201,168,76,0.03);}
-.cr.ch{background:rgba(8,15,30,0.5);border-bottom:1px solid var(--border);}
+.cr.ch{background:rgba(0,0,0,0.04);border-bottom:1px solid var(--border);}
 .cc{padding:8px 11px;font-size:11.5px;}
 .cc.ch{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);}
-.add-cr{display:flex;align-items:center;gap:6px;padding:8px 11px;background:rgba(8,15,30,0.4);border-top:1px dashed rgba(201,168,76,0.13);}
-.mi{background:rgba(8,15,30,0.8);border:1px solid rgba(201,168,76,0.16);border-radius:5px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:11px;padding:4px 7px;outline:none;transition:border-color .18s;}
+.add-cr{display:flex;align-items:center;gap:6px;padding:8px 11px;background:rgba(0,0,0,0.02);border-top:1px dashed rgba(201,168,76,0.3);}
+.mi{background:#ffffff;border:1px solid rgba(0,0,0,0.15);border-radius:5px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:11px;padding:4px 7px;outline:none;transition:border-color .18s;}
 .mi:focus{border-color:var(--gold);}
-.ms{background:rgba(8,15,30,0.8);border:1px solid rgba(201,168,76,0.16);border-radius:5px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:11px;padding:4px 5px;outline:none;cursor:pointer;}
+.ms{background:#ffffff;border:1px solid rgba(0,0,0,0.15);border-radius:5px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:11px;padding:4px 5px;outline:none;cursor:pointer;}
 .ms option{background:var(--bg2);}
 .del-btn{background:transparent;border:none;color:rgba(224,92,92,0.35);cursor:pointer;font-size:13px;padding:3px;transition:color .18s;line-height:1;}
 .del-btn:hover{color:var(--red);}
@@ -318,7 +318,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .gb-l{font-size:10px;color:var(--muted);margin-top:2px;}
 
 /* ── SCHOOL LIST ITEMS ── */
-.si{display:flex;align-items:center;gap:11px;padding:11px;background:rgba(8,15,30,0.5);border:1px solid rgba(201,168,76,0.08);border-radius:8px;margin-bottom:6px;transition:border-color .18s;}
+.si{display:flex;align-items:center;gap:11px;padding:11px;background:#ffffff;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;transition:border-color .18s;}
 .si:hover{border-color:rgba(201,168,76,0.25);}
 .si-info{flex:1;}
 .si-name{font-size:13px;font-weight:500;color:var(--cream);}
@@ -327,7 +327,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .chance-l{font-size:9.5px;color:var(--muted);margin-top:1px;}
 
 /* ── NOTE ── */
-.nc{background:rgba(8,15,30,0.5);border:1px solid rgba(201,168,76,0.08);border-radius:8px;padding:11px 13px;margin-bottom:8px;}
+.nc{background:#f8f7f4;border:1px solid rgba(201,168,76,0.2);border-radius:8px;padding:11px 13px;margin-bottom:8px;}
 .nc-date{font-size:9.5px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;}
 .nc-txt{font-size:12.5px;line-height:1.6;color:var(--text);}
 
@@ -346,7 +346,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .ag-stat{font-size:9px;font-weight:700;margin-top:2px;}
 
 /* ── TO-DO LIST ── */
-.todo-item{display:flex;align-items:flex-start;gap:11px;padding:11px 14px;background:rgba(8,15,30,0.55);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;transition:all .18s;group:todo;}
+.todo-item{display:flex;align-items:flex-start;gap:11px;padding:11px 14px;background:#ffffff;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;transition:all .18s;group:todo;}
 .todo-item:hover{border-color:rgba(201,168,76,0.25);}
 .todo-item.done{opacity:.5;}
 .todo-item.done .todo-text{text-decoration:line-through;color:var(--muted);}
@@ -2368,7 +2368,7 @@ async function searchScorecard() {
   out.innerHTML = results.map(r => {
     const p = parseScorecardResult(r);
     const alreadyIn = schoolDB.some(s => s.scorecardId === p.scorecardId || s.name.toLowerCase() === p.name.toLowerCase());
-    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(8,15,30,0.6);border:1px solid var(--border);border-radius:8px;margin-bottom:6px">
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#ffffff;border:1px solid var(--border);border-radius:8px;margin-bottom:6px">
       <div style="flex:1">
         <div style="font-size:13px;font-weight:600;color:var(--cream)">${p.name}</div>
         <div style="font-size:10.5px;color:var(--muted);margin-top:2px">${p.city}, ${p.state} · ${p.size ? p.size.toLocaleString() + ' undergrads' : ''}</div>
@@ -2561,7 +2561,7 @@ function renderTodos(s) {
     <div id="todoOpenList">
       ${openUrgent.length ? `<div class="todo-section-hd">🔴 High Priority <span class="count">${openUrgent.length}</span></div>${openUrgent.map(t=>todoCard(t,s.id)).join('')}` : ''}
       ${openNormal.length ? `<div class="todo-section-hd">Open Tasks <span class="count">${openNormal.length}</span></div>${openNormal.map(t=>todoCard(t,s.id)).join('')}` : ''}
-      ${!open.length ? `<div style="padding:24px;text-align:center;color:var(--muted);font-size:12.5px;background:rgba(8,15,30,0.4);border:1px dashed var(--border);border-radius:8px">
+      ${!open.length ? `<div style="padding:24px;text-align:center;color:var(--muted);font-size:12.5px;background:rgba(0,0,0,0.03);border:1px dashed rgba(201,168,76,0.3);border-radius:8px">
         <div style="font-size:22px;margin-bottom:8px">✓</div>
         No open tasks — all clear!
       </div>` : ''}
@@ -2584,7 +2584,7 @@ function todoProgressBar(s) {
   if (!total) return '';
   const done = (s.todos||[]).filter(t=>t.done).length;
   const pct = Math.round(done/total*100);
-  return `<div style="background:rgba(8,15,30,0.5);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:14px">
+  return `<div style="background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.25);border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:14px">
     <div style="flex:1">
       <div style="display:flex;justify-content:space-between;margin-bottom:5px">
         <span style="font-size:11px;color:var(--muted)">Overall Progress</span>
@@ -2727,7 +2727,7 @@ function renderActList() {
     return;
   }
   el.innerHTML = _pendingActivities.map((a, i) => `
-    <div style="background:rgba(8,15,30,0.6);border:1px solid var(--border);border-radius:9px;padding:14px;margin-bottom:8px">
+    <div style="background:#ffffff;border:1px solid var(--border);border-radius:9px;padding:14px;margin-bottom:8px">
       <div style="display:flex;align-items:flex-start;gap:10px">
         <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <div>
