@@ -988,14 +988,16 @@ const STATUS_COLOR={'Not Started':'var(--muted)','Brainstorm':'var(--blue)','Dra
 let currentStudentId=null, cmpSort={col:'urgency',dir:'desc'}, dlFilter='';
 let _claudeKey=localStorage.getItem('claudeKey')||'';
 async function loadClaudeKeyFromFirestore(){
-  if(_claudeKey)return;
+  // Always load from Firestore first (canonical source), fallback to localStorage
   try{
     const snap=await fbDb.collection('settings').doc('apiKeys').get();
     if(snap.exists&&snap.data().claudeKey){
-      _claudeKey=snap.data().claudeKey;
+      _claudeKey=snap.data().claudeKey.trim();
       localStorage.setItem('claudeKey',_claudeKey);
     }
-  }catch(e){console.warn('Could not load API key from Firestore:',e);}
+  }catch(e){
+    console.warn('Could not load API key from Firestore, using localStorage fallback:',e);
+  }
 }
 async function saveClaudeKey(val){
   _claudeKey=val.trim();
