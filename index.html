@@ -906,6 +906,16 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   </div>
 </div></div>
 
+<!-- Transcript Upload Modal -->
+<div class="mo" id="moTranscriptImport"><div class="md" style="width:780px;max-width:95vw">
+  <button class="md-close" onclick="closeMo('moTranscriptImport')">✕</button>
+  <div class="md-title">📤 Import from Transcript</div>
+  <div id="transcriptImportBody">
+    <!-- populated by JS -->
+  </div>
+</div></div>
+<input type="file" id="transcriptFileInput" accept="image/*,.pdf" style="display:none" onchange="handleTranscriptFile(this)">
+
 <!-- Parent Report Modal -->
 <div class="mo" id="moReport"><div class="md md-xl">
   <button class="md-close" onclick="closeMo('moReport')">✕</button>
@@ -1709,7 +1719,10 @@ function renderTranscript(s){
   const allMet=metCount===ucReqs.length;
   document.getElementById('trContent').innerHTML=`
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
-      <div style="font-size:11px;color:var(--muted)">GPA shown in US 4.0 scale. Original grades preserved per course.</div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div style="font-size:11px;color:var(--muted)">GPA shown in US 4.0 scale. Original grades preserved per course.</div>
+        <button class="btn btn-blue btn-sm" onclick="triggerTranscriptUpload(${s.id})" style="font-size:11px;padding:4px 10px;display:flex;align-items:center;gap:5px"><span>📤</span>Upload Transcript (PDF/Image)</button>
+      </div>
       <div style="display:flex;align-items:center;gap:7px">
         <span style="font-size:11px;color:var(--muted)">Default grade system for new courses:</span>
         <select class="ms" id="defaultGradeSys-${s.id}" style="font-size:11px;color:var(--blue)" onchange="setDefaultGradeSys(${s.id},this.value)">
@@ -1886,6 +1899,225 @@ function saveCourse(sid,cid){
   c.sem=document.getElementById('ecsm-'+cid).value;
   const gpas=calcGPAs(s.transcript);if(gpas.uw!=='—')s.gpa=gpas.uw;
   renderTranscript(s);renderSidebar();
+}
+
+// ══════════════════════════════════════════════════════
+// TRANSCRIPT UPLOAD & AI PARSING
+// ══════════════════════════════════════════════════════
+let _transcriptUploadSid = null;
+
+function triggerTranscriptUpload(sid) {
+  _transcriptUploadSid = sid;
+  const inp = document.getElementById('transcriptFileInput');
+  inp.value = '';
+  inp.click();
+}
+
+async function handleTranscriptFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const sid = _transcriptUploadSid;
+  const s = students.find(x => x.id == sid);
+  if (!s) return;
+
+  const key = getClaudeKey();
+  if (!key) {
+    alert('Please enter your Claude API key in the AI Analysis tab first.');
+    return;
+  }
+
+  // Show loading state in modal
+  document.getElementById('transcriptImportBody').innerHTML = `
+    <div style="text-align:center;padding:40px 20px">
+      <div style="font-size:28px;margin-bottom:12px">✦</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:6px">Analyzing transcript with AI…</div>
+      <div class="dots" style="justify-content:center"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:10px">This may take 10–20 seconds</div>
+    </div>`;
+  openMo('moTranscriptImport');
+
+  try {
+    // Read file as base64
+    const base64 = await new Promise((res, rej) => {
+      const reader = new FileReader();
+      reader.onload = e => res(e.target.result.split(',')[1]);
+      reader.onerror = rej;
+      reader.readAsDataURL(file);
+    });
+
+    const mediaType = file.type || (file.name.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg');
+    const isPDF = mediaType === 'application/pdf';
+
+    const contentBlock = isPDF
+      ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } }
+      : { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } };
+
+    const prompt = `You are an expert college admissions counselor parsing a high school transcript. Extract ALL courses from this transcript and return ONLY a JSON array.
+
+For each course return an object with exactly these fields:
+- "year": grade level as integer 9, 10, 11, or 12
+- "subject": course name as a string
+- "level": one of "Regular", "Honors", "AP", "IB", "College"
+- "gradeSystem": one of "us" (US A-F), "ib" (IB 1-7), "al" (A-Level), "cn" (Chinese 0-100)
+- "grade": the original grade as a string (e.g. "A", "A-", "7", "92", "B")
+- "ag": UC A-G category as one letter — "a" (History/Social Sci), "b" (English), "c" (Math), "d" (Lab Science), "e" (World Language), "f" (Visual/Performing Arts), "g" (College-Prep Elective), or "elec" (Other Elective)
+- "sem": one of "Full", "Sem1", "Sem2"
+- "credits": number of credits/units as integer (use 10 if unknown)
+
+Detect the grading system from context (letter grades = "us", numbers 1-7 = "ib", A*/A/B/C/D/E = "al", percentages/numbers 0-100 = "cn").
+For AP courses set level to "AP". For IB courses set level to "IB". For Honors set level to "Honors".
+Infer A-G category from subject name (e.g. Algebra II → "c", AP US History → "a", Spanish 3 → "e").
+If a course appears in multiple semesters, list once as "Full" unless scores differ.
+
+Return ONLY the JSON array, no explanation, no markdown code fences.`;
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 4000,
+        messages: [{ role: 'user', content: [contentBlock, { type: 'text', text: prompt }] }]
+      })
+    });
+
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const text = (data.content || []).map(b => b.text || '').join('');
+
+    // Parse JSON from response
+    let courses;
+    try {
+      const m = text.match(/\[[\s\S]*\]/);
+      courses = JSON.parse(m ? m[0] : text);
+    } catch(e) {
+      throw new Error('Could not parse AI response as JSON. Please try again.');
+    }
+
+    if (!Array.isArray(courses) || !courses.length) throw new Error('No courses found in transcript.');
+    showTranscriptImportPreview(sid, courses);
+
+  } catch(err) {
+    document.getElementById('transcriptImportBody').innerHTML = `
+      <div style="padding:20px">
+        <div class="cb lo"><span class="cb-ico">✗</span><div class="cb-txt"><span class="cb-lbl">Error parsing transcript</span>${err.message}</div></div>
+        <div style="display:flex;gap:8px;margin-top:16px">
+          <button class="btn btn-blue btn-sm" onclick="triggerTranscriptUpload(${sid});closeMo('moTranscriptImport')">Try Again</button>
+          <button class="btn btn-out btn-sm" onclick="closeMo('moTranscriptImport')">Cancel</button>
+        </div>
+      </div>`;
+  }
+}
+
+function showTranscriptImportPreview(sid, courses) {
+  const agKeys = ['a','b','c','d','e','f','g','elec'];
+  function agOptHtml(sel) {
+    return agKeys.map(k => {
+      const label = k === 'elec' ? 'Elective' : (AG_REQS.find(r => r.key === k)?.label.split('—')[0].trim() || k.toUpperCase());
+      return `<option value="${k}"${k===sel?' selected':''}>${k.toUpperCase()} — ${label}</option>`;
+    }).join('');
+  }
+
+  const rows = courses.map((c, i) => {
+    const sys = c.gradeSystem || 'us';
+    const gradeOpts = {
+      us: ['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','IP'],
+      ib: ['7','6','5','4','3','2','1'],
+      al: ['A*','A','B','C','D','E','U'],
+      cn: []
+    }[sys] || [];
+    const gradeInput = sys === 'cn'
+      ? `<input class="mi" value="${c.grade||''}" oninput="window._tcImport[${i}].grade=this.value" style="width:52px;padding:3px 5px;font-size:11px">`
+      : `<select class="ms" style="font-size:11px" onchange="window._tcImport[${i}].grade=this.value">${gradeOpts.map(g=>`<option${g===c.grade?' selected':''}>${g}</option>`).join('')}</select>`;
+
+    return `<tr id="tc-row-${i}" style="border-bottom:1px solid rgba(255,255,255,0.04)">
+      <td style="padding:5px 4px"><input type="checkbox" id="tc-chk-${i}" checked style="accent-color:var(--gold);width:14px;height:14px"></td>
+      <td style="padding:5px 4px"><select class="ms" style="font-size:11px;width:52px" onchange="window._tcImport[${i}].year=parseInt(this.value)">
+        ${[9,10,11,12].map(y=>`<option${y===c.year?' selected':''}>${y}</option>`).join('')}
+      </select></td>
+      <td style="padding:5px 4px"><input class="mi" value="${c.subject||''}" oninput="window._tcImport[${i}].subject=this.value" style="min-width:140px;font-size:11px"></td>
+      <td style="padding:5px 4px"><select class="ms" style="font-size:11px" onchange="window._tcImport[${i}].level=this.value">
+        ${['Regular','Honors','AP','IB','College'].map(l=>`<option${l===c.level?' selected':''}>${l}</option>`).join('')}
+      </select></td>
+      <td style="padding:5px 4px"><select class="ms" style="font-size:11px" onchange="window._tcImport[${i}].ag=this.value">${agOptHtml(c.ag)}</select></td>
+      <td style="padding:5px 4px">${gradeInput}</td>
+      <td style="padding:5px 4px"><span style="font-size:10px;padding:2px 5px;border-radius:4px;background:rgba(255,255,255,0.06);color:var(--muted)">${sys.toUpperCase()}</span></td>
+      <td style="padding:5px 4px"><select class="ms" style="font-size:11px" onchange="window._tcImport[${i}].sem=this.value">
+        ${['Full','Sem1','Sem2'].map(t=>`<option${t===c.sem?' selected':''}>${t}</option>`).join('')}
+      </select></td>
+    </tr>`;
+  }).join('');
+
+  window._tcImport = courses.map(c => ({...c}));
+  window._tcImportSid = sid;
+
+  document.getElementById('transcriptImportBody').innerHTML = `
+    <div style="margin-bottom:12px">
+      <div class="cb hi" style="margin-bottom:10px"><span class="cb-ico">✓</span><div class="cb-txt"><span class="cb-lbl">${courses.length} courses detected</span>Review and edit below. Uncheck any rows you don't want to import.</div></div>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <button class="btn btn-sm btn-out" onclick="document.querySelectorAll('[id^=tc-chk-]').forEach(c=>c.checked=true)" style="font-size:11px">Select All</button>
+        <button class="btn btn-sm btn-out" onclick="document.querySelectorAll('[id^=tc-chk-]').forEach(c=>c.checked=false)" style="font-size:11px">Deselect All</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto;max-height:420px;overflow-y:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="border-bottom:1px solid rgba(201,168,76,0.2)">
+          <th style="padding:6px 4px;text-align:left;font-size:10px;color:var(--muted);font-weight:600">✓</th>
+          <th style="padding:6px 4px;text-align:left;font-size:10px;color:var(--muted);font-weight:600">Yr</th>
+          <th style="padding:6px 4px;text-align:left;font-size:10px;color:var(--muted);font-weight:600">Course Name</th>
+          <th style="padding:6px 4px;text-align:left;font-size:10px;color:var(--muted);font-weight:600">Level</th>
+          <th style="padding:6px 4px;text-align:left;font-size:10px;color:var(--muted);font-weight:600">A-G</th>
+          <th style="padding:6px 4px;text-align:left;font-size:10px;color:var(--muted);font-weight:600">Grade</th>
+          <th style="padding:6px 4px;text-align:left;font-size:10px;color:var(--muted);font-weight:600">Sys</th>
+          <th style="padding:6px 4px;text-align:left;font-size:10px;color:var(--muted);font-weight:600">Term</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px;align-items:center">
+      <button class="btn btn-gold" onclick="confirmTranscriptImport()">Import Selected Courses</button>
+      <button class="btn btn-out" onclick="closeMo('moTranscriptImport')">Cancel</button>
+      <span style="font-size:11px;color:var(--muted);margin-left:4px">Existing courses will NOT be replaced — imported courses are added alongside.</span>
+    </div>`;
+}
+
+function confirmTranscriptImport() {
+  const sid = window._tcImportSid;
+  const s = students.find(x => x.id == sid);
+  if (!s) return;
+  if (!s.transcript) s.transcript = [];
+
+  const toImport = (window._tcImport || []).filter((_, i) => {
+    const chk = document.getElementById(`tc-chk-${i}`);
+    return chk && chk.checked;
+  });
+
+  toImport.forEach(c => {
+    s.transcript.push({
+      id: Date.now() + Math.random(),
+      year: parseInt(c.year) || 9,
+      subject: (c.subject || '').trim(),
+      ag: c.ag || 'g',
+      level: c.level || 'Regular',
+      gradeSystem: c.gradeSystem || 'us',
+      grade: String(c.grade || ''),
+      credits: parseInt(c.credits) || 10,
+      sem: c.sem || 'Full'
+    });
+  });
+
+  const gpas = calcGPAs(s.transcript);
+  if (gpas.uw !== '—') s.gpa = gpas.uw;
+  if (fbDb) saveStudentToFirestore(s);
+  closeMo('moTranscriptImport');
+  renderTranscript(s);
+  renderSidebar();
+  logActivity(`imported ${toImport.length} courses to <strong>${s.firstName} ${s.lastName}</strong>'s transcript`);
 }
 
 function getOrInitSchoolList(s){
