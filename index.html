@@ -3733,11 +3733,12 @@ let _pendingInvites = []; // invites TO me (pending)
 function subscribeInvitations(){
   if(!fbDb||!fbCurrentUser) return;
   const myEmail = fbCurrentUser.email.toLowerCase();
+  // Single-field query only (no composite index required)
   _unsubInvitations = fbDb.collection('invitations')
     .where('toEmail','==',myEmail)
-    .where('status','==','pending')
     .onSnapshot(snap=>{
-      _pendingInvites = snap.docs.map(d=>({id:d.id,...d.data()}));
+      // Filter pending client-side to avoid needing a composite index
+      _pendingInvites = snap.docs.map(d=>({id:d.id,...d.data()})).filter(d=>d.status==='pending');
       updateNotifBadge(_pendingInvites.length);
       renderNotifList();
     });
@@ -3783,71 +3784,95 @@ function renderNotifList(){
 }
 
 async function sendInvitation(sid){
+  // Read inputs
   const input=document.getElementById('inviteEmailInput');
   const feedback=document.getElementById('inviteFeedback');
   const btn=document.getElementById('sendInviteBtn');
-  if(!input)return;
-  const toEmail=input.value.trim().toLowerCase();
 
-  function setFeedback(msg,color){if(feedback)feedback.innerHTML=`<span style="color:${color||'var(--muted)'}">${msg}</span>`;}
-
-  if(!toEmail||!toEmail.includes('@')){setFeedback('Please enter a valid email address.','var(--red)');return;}
-
-  const s=students.find(x=>x.id===sid);if(!s)return;
-
-  if(!fbDb||!fbCurrentUser){
-    setFeedback('Firebase not connected. Please sign in to send invitations.','var(--red)');return;
+  function setFeedback(msg,color){
+    const el=document.getElementById('inviteFeedback');
+    if(el)el.innerHTML=`<span style="color:${color||'var(--muted)'};font-size:11px">${msg}</span>`;
   }
-  if(toEmail===fbCurrentUser.email.toLowerCase()){setFeedback("You can't invite yourself.",'var(--orange)');return;}
 
-  // Check if already a collaborator (local check — no Firestore query needed)
-  if((s.sharedWith||[]).some(u=>{ const c=allConsultants.find(x=>x.uid===u); return c&&c.email&&c.email.toLowerCase()===toEmail; })){
+  if(!input){alert('Input not found — please close and reopen the share modal.');return;}
+  const toEmail=input.value.trim().toLowerCase();
+  if(!toEmail||!toEmail.includes('@')){setFeedback('Please enter a valid email address.','var(--red)');input.focus();return;}
+
+  // Student lookup — use == to handle string/number mismatch from Firestore
+  const s=students.find(x=>x.id==sid);
+  if(!s){setFeedback('Student not found. Please close and reopen.','var(--red)');return;}
+
+  if(fbCurrentUser&&toEmail===fbCurrentUser.email.toLowerCase()){setFeedback("You can't invite yourself.",'var(--orange)');return;}
+
+  // Check already a collaborator
+  if((s.sharedWith||[]).some(u=>{const c=allConsultants.find(x=>x.uid===u);return c&&c.email&&c.email.toLowerCase()===toEmail;})){
     setFeedback('This consultant already has access.','var(--orange)');return;
   }
 
   if(btn){btn.disabled=true;btn.textContent='Sending…';}
-  setFeedback('Sending invitation…','var(--muted)');
+  setFeedback('Saving invitation…','var(--muted)');
 
-  try{
-    await fbDb.collection('invitations').add({
-      studentId: sid,
-      studentName: `${s.firstName} ${s.lastName}`,
-      fromUid: fbCurrentUser.uid,
-      fromName: fbCurrentUser.displayName||fbCurrentUser.email,
-      fromEmail: fbCurrentUser.email.toLowerCase(),
-      toEmail,
-      status: 'pending',
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    });
-    logActivity(`invited <em>${toEmail}</em> to collaborate on <strong>${s.firstName} ${s.lastName}</strong>`);
-    input.value='';
-    setFeedback(`✓ Invitation sent to ${toEmail}. They'll see a notification when they log in.`,'var(--green)');
-    // Refresh pending section
-    if(fbDb){
-      fbDb.collection('invitations').where('studentId','==',sid).where('status','==','pending').get()
-        .then(snap=>{
-          if(!snap||snap.empty)return;
-          const rows=snap.docs.map(d=>{
-            const inv=d.data();
-            return `<div class="collab-row">
-              <div class="collab-info">
-                <div class="collab-av" style="background:#444;color:var(--muted);font-size:11px">✉</div>
-                <div><div class="collab-name">${inv.toEmail}</div><div class="collab-email">Invitation sent — awaiting response</div></div>
-              </div>
-              <div style="display:flex;align-items:center;gap:8px">
-                <span class="pending-tag">Pending</span>
-                <button class="share-toggle remove" onclick="cancelInvitation('${d.id}',${sid})">Cancel</button>
-              </div>
-            </div>`;
-          }).join('');
-          const el=document.getElementById('pendingInviteSection');
-          if(el)el.innerHTML=`<div class="share-section-label" style="margin-top:14px">Pending Invitations</div>${rows}`;
-        }).catch(()=>{});
+  const fromName=fbCurrentUser?.displayName||fbCurrentUser?.email||'A colleague';
+  const portalUrl='https://canaanedu-consultant-portal.web.app';
+
+  // 1) Write to Firestore (powers in-portal notification bell)
+  let firestoreOk=false;
+  if(fbDb&&fbCurrentUser){
+    try{
+      await fbDb.collection('invitations').add({
+        studentId: s.id,
+        studentName: `${s.firstName} ${s.lastName}`,
+        fromUid: fbCurrentUser.uid,
+        fromName,
+        fromEmail: fbCurrentUser.email.toLowerCase(),
+        toEmail,
+        status: 'pending',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      firestoreOk=true;
+      logActivity(`invited <em>${toEmail}</em> to collaborate on <strong>${s.firstName} ${s.lastName}</strong>`);
+    }catch(err){
+      console.error('Firestore invite write failed:',err);
+      // Continue to mailto even if Firestore fails
     }
-  }catch(err){
-    setFeedback(`Error: ${err.message||'Could not send invitation. Check your connection.'}`, 'var(--red)');
-  }finally{
-    if(btn){btn.disabled=false;btn.textContent='Send Invite';}
+  }
+
+  // 2) Open mailto so invited colleague actually gets an email
+  const emailSubject=`Invitation to collaborate on ${s.firstName} ${s.lastName}'s profile`;
+  const emailBody=`Hi,\n\n${fromName} has invited you to collaborate on ${s.firstName} ${s.lastName}'s college application profile in the Canaan Education Consultant Portal.\n\nPlease sign in with your Google account to accept:\n${portalUrl}\n\nOnce you log in, you will see a notification (🔔) at the top of the page — click it to accept the invitation.\n\nBest regards,\nCanaan Education`;
+  const mailtoLink=`mailto:${toEmail}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+  window.open(mailtoLink,'_self');
+
+  // 3) Show success and refresh pending section
+  input.value='';
+  if(btn){btn.disabled=false;btn.textContent='Send Invite';}
+
+  const notifNote=firestoreOk
+    ? 'They will also see a 🔔 notification when they log in to the portal.'
+    : '(In-portal notification unavailable — Firestore write failed, but the email will still work.)';
+  setFeedback(`✓ Email opened to ${toEmail}. ${notifNote}`,'var(--green)');
+
+  // Refresh pending rows if Firestore worked
+  if(firestoreOk&&fbDb){
+    fbDb.collection('invitations').where('studentId','==',s.id).get()
+      .then(snap=>{
+        if(!snap||snap.empty)return;
+        const rows=snap.docs.filter(d=>d.data().status==='pending').map(d=>{
+          const inv=d.data();
+          return `<div class="collab-row">
+            <div class="collab-info">
+              <div class="collab-av" style="background:#444;color:var(--muted);font-size:11px">✉</div>
+              <div><div class="collab-name">${inv.toEmail}</div><div class="collab-email">Invitation sent — awaiting response</div></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="pending-tag">Pending</span>
+              <button class="share-toggle remove" onclick="cancelInvitation('${d.id}',${s.id})">Cancel</button>
+            </div>
+          </div>`;
+        }).join('');
+        const el=document.getElementById('pendingInviteSection');
+        if(el)el.innerHTML=`<div class="share-section-label" style="margin-top:14px">Pending Invitations</div>${rows}`;
+      }).catch(()=>{});
   }
 }
 
@@ -3939,13 +3964,13 @@ async function renderShareModal(s){
 
   // Load pending invitations in background (non-blocking)
   if(fbDb&&isOwner){
+    // Single-field query only (avoids composite index requirement)
     fbDb.collection('invitations')
       .where('studentId','==',s.id)
-      .where('status','==','pending')
       .get()
       .then(snap=>{
         if(!snap||snap.empty)return;
-        const rows=snap.docs.map(d=>{
+        const rows=snap.docs.filter(d=>d.data().status==='pending').map(d=>{
           const inv=d.data();
           return `<div class="collab-row">
             <div class="collab-info">
