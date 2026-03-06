@@ -669,8 +669,8 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
           <div style="font-size:11.5px;color:var(--muted)">Live admission rates & SAT ranges pulled directly from federal database. Free API key at <strong style="color:var(--blue)">api.data.gov/signup</strong></div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-          <input class="fi" id="apiKeyInput" placeholder="Paste your API key here" style="width:260px;font-family:'DM Mono',monospace;font-size:11px" oninput="saveApiKey(this.value)">
-          <div id="apiKeyStatus" style="font-size:11px;color:var(--muted);white-space:nowrap"></div>
+          <input class="fi" id="apiKeyInput" style="display:none">
+          <div id="apiKeyStatus" style="font-size:11px;color:var(--green);white-space:nowrap">✓ API key configured</div>
         </div>
       </div>
     </div>
@@ -2513,7 +2513,7 @@ function exportSummerReport(sid){
 const SC_BASE = 'https://api.data.gov/ed/collegescorecard/v1/schools';
 const SC_FIELDS = 'school.name,id,admissions.admission_rate.overall,admissions.sat_scores.25th_percentile.overall,admissions.sat_scores.75th_percentile.overall,admissions.act_scores.25th_percentile.cumulative,admissions.act_scores.75th_percentile.cumulative,school.city,school.state,school.school_url,latest.student.size';
 
-let _apiKey = '';
+let _apiKey = 'CcOtpSkEB6mruqG8xDf9CbV9hcWVcgicseVD9iT2';
 
 function saveApiKey(val) {
   _apiKey = val.trim();
