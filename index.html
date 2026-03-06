@@ -986,6 +986,9 @@ const STATUS_COLOR={'Not Started':'var(--muted)','Brainstorm':'var(--blue)','Dra
 // DATA
 // ══════════════════════════════════════════════════════
 let currentStudentId=null, cmpSort={col:'urgency',dir:'desc'}, dlFilter='';
+let _claudeKey=localStorage.getItem('claudeKey')||'';
+function saveClaudeKey(val){_claudeKey=val.trim();localStorage.setItem('claudeKey',_claudeKey);const s=document.getElementById('claudeKeyStatus');if(s)s.textContent=_claudeKey.length>10?'✓ Saved':'';}
+function getClaudeKey(){return _claudeKey;}
 
 let students=[
   {id:1,firstName:'Emma',lastName:'Chen',grade:12,gpa:3.95,sat:1540,act:35,major:'Computer Science',tier:'t10',hook:'legacy',
@@ -1867,10 +1870,91 @@ function saveCourse(sid,cid){
 
 function renderSchoolList(s){
   const matches=getMatchSchools(s);
-  document.getElementById('slContent').innerHTML=`<div class="card-hd"><span class="ico">🏫</span>Recommended School List</div>
-    <div style="display:flex;gap:6px;margin-bottom:12px"><span class="tag tr">● Reach</span><span class="tag to">● Match</span><span class="tag tg">● Safety</span></div>
-    ${matches.map((m,i)=>`<div class="si"><div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);width:18px">${i+1}</div><div style="width:7px;height:7px;border-radius:50%;background:${m.type==='safety'?'var(--green)':m.type==='match'?'var(--orange)':'var(--red)'};flex-shrink:0"></div><div class="si-info"><div class="si-name">${m.name}</div><div class="si-det">${m.detail}</div></div><div style="text-align:right"><div class="chance-n" style="color:${m.chance>40?'var(--green)':m.chance>15?'var(--orange)':'var(--red)'}">${m.chance}%</div><div class="chance-l">Est. chance</div></div></div>`).join('')}
-    <p style="font-size:10px;color:var(--muted);margin-top:8px">* Estimates based on school database. Verify data in School Database for accuracy.</p>`;
+  const hasAI=s.aiChances&&s.aiChances.length;
+  const list=hasAI?mergeAIChances(matches,s.aiChances):matches;
+  document.getElementById('slContent').innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div class="card-hd" style="margin-bottom:0"><span class="ico">🏫</span>Recommended School List</div>
+      <button class="btn btn-gold btn-sm" id="aiChanceBtn" onclick="aiEstimateChances(${s.id})" style="display:flex;align-items:center;gap:5px">
+        <span>✦</span> ${hasAI?'Re-run AI Estimate':'AI Estimate Chances'}
+      </button>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:12px"><span class="tag tr">● Reach</span><span class="tag to">● Match</span><span class="tag tg">● Safety</span>${hasAI?'<span style="font-size:10px;color:var(--muted);margin-left:6px">✦ AI-powered</span>':''}</div>
+    <div id="aiChanceStatus"></div>
+    ${list.map((m,i)=>`<div class="si" style="flex-direction:column;align-items:stretch;gap:0">
+      <div style="display:flex;align-items:center;gap:11px">
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);width:18px">${i+1}</div>
+        <div style="width:7px;height:7px;border-radius:50%;background:${m.type==='safety'?'var(--green)':m.type==='match'?'var(--orange)':'var(--red)'};flex-shrink:0"></div>
+        <div class="si-info"><div class="si-name">${m.name}</div><div class="si-det">${m.detail}</div></div>
+        <div style="text-align:right;flex-shrink:0">
+          <div class="chance-n" style="color:${m.chance>40?'var(--green)':m.chance>15?'var(--orange)':'var(--red)'}">${m.chance}%</div>
+          <div class="chance-l">${m.aiReason?'✦ AI estimate':'Est. chance'}</div>
+        </div>
+      </div>
+      ${m.aiReason?`<div style="margin:6px 0 2px 36px;font-size:11px;color:var(--muted);line-height:1.5;padding:6px 10px;background:rgba(201,168,76,0.06);border-left:2px solid rgba(201,168,76,0.3);border-radius:0 5px 5px 0">${m.aiReason}</div>`:''}
+    </div>`).join('')}
+    <p style="font-size:10px;color:var(--muted);margin-top:10px">${hasAI?'✦ AI estimates use full student profile via Claude AI. Click "Re-run" to refresh.':'* Formula-based estimates. Click "AI Estimate Chances" for a more accurate AI-powered analysis.'}</p>`;
+}
+function mergeAIChances(matches,aiChances){
+  return matches.map(m=>{
+    const ai=aiChances.find(a=>a.name.toLowerCase()===m.name.toLowerCase());
+    if(!ai)return m;
+    return{...m,chance:ai.chance,type:ai.tier,aiReason:ai.reason};
+  }).sort((a,b)=>b.chance-a.chance);
+}
+async function aiEstimateChances(sid){
+  const s=students.find(x=>x.id===sid);if(!s)return;
+  const btn=document.getElementById('aiChanceBtn');
+  const status=document.getElementById('aiChanceStatus');
+  if(btn){btn.disabled=true;btn.innerHTML='<span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span> Analyzing...';}
+  if(status)status.innerHTML=`<div style="padding:10px;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);border-radius:8px;font-size:12px;color:var(--muted);margin-bottom:12px">✦ Claude is evaluating ${schoolDB.length} schools based on the full student profile…</div>`;
+  const gpas=calcGPAs(s.transcript||[]);
+  const aps=(s.transcript||[]).filter(c=>c.level==='AP'||c.level==='IB').length;
+  const agPct_=agPct(s);
+  const schoolList=schoolDB.map(sc=>`- ${sc.name} (accept: ${sc.acceptance}%, SAT 25th: ${sc.sat25}, SAT 75th: ${sc.sat75}, GPA min: ${sc.gpaMin}, ED boost: ${sc.edBoost})`).join('\n');
+  const prompt=`You are a senior college admissions consultant with 20 years of experience. Evaluate this student's realistic admission chances at each school listed below.
+
+STUDENT PROFILE:
+- Name: ${s.firstName} ${s.lastName}, Grade ${s.grade}
+- GPA: ${s.gpa||'N/A'} unweighted / ${gpas.w} weighted (out of 5.0)
+- SAT: ${s.sat||'not taken'}, ACT: ${s.act||'not taken'}
+- AP/IB courses: ${aps}
+- Major interest: ${s.major||'Undecided'}
+- Target tier: ${tierLabel(s.tier)||'Top 10'}
+- Hook: ${hookLabel(s.hook)||'None'}
+- A-G completion: ${agPct_}%
+- Activities: ${s.activities||'Not listed'}
+- Essays status: ${(s.essays||[]).map(e=>`${e.title}(${e.status})`).join(', ')||'None started'}
+- Recent notes: ${(s.meetings||[]).slice(0,2).map(m=>m.content).join(' | ')||'None'}
+
+SCHOOLS TO EVALUATE:
+${schoolList}
+
+INSTRUCTIONS:
+Return ONLY a valid JSON array. No markdown, no explanation outside the JSON.
+For each school, provide a realistic admission probability (integer 1–95) considering the full profile holistically — not just test scores.
+Factor in: GPA strength, test scores vs school range, course rigor, activity quality, hook impact, major competitiveness, and realistic admissions standards.
+
+Format (return exactly this):
+[{"name":"MIT","chance":8,"tier":"reach","reason":"Strong STEM profile and legacy hook help, but CS is MIT's most competitive major at 4% overall acceptance"},{"name":"Harvard","chance":6,"tier":"reach","reason":"..."},...]
+
+Tier must be: "reach" (under 30%), "match" (30–60%), "safety" (over 60%).`;
+  try{
+    const apiKey=getClaudeKey();
+    if(!apiKey){if(status)status.innerHTML=`<div style="padding:10px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);border-radius:8px;font-size:12px;color:var(--muted);margin-bottom:12px">Please enter your Claude API key in the <strong>AI Analysis</strong> tab first.</div>`;if(btn){btn.disabled=false;btn.innerHTML='<span>✦</span> AI Estimate Chances';}return;}
+    const headers={'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'};
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers,body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2500,messages:[{role:'user',content:prompt}]})});
+    const data=await res.json();
+    const text=data.content?.map(b=>b.text||'').join('')||'';
+    const jsonMatch=text.match(/\[[\s\S]*\]/);
+    if(!jsonMatch)throw new Error('No JSON found in response');
+    s.aiChances=JSON.parse(jsonMatch[0]);
+    saveToFirestore(s);
+    renderSchoolList(s);
+  }catch(e){
+    if(status)status.innerHTML=`<div style="padding:10px;background:rgba(220,38,38,0.06);border:1px solid rgba(220,38,38,0.2);border-radius:8px;font-size:12px;color:var(--red);margin-bottom:12px">Error: ${e.message}. Check your API key in AI Analysis tab.</div>`;
+    if(btn){btn.disabled=false;btn.innerHTML='<span>✦</span> AI Estimate Chances';}
+  }
 }
 function getMatchSchools(s){
   const sat=s.sat||(s.act?s.act*46:1200);
@@ -1934,7 +2018,12 @@ function renderAITab(s){
   document.getElementById('aiContent').innerHTML=`
     <div class="card">
       <div class="card-hd"><span class="ico">◆</span>AI Analysis</div>
-      <p style="font-size:12px;color:var(--muted);margin-bottom:14px">Generate deep, personalized strategy using Claude AI.</p>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Generate deep, personalized strategy using Claude AI.</p>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;padding:10px 12px;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);border-radius:8px">
+        <span style="font-size:11px;color:var(--muted);white-space:nowrap">Claude API Key:</span>
+        <input class="fi" id="claudeKeyInput" type="password" placeholder="sk-ant-..." style="flex:1;font-family:'DM Mono',monospace;font-size:11px" value="${getClaudeKey()}" oninput="saveClaudeKey(this.value)">
+        <span id="claudeKeyStatus" style="font-size:11px;color:var(--green);white-space:nowrap">${getClaudeKey()?'✓ Saved':''}</span>
+      </div>
       <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px">
         <button class="btn btn-gold btn-sm" onclick="generateAI('full','${s.id}')">Full Strategy</button>
         <button class="btn btn-out btn-sm" onclick="generateAI('schools','${s.id}')">School List</button>
@@ -2053,9 +2142,12 @@ Write in first-person as the consultant. Use ${s.firstName}'s name throughout. K
 // ══════════════════════════════════════════════════════
 async function callClaude(prompt,outEl,loadMsg){
   outEl.innerHTML=`<div class="aibadge">✦ AI Advisor</div><div style="color:var(--muted);font-size:12px;margin-top:8px">${loadMsg} <span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div>`;
+  const key=getClaudeKey();
+  if(!key){outEl.innerHTML=`<div class="air" style="border-color:rgba(201,168,76,.3)">Please enter your Claude API key in the <strong>AI Analysis</strong> tab to enable AI features.</div>`;return;}
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
     const data=await res.json();
+    if(data.error)throw new Error(data.error.message);
     const text=data.content?.map(b=>b.text||'').join('\n')||'No response.';
     const fmt=text.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/^###?\s(.+)/gm,'<h3>$1</h3>');
     outEl.innerHTML=`<div class="aibadge">✦ AI Advisor · ${new Date().toLocaleTimeString()}</div><div class="air">${fmt}</div>`;
@@ -2199,7 +2291,7 @@ Be direct, specific, and actionable. Tailor everything to this exact student's p
 
   out.innerHTML=`<div class="aibadge">✦ AI Advisor</div><div style="color:var(--muted);font-size:12px;margin-top:8px">Generating personalised strategy plan… <span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div>`;
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1600,messages:[{role:'user',content:prompt}]})});
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':getClaudeKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1600,messages:[{role:'user',content:prompt}]})});
     const data=await res.json();
     const text=data.content?.map(b=>b.text||'').join('\n')||'No response.';
     // Parse sections and auto-fill textareas
@@ -2300,7 +2392,7 @@ Write in a warm, professional tone suitable for parents. Be specific — do not 
 
   out.innerHTML=`<div class="aibadge">✦ AI Advisor</div><div style="color:var(--muted);font-size:12px;margin-top:8px">Generating summer recommendations… <span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div>`;
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:prompt}]})});
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':getClaudeKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:prompt}]})});
     const data=await res.json();
     const text=data.content?.map(b=>b.text||'').join('\n')||'No response.';
     const ts=new Date().toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
@@ -2894,7 +2986,7 @@ Rules:
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
+      headers: {'Content-Type':'application/json','x-api-key':getClaudeKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,messages:[{role:'user',content:prompt}]})
     });
     const data = await res.json();
