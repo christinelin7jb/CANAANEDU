@@ -2610,8 +2610,8 @@ function addFromScorecard(p) {
     scorecardId: p.scorecardId,
     name: p.name,
     acceptance: p.acceptance || 10,
-    sat25: p.sat25 || 1200,
-    sat75: p.sat75 || 1450,
+    sat25: p.sat25 || null,
+    sat75: p.sat75 || null,
     gpaMin: 3.7,         // not in Scorecard — user fills manually
     edBoost: 'no',       // not in Scorecard — user fills manually
     notes: `${p.city}, ${p.state}`,
@@ -2641,7 +2641,8 @@ async function refreshAllSchools() {
     const match = data.results.find(r => r['school.name'].toLowerCase().includes(school.name.toLowerCase().split(' ')[0])) || data.results[0];
     const p = parseScorecardResult(match);
     if (p.acceptance != null) { school.acceptance = p.acceptance; }
-    if (p.sat25) { school.sat25 = p.sat25; school.sat75 = p.sat75; }
+    school.sat25 = p.sat25 || null;
+    school.sat75 = p.sat75 || null;
     school.scorecardId = p.scorecardId;
     school.source = 'College Scorecard';
     school.sourceDate = new Date().toLocaleDateString('en-US',{month:'short',year:'numeric'});
@@ -2713,13 +2714,15 @@ async function refreshOneSchool(id) {
   }
   const p = parseScorecardResult(data.results[0]);
   if (p.acceptance != null) school.acceptance = p.acceptance;
-  if (p.sat25) { school.sat25 = p.sat25; school.sat75 = p.sat75; }
+  school.sat25 = p.sat25 || null;
+  school.sat75 = p.sat75 || null;
   school.scorecardId = p.scorecardId || school.scorecardId;
   school.source = 'College Scorecard';
   school.sourceDate = new Date().toLocaleDateString('en-US',{month:'short',year:'numeric'});
   school.verified = true;
   renderSchoolDB();
-  if (statusEl) statusEl.innerHTML = `<div class="cb hi" style="margin-top:4px"><span class="cb-ico">✓</span><div class="cb-txt"><span class="cb-lbl">${school.name} updated</span>Acceptance: ${school.acceptance}% · SAT: ${school.sat25}–${school.sat75}</div></div>`;
+  const satStr = school.sat25 ? `${school.sat25}–${school.sat75}` : 'N/A (not reported)';
+  if (statusEl) statusEl.innerHTML = `<div class="cb hi" style="margin-top:4px"><span class="cb-ico">✓</span><div class="cb-txt"><span class="cb-lbl">${school.name} updated</span>Acceptance: ${school.acceptance}% · SAT: ${satStr}</div></div>`;
 }
 
 function startEdit(id,field,el){
