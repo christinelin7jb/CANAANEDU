@@ -3811,17 +3811,9 @@ async function sendInvitation(sid){
   setBtnState('Sending…',true,'#888');
   setFeedback('Sending…','var(--muted)');
 
-  // Build mailto NOW (synchronous — must happen before any await to avoid popup blocker)
   const fromName=fbCurrentUser?.displayName||fbCurrentUser?.email||'Your colleague';
-  const portalUrl='https://canaanedu-consultant-portal.web.app';
-  const mailtoHref=`mailto:${toEmail}?subject=${encodeURIComponent(`Invitation: collaborate on ${s.firstName} ${s.lastName}'s profile`)}&body=${encodeURIComponent(`Hi,\n\n${fromName} has invited you to collaborate on ${s.firstName} ${s.lastName}'s college application profile in the Canaan Education Consultant Portal.\n\nSign in with your Google account here:\n${portalUrl}\n\nOnce logged in, click the 🔔 bell icon at the top to accept the invitation.\n\nBest regards,\nCanaan Education`)}`;
 
-  // Click <a> synchronously BEFORE any await (avoids popup blocker)
-  const a=document.createElement('a');
-  a.href=mailtoHref; a.style.display='none';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-
-  // Now write to Firestore for in-portal bell notification
+  // Write to Firestore for in-portal bell notification
   let firestoreOk=false;
   if(fbDb&&fbCurrentUser){
     try{
@@ -3841,11 +3833,12 @@ async function sendInvitation(sid){
   input.value='';
   setBtnState('✓ Sent!',false,'#2a7a4b');
   setFeedback(
-    `✅ Invite sent to <strong>${toEmail}</strong>. `+
-    (firestoreOk?'🔔 Portal notification queued — they\'ll see it when they log in.':'📧 Email opened. (Portal notification skipped — check Firestore connection.)'),
-    '#2a7a4b'
+    firestoreOk
+      ? `✅ Invitation sent to <strong>${toEmail}</strong>. They'll see a 🔔 notification when they log in.`
+      : `❌ Failed to send — check your connection and try again.`,
+    firestoreOk?'#2a7a4b':'var(--red)'
   );
-  setTimeout(()=>setBtnState('Send Invite',false,''),3500);
+  if(firestoreOk) setTimeout(()=>setBtnState('Send Invite',false,''),3500);
 
   // Show pending row in modal
   if(firestoreOk&&fbDb){
@@ -3946,7 +3939,7 @@ async function renderShareModal(s){
       <input class="invite-input" id="inviteEmailInput" type="email" placeholder="colleague@canaanedu.com" onkeydown="if(event.key==='Enter')sendInvitation(${s.id},this.value)">
       <button class="invite-send" id="sendInviteBtn" onclick="sendInvitation(${s.id})">Send Invite</button>
     </div>
-    <div id="inviteFeedback" style="font-size:10.5px;color:var(--muted);margin:4px 0 4px">Your colleague will receive a notification and must accept before accessing this profile.</div>
+    <div id="inviteFeedback" style="font-size:10.5px;color:var(--muted);margin:4px 0 4px">They'll see a 🔔 notification in the portal and must accept before accessing this profile.</div>
   `:'<p style="font-size:11px;color:var(--muted)">Only the owner can invite collaborators.</p>';
 
   // Render immediately (no Firestore await blocking)
