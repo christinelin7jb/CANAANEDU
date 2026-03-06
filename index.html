@@ -3823,13 +3823,17 @@ async function sendInvitation(sid){
 
     if(fbDb&&fbCurrentUser){
       try{
-        await fbDb.collection('invitations').add({
-          studentId:s.id, studentName:`${s.firstName} ${s.lastName}`,
-          fromUid:fbCurrentUser.uid, fromName,
-          fromEmail:(fbCurrentUser.email||'').toLowerCase(),
-          toEmail, status:'pending',
-          createdAt:firebase.firestore.FieldValue.serverTimestamp(),
-        });
+        const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('Request timed out — check your connection.')),8000));
+        await Promise.race([
+          fbDb.collection('invitations').add({
+            studentId:s.id, studentName:`${s.firstName} ${s.lastName}`,
+            fromUid:fbCurrentUser.uid, fromName,
+            fromEmail:(fbCurrentUser.email||'').toLowerCase(),
+            toEmail, status:'pending',
+            createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+          }),
+          timeout
+        ]);
         firestoreOk=true;
         logActivity(`invited <em>${toEmail}</em> to collaborate on <strong>${s.firstName} ${s.lastName}</strong>`);
       }catch(err){
