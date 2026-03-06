@@ -3788,57 +3788,69 @@ async function sendInvitation(sid){
   const input=document.getElementById('inviteEmailInput');
   function setFeedback(msg,color){
     const el=document.getElementById('inviteFeedback');
-    if(el)el.innerHTML=`<span style="color:${color};font-size:11px;font-weight:600">${msg}</span>`;
+    if(el){el.style.cssText='margin:6px 0;padding:6px 8px;border-radius:6px;font-size:11.5px;font-weight:600;background:rgba(0,0,0,0.06);';el.innerHTML=`<span style="color:${color}">${msg}</span>`;}
   }
-  function setBtnState(txt,disabled,bg){
+  function setBtnState(txt,disabled,bg,fg){
     if(!btn)return;
     btn.textContent=txt; btn.disabled=disabled;
-    btn.style.background=bg||''; btn.style.color='';
+    btn.style.background=bg||''; btn.style.color=fg||'';
   }
+  function resetBtn(){setBtnState('Send Invite',false,'','');}
 
-  if(!input){setFeedback('❌ Error: input not found — please close and reopen.','var(--red)');return;}
-  const toEmail=input.value.trim().toLowerCase();
-  if(!toEmail||!toEmail.includes('@')){setFeedback('❌ Please enter a valid email.','var(--red)');input.focus();return;}
+  try{
+    if(!input){setFeedback('❌ Input not found — please close and reopen.','#c0392b');return;}
+    const toEmail=input.value.trim().toLowerCase();
+    if(!toEmail||!toEmail.includes('@')){setFeedback('❌ Please enter a valid email address.','#c0392b');input.focus();return;}
 
-  const s=students.find(x=>String(x.id)===String(sid));
-  if(!s){setFeedback('❌ Student not found. Close and reopen.','var(--red)');return;}
+    const s=students.find(x=>String(x.id)===String(sid));
+    if(!s){setFeedback('❌ Student not found — please close and reopen.','#c0392b');return;}
 
-  if(fbCurrentUser&&toEmail===fbCurrentUser.email.toLowerCase()){setFeedback("❌ Can't invite yourself.",'#c9622a');return;}
-  if((s.sharedWith||[]).some(u=>{const c=(allConsultants||[]).find(x=>x.uid===u);return c&&c.email&&c.email.toLowerCase()===toEmail;})){
-    setFeedback('⚠️ Already has access.','#c9622a');return;
+    if(fbCurrentUser&&fbCurrentUser.email&&toEmail===fbCurrentUser.email.toLowerCase()){setFeedback("❌ Can't invite yourself.",'#c0392b');return;}
+    if((s.sharedWith||[]).some(u=>{const c=(allConsultants||[]).find(x=>x.uid===u);return c&&c.email&&c.email.toLowerCase()===toEmail;})){
+      setFeedback('⚠️ This person already has access.','#b7791f');return;
+    }
+
+    setBtnState('Sending…',true,'#888','#fff');
+    setFeedback('Sending invitation…','#555');
+
+    const fromName=fbCurrentUser?.displayName||fbCurrentUser?.email||'Your colleague';
+
+    let firestoreOk=false;
+    let errMsg='';
+    if(fbDb&&fbCurrentUser){
+      try{
+        await fbDb.collection('invitations').add({
+          studentId:s.id, studentName:`${s.firstName} ${s.lastName}`,
+          fromUid:fbCurrentUser.uid, fromName,
+          fromEmail:fbCurrentUser.email.toLowerCase(),
+          toEmail, status:'pending',
+          createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        firestoreOk=true;
+        logActivity(`invited <em>${toEmail}</em> to collaborate on <strong>${s.firstName} ${s.lastName}</strong>`);
+      }catch(err){
+        errMsg=err.message||err.code||'Unknown error';
+        console.error('Firestore invite failed:',errMsg);
+      }
+    } else {
+      errMsg = !fbDb ? 'Not connected to database' : 'Not logged in';
+    }
+
+    if(firestoreOk){
+      input.value='';
+      setBtnState('✓ Sent!',false,'#2a7a4b','#fff');
+      setFeedback(`✅ Invitation sent to <strong>${toEmail}</strong>. They'll see a 🔔 notification when they log in.`,'#1a6b3a');
+      setTimeout(resetBtn,3500);
+    } else {
+      resetBtn();
+      setFeedback(`❌ Failed to send: ${errMsg}. Please try again.`,'#c0392b');
+    }
+  }catch(err){
+    console.error('sendInvitation unexpected error:',err);
+    if(btn){btn.disabled=false;btn.textContent='Send Invite';btn.style.background='';btn.style.color='';}
+    const el=document.getElementById('inviteFeedback');
+    if(el)el.innerHTML=`<span style="color:#c0392b;font-size:11.5px;font-weight:600">❌ Error: ${err.message||err}</span>`;
   }
-
-  setBtnState('Sending…',true,'#888');
-  setFeedback('Sending…','var(--muted)');
-
-  const fromName=fbCurrentUser?.displayName||fbCurrentUser?.email||'Your colleague';
-
-  // Write to Firestore for in-portal bell notification
-  let firestoreOk=false;
-  if(fbDb&&fbCurrentUser){
-    try{
-      await fbDb.collection('invitations').add({
-        studentId:s.id, studentName:`${s.firstName} ${s.lastName}`,
-        fromUid:fbCurrentUser.uid, fromName,
-        fromEmail:fbCurrentUser.email.toLowerCase(),
-        toEmail, status:'pending',
-        createdAt:firebase.firestore.FieldValue.serverTimestamp(),
-      });
-      firestoreOk=true;
-      logActivity(`invited <em>${toEmail}</em> to collaborate on <strong>${s.firstName} ${s.lastName}</strong>`);
-    }catch(err){console.error('Firestore invite failed:',err.code||err.message);}
-  }
-
-  // Show clear confirmation
-  input.value='';
-  setBtnState('✓ Sent!',false,'#2a7a4b');
-  setFeedback(
-    firestoreOk
-      ? `✅ Invitation sent to <strong>${toEmail}</strong>. They'll see a 🔔 notification when they log in.`
-      : `❌ Failed to send — check your connection and try again.`,
-    firestoreOk?'#2a7a4b':'var(--red)'
-  );
-  if(firestoreOk) setTimeout(()=>setBtnState('Send Invite',false,''),3500);
 
   // Show pending row in modal
   if(firestoreOk&&fbDb){
