@@ -2699,17 +2699,27 @@ function updateSchoolField(id, field, value) {
 }
 
 async function refreshOneSchool(id) {
-  const school = schoolDB.find(x => x.id === id);
-  if (!school) return;
-  const data = await fetchScorecard(`school.name=${encodeURIComponent(school.name)}&school.degrees_awarded.predominant=3&school.operating=1`);
-  if (!data || !data.results || !data.results.length) { alert('Could not find ' + school.name + ' in College Scorecard.'); return; }
+  const school = schoolDB.find(x => x.id == id);
+  if (!school) { console.warn('refreshOneSchool: school not found', id); return; }
+  const statusEl = document.getElementById('refreshStatus');
+  if (statusEl) statusEl.innerHTML = `<div style="color:var(--muted);font-size:12px">Refreshing ${school.name}… <span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div>`;
+  const params = school.scorecardId
+    ? `id=${school.scorecardId}`
+    : `school.name=${encodeURIComponent(school.name)}&school.degrees_awarded.predominant=3&school.operating=1`;
+  const data = await fetchScorecard(params);
+  if (!data || !data.results || !data.results.length) {
+    if (statusEl) statusEl.innerHTML = `<div style="color:var(--red);font-size:12px">Could not find ${school.name} in College Scorecard.</div>`;
+    return;
+  }
   const p = parseScorecardResult(data.results[0]);
   if (p.acceptance != null) school.acceptance = p.acceptance;
   if (p.sat25) { school.sat25 = p.sat25; school.sat75 = p.sat75; }
+  school.scorecardId = p.scorecardId || school.scorecardId;
   school.source = 'College Scorecard';
   school.sourceDate = new Date().toLocaleDateString('en-US',{month:'short',year:'numeric'});
   school.verified = true;
   renderSchoolDB();
+  if (statusEl) statusEl.innerHTML = `<div class="cb hi" style="margin-top:4px"><span class="cb-ico">✓</span><div class="cb-txt"><span class="cb-lbl">${school.name} updated</span>Acceptance: ${school.acceptance}% · SAT: ${school.sat25}–${school.sat75}</div></div>`;
 }
 
 function startEdit(id,field,el){
