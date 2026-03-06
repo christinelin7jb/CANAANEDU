@@ -1887,10 +1887,17 @@ function saveCourse(sid,cid){
   renderTranscript(s);renderSidebar();
 }
 
-function renderSchoolList(s){
+function getOrInitSchoolList(s){
+  if(s.schoolList&&s.schoolList.length)return s.schoolList;
   const matches=getMatchSchools(s);
   const hasAI=s.aiChances&&s.aiChances.length;
-  const list=hasAI?mergeAIChances(matches,s.aiChances):matches;
+  s.schoolList=hasAI?mergeAIChances(matches,s.aiChances):matches;
+  return s.schoolList;
+}
+function renderSchoolList(s){
+  const list=getOrInitSchoolList(s);
+  const hasAI=list.some(m=>m.aiReason);
+  const inp=(id,ph,w)=>`<input id="${id}" placeholder="${ph}" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:6px 9px;font-size:12px;color:var(--cream);width:${w};outline:none"/>`;
   document.getElementById('slContent').innerHTML=`
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
       <div class="card-hd" style="margin-bottom:0"><span class="ico">🏫</span>Recommended School List</div>
@@ -1900,19 +1907,52 @@ function renderSchoolList(s){
     </div>
     <div style="display:flex;gap:6px;margin-bottom:12px"><span class="tag tr">● Reach</span><span class="tag to">● Match</span><span class="tag tg">● Safety</span>${hasAI?'<span style="font-size:10px;color:var(--muted);margin-left:6px">✦ AI-powered</span>':''}</div>
     <div id="aiChanceStatus"></div>
-    ${list.map((m,i)=>`<div class="si" style="flex-direction:column;align-items:stretch;gap:0">
+    ${list.map((m,i)=>`<div class="si" style="flex-direction:column;align-items:stretch;gap:0;position:relative">
       <div style="display:flex;align-items:center;gap:11px">
         <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);width:18px">${i+1}</div>
         <div style="width:7px;height:7px;border-radius:50%;background:${m.type==='safety'?'var(--green)':m.type==='match'?'var(--orange)':'var(--red)'};flex-shrink:0"></div>
-        <div class="si-info"><div class="si-name">${m.name}</div><div class="si-det">${m.detail}</div></div>
-        <div style="text-align:right;flex-shrink:0">
+        <div class="si-info"><div class="si-name">${m.name}</div><div class="si-det">${m.detail||''}</div></div>
+        <div style="text-align:right;flex-shrink:0;margin-right:28px">
           <div class="chance-n" style="color:${m.chance>40?'var(--green)':m.chance>15?'var(--orange)':'var(--red)'}">${m.chance}%</div>
           <div class="chance-l">${m.aiReason?'✦ AI estimate':'Est. chance'}</div>
         </div>
+        <button onclick="deleteSchoolFromList(${s.id},${i})" title="Remove school" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;padding:4px;border-radius:4px;opacity:0.5" onmouseover="this.style.opacity='1';this.style.color='var(--red)'" onmouseout="this.style.opacity='0.5';this.style.color='var(--muted)'">✕</button>
       </div>
       ${m.aiReason?`<div style="margin:6px 0 2px 36px;font-size:11px;color:var(--muted);line-height:1.5;padding:6px 10px;background:rgba(201,168,76,0.06);border-left:2px solid rgba(201,168,76,0.3);border-radius:0 5px 5px 0">${m.aiReason}</div>`:''}
     </div>`).join('')}
+    <div style="margin-top:12px;padding:10px 12px;background:rgba(255,255,255,0.02);border:1px dashed rgba(201,168,76,0.25);border-radius:8px">
+      <div style="font-size:10px;color:var(--muted);margin-bottom:7px;letter-spacing:0.05em">+ ADD SCHOOL</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        ${inp('newSchoolName','School name *','180px')}
+        ${inp('newSchoolDetail','Notes (optional)','200px')}
+        <select id="newSchoolType" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:6px 9px;font-size:12px;color:var(--cream);outline:none">
+          <option value="reach">Reach</option>
+          <option value="match">Match</option>
+          <option value="safety">Safety</option>
+        </select>
+        <button class="btn btn-sm" onclick="addSchoolToList(${s.id})" style="background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);color:var(--gold);padding:6px 14px;font-size:12px">+ Add</button>
+      </div>
+    </div>
     <p style="font-size:10px;color:var(--muted);margin-top:10px">${hasAI?'✦ AI estimates use full student profile via Claude AI. Click "Re-run" to refresh.':'* Formula-based estimates. Click "AI Estimate Chances" for a more accurate AI-powered analysis.'}</p>`;
+}
+function deleteSchoolFromList(sid,idx){
+  const s=students.find(x=>x.id===sid);if(!s)return;
+  if(!s.schoolList)s.schoolList=getOrInitSchoolList(s);
+  s.schoolList.splice(idx,1);
+  saveStudentToFirestore(s);
+  renderSchoolList(s);
+}
+function addSchoolToList(sid){
+  const s=students.find(x=>x.id===sid);if(!s)return;
+  const name=document.getElementById('newSchoolName').value.trim();
+  if(!name)return;
+  const detail=document.getElementById('newSchoolDetail').value.trim()||'';
+  const type=document.getElementById('newSchoolType').value;
+  if(!s.schoolList)s.schoolList=getOrInitSchoolList(s);
+  const defaultChance={reach:10,match:35,safety:65}[type]||10;
+  s.schoolList.push({name,detail,type,chance:defaultChance});
+  saveStudentToFirestore(s);
+  renderSchoolList(s);
 }
 function mergeAIChances(matches,aiChances){
   return matches.map(m=>{
@@ -1926,11 +1966,16 @@ async function aiEstimateChances(sid){
   const btn=document.getElementById('aiChanceBtn');
   const status=document.getElementById('aiChanceStatus');
   if(btn){btn.disabled=true;btn.innerHTML='<span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span> Analyzing...';}
-  if(status)status.innerHTML=`<div style="padding:10px;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);border-radius:8px;font-size:12px;color:var(--muted);margin-bottom:12px">✦ Claude is evaluating ${schoolDB.length} schools based on the full student profile…</div>`;
+  const currentList=getOrInitSchoolList(s);
+  if(status)status.innerHTML=`<div style="padding:10px;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);border-radius:8px;font-size:12px;color:var(--muted);margin-bottom:12px">✦ Claude is evaluating ${currentList.length} schools based on the full student profile…</div>`;
   const gpas=calcGPAs(s.transcript||[]);
   const aps=(s.transcript||[]).filter(c=>c.level==='AP'||c.level==='IB').length;
   const agPct_=agPct(s);
-  const schoolList=schoolDB.map(sc=>`- ${sc.name} (accept: ${sc.acceptance}%, SAT 25th: ${sc.sat25}, SAT 75th: ${sc.sat75}, GPA min: ${sc.gpaMin}, ED boost: ${sc.edBoost})`).join('\n');
+  const schoolLines=currentList.map(sc=>{
+    const dbEntry=schoolDB.find(d=>d.name.toLowerCase()===sc.name.toLowerCase());
+    if(dbEntry)return`- ${sc.name} (accept: ${dbEntry.acceptance}%, SAT 25th: ${dbEntry.sat25}, SAT 75th: ${dbEntry.sat75}, GPA min: ${dbEntry.gpaMin}, ED boost: ${dbEntry.edBoost})`;
+    return`- ${sc.name}`;
+  }).join('\n');
   const prompt=`You are a senior college admissions consultant with 20 years of experience. Evaluate this student's realistic admission chances at each school listed below.
 
 STUDENT PROFILE:
@@ -1947,7 +1992,7 @@ STUDENT PROFILE:
 - Recent notes: ${(s.meetings||[]).slice(0,2).map(m=>m.content).join(' | ')||'None'}
 
 SCHOOLS TO EVALUATE:
-${schoolList}
+${schoolLines}
 
 INSTRUCTIONS:
 Return ONLY a valid JSON array. No markdown, no explanation outside the JSON.
@@ -1967,10 +2012,16 @@ Tier must be: "reach" (under 30%), "match" (30–60%), "safety" (over 60%).`;
     if(data.error)throw new Error(`API Error (${data.error.type}): ${data.error.message}`);
     if(!res.ok)throw new Error(`HTTP ${res.status}: ${JSON.stringify(data)}`);
     const text=data.content?.map(b=>b.text||'').join('')||'';
-    // Handle JSON wrapped in markdown code blocks or plain
     const jsonMatch=text.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/)||text.match(/(\[[\s\S]*\])/);
     if(!jsonMatch)throw new Error(`Claude did not return JSON. Raw response: ${text.slice(0,200)}`);
-    s.aiChances=JSON.parse(jsonMatch[1]||jsonMatch[0]);
+    const aiResults=JSON.parse(jsonMatch[1]||jsonMatch[0]);
+    // Merge AI results into s.schoolList
+    s.schoolList=currentList.map(m=>{
+      const ai=aiResults.find(a=>a.name.toLowerCase()===m.name.toLowerCase());
+      if(!ai)return m;
+      return{...m,chance:ai.chance,type:ai.tier,aiReason:ai.reason};
+    }).sort((a,b)=>b.chance-a.chance);
+    s.aiChances=aiResults;
     saveStudentToFirestore(s);
     renderSchoolList(s);
   }catch(e){
