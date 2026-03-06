@@ -3497,6 +3497,8 @@ async function initFirebase(cfg){
     }
     fbAuth = firebase.auth();
     fbDb   = firebase.firestore();
+    // Enable offline persistence so writes commit to local cache instantly
+    fbDb.enablePersistence({synchronizeTabs:true}).catch(()=>{});
 
     // Handle redirect result (from signInWithRedirect)
     try{
