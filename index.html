@@ -3823,7 +3823,7 @@ async function sendInvitation(sid){
         await fbDb.collection('invitations').add({
           studentId:s.id, studentName:`${s.firstName} ${s.lastName}`,
           fromUid:fbCurrentUser.uid, fromName,
-          fromEmail:fbCurrentUser.email.toLowerCase(),
+          fromEmail:(fbCurrentUser.email||'').toLowerCase(),
           toEmail, status:'pending',
           createdAt:firebase.firestore.FieldValue.serverTimestamp(),
         });
