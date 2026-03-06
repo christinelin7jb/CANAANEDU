@@ -2511,7 +2511,7 @@ function exportSummerReport(sid){
 // SCHOOL DB + COLLEGE SCORECARD API
 // ══════════════════════════════════════════════════════
 const SC_BASE = 'https://api.data.gov/ed/collegescorecard/v1/schools';
-const SC_FIELDS = 'school.name,id,admissions.admission_rate.overall,admissions.sat_scores.25th_percentile.overall,admissions.sat_scores.75th_percentile.overall,admissions.act_scores.25th_percentile.cumulative,admissions.act_scores.75th_percentile.cumulative,school.city,school.state,school.school_url,latest.student.size';
+const SC_FIELDS = 'school.name,id,latest.admissions.admission_rate.overall,latest.admissions.sat_scores.25th_percentile.overall,latest.admissions.sat_scores.75th_percentile.overall,latest.admissions.act_scores.25th_percentile.cumulative,latest.admissions.act_scores.75th_percentile.cumulative,school.city,school.state,school.school_url,latest.student.size';
 
 let _apiKey = 'CcOtpSkEB6mruqG8xDf9CbV9hcWVcgicseVD9iT2';
 
@@ -2555,9 +2555,9 @@ async function fetchScorecard(params) {
 }
 
 function parseScorecardResult(r) {
-  const adm = r['admissions.admission_rate.overall'];
-  const sat25 = r['admissions.sat_scores.25th_percentile.overall'];
-  const sat75 = r['admissions.sat_scores.75th_percentile.overall'];
+  const adm = r['latest.admissions.admission_rate.overall'];
+  const sat25 = r['latest.admissions.sat_scores.25th_percentile.overall'];
+  const sat75 = r['latest.admissions.sat_scores.75th_percentile.overall'];
   return {
     name: r['school.name'],
     scorecardId: r['id'],
