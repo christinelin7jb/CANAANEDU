@@ -71,7 +71,10 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .invite-input{flex:1;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:7px;padding:7px 10px;color:var(--cream);font-size:12px;font-family:'DM Sans',sans-serif;outline:none;}
 .invite-input:focus{border-color:rgba(201,168,76,0.5);}
 .invite-input::placeholder{color:var(--muted);}
-.invite-send{padding:7px 13px;border-radius:7px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);color:var(--gold);font-size:11.5px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;white-space:nowrap;}
+.invite-suggestions{position:absolute;top:100%;left:0;right:0;background:#1a2540;border:1px solid rgba(201,168,76,0.35);border-radius:7px;z-index:200;max-height:160px;overflow-y:auto;margin-top:2px;}
+.invite-suggestion-item{padding:8px 12px;cursor:pointer;font-size:11.5px;color:var(--cream);display:flex;align-items:center;gap:8px;}
+.invite-suggestion-item:hover{background:rgba(201,168,76,0.1);}
+.invite-suggestion-item .sug-email{color:var(--muted);font-size:10.5px;}
 .invite-send:hover{background:rgba(201,168,76,0.25);}
 .pending-tag{font-size:9px;padding:2px 7px;border-radius:10px;font-weight:600;background:rgba(255,165,0,0.12);color:var(--orange);border:1px solid rgba(255,165,0,0.3);}
 /* ── SHARE / COLLABORATORS ── */
@@ -3788,6 +3791,33 @@ function renderNotifList(){
     </div>`).join('');
 }
 
+function renderInviteSuggestions(sid){
+  const input=document.getElementById('inviteEmailInput');
+  const box=document.getElementById('inviteSuggestBox');
+  if(!input||!box)return;
+  const q=(input.value||'').toLowerCase().trim();
+  if(!q){box.innerHTML='';return;}
+  const s=students.find(x=>String(x.id)===String(sid));
+  const alreadyAccess=new Set([s?.ownerId,...(s?.sharedWith||[])]);
+  const matches=(allConsultants||[]).filter(c=>
+    c.uid&&c.email&&!alreadyAccess.has(c.uid)&&c.uid!==(fbCurrentUser?.uid)&&
+    ((c.email||'').toLowerCase().includes(q)||(c.name||'').toLowerCase().includes(q))
+  );
+  if(!matches.length){box.innerHTML='';return;}
+  box.innerHTML=`<div class="invite-suggestions">${matches.map(c=>`
+    <div class="invite-suggestion-item" onclick="selectInviteSuggestion('${c.email}')">
+      <div class="av" style="width:22px;height:22px;font-size:9px;background:${c.color||'#888'};color:var(--bg);flex-shrink:0">${c.initial||'?'}</div>
+      <div><div style="font-weight:600">${c.name||c.email}</div><div class="sug-email">${c.email}</div></div>
+    </div>`).join('')}</div>`;
+}
+
+function selectInviteSuggestion(email){
+  const input=document.getElementById('inviteEmailInput');
+  const box=document.getElementById('inviteSuggestBox');
+  if(input)input.value=email;
+  if(box)box.innerHTML='';
+}
+
 async function sendInvitation(sid){
   const btn=document.getElementById('sendInviteBtn');
   const input=document.getElementById('inviteEmailInput');
@@ -3836,7 +3866,7 @@ async function sendInvitation(sid){
         firestoreOk = true;
         input.value='';
         setBtnState('✓ Shared!',false,'#2a7a4b','#fff');
-        setFeedback(`✅ <strong>${toEmail}</strong> now has access — they can see this student immediately.`,'#1a6b3a');
+        setFeedback(`✅ <strong>${knownUser.name||toEmail}</strong> now has access — the student appears in their dashboard immediately.`,'#1a6b3a');
         setTimeout(()=>{ resetBtn(); renderShareModal(s); }, 2500);
       } else {
         // User not yet registered — write invitation for when they first log in
@@ -3973,13 +4003,21 @@ async function renderShareModal(s){
   ].join('');
 
   // ── Invite input (owner only) ──
+  // Build list of consultants not yet with access
+  const alreadyAccess=new Set([s.ownerId,...(s.sharedWith||[])]);
+  const suggestable=(allConsultants||[]).filter(c=>c.uid&&c.email&&!alreadyAccess.has(c.uid)&&c.uid!==uid);
+
   const inviteSection=isOwner?`
     <div class="share-section-label">Invite by Email</div>
-    <div class="invite-row">
-      <input class="invite-input" id="inviteEmailInput" type="email" placeholder="colleague@canaanedu.com" onkeydown="if(event.key==='Enter')sendInvitation(${s.id},this.value)">
-      <button class="invite-send" id="sendInviteBtn" onclick="sendInvitation(${s.id})">Send Invite</button>
+    <div style="position:relative">
+      <div class="invite-row">
+        <input class="invite-input" id="inviteEmailInput" type="text" placeholder="Type name or email…"
+          oninput="renderInviteSuggestions(${s.id})" onkeydown="if(event.key==='Enter')sendInvitation(${s.id})" autocomplete="off">
+        <button class="invite-send" id="sendInviteBtn" onclick="sendInvitation(${s.id})">Share</button>
+      </div>
+      <div id="inviteSuggestBox"></div>
     </div>
-    <div id="inviteFeedback" style="font-size:10.5px;color:var(--muted);margin:4px 0 4px">They'll see a 🔔 notification in the portal and must accept before accessing this profile.</div>
+    <div id="inviteFeedback" style="font-size:10.5px;color:var(--muted);margin:4px 0 4px">Start typing to see registered colleagues, or enter any email.</div>
   `:'<p style="font-size:11px;color:var(--muted)">Only the owner can invite collaborators.</p>';
 
   // Render immediately (no Firestore await blocking)
