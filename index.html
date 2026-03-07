@@ -3676,15 +3676,8 @@ function subscribeStudents(){
         // First run — seed demo data to Firestore
         seedToFirestore();
       } else {
-        // Filter to only students this consultant owns or has been shared with
-        const uid = fbCurrentUser?.uid;
-        const visible = remote.filter(r=>{
-          if(!r.ownerId) return true; // legacy docs visible to all
-          if(r.ownerId === uid) return true;
-          if((r.sharedWith||[]).includes(uid)) return true;
-          return false;
-        });
-        students = visible.map(r=>deserializeStudent(r));
+        // All authenticated consultants can see all students
+        students = remote.map(r=>deserializeStudent(r));
         globalDeadlines = [];
         students.forEach(s=>(s._deadlines||[]).forEach(d=>globalDeadlines.push({...d,studentId:s.id})));
         renderSidebar(); renderDashboard(); renderEssayTracker(); populateDropdowns(); updateUrgBadge();
