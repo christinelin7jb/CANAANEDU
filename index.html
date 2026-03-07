@@ -3673,8 +3673,11 @@ function subscribeStudents(){
       // Merge remote data into local students array
       const remote = snap.docs.map(d=>({...d.data(), _docId:d.id}));
       if(remote.length === 0){
-        // First run — seed demo data to Firestore
-        seedToFirestore();
+        // Only seed demo data once ever (use localStorage flag to prevent re-seeding)
+        if(!localStorage.getItem('canaan_seeded')){
+          localStorage.setItem('canaan_seeded','1');
+          seedToFirestore();
+        }
       } else {
         // All authenticated consultants can see all students
         students = remote.map(r=>deserializeStudent(r));
@@ -4197,7 +4200,7 @@ addStudent = function(){
     // Tag the creator so sharing works correctly
     s.ownerId = fbCurrentUser?.uid || null;
     s.sharedWith = [];
-    fbDb.collection('students').doc(String(s.id)).set(serializeStudent(s));
+    saveStudentToFirestore(s);
     logActivity(`added new student <strong>${s.firstName} ${s.lastName}</strong>`);
   }
 };
