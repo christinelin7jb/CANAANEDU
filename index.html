@@ -3854,15 +3854,23 @@ async function sendInvitation(sid){
       const knownUser = allConsultants.find(c=>c.email&&c.email.toLowerCase()===toEmail);
 
       if(knownUser){
-        // Direct share: add their UID to sharedWith immediately — no invitation flow needed
+        // Direct share: add their UID to sharedWith immediately
         const sw = [...new Set([...(s.sharedWith||[]), knownUser.uid])];
         s.sharedWith = sw;
         await fbDb.collection('students').doc(String(s.id)).update({sharedWith: sw});
+        // Also write a notification so they see the 🔔 bell
+        fbDb.collection('invitations').add({
+          studentId:s.id, studentName:`${s.firstName} ${s.lastName}`,
+          fromUid:fbCurrentUser.uid, fromName,
+          fromEmail:(fbCurrentUser.email||'').toLowerCase(),
+          toEmail, status:'pending',
+          createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+        }).catch(err=>console.error('Firestore notify write failed:',err));
         logActivity(`shared <strong>${s.firstName} ${s.lastName}</strong>'s profile with <em>${toEmail}</em>`);
         firestoreOk = true;
         input.value='';
         setBtnState('✓ Shared!',false,'#2a7a4b','#fff');
-        setFeedback(`✅ <strong>${knownUser.name||toEmail}</strong> now has access — the student appears in their dashboard immediately.`,'#1a6b3a');
+        setFeedback(`✅ <strong>${knownUser.name||toEmail}</strong> now has access — they'll also see a 🔔 notification.`,'#1a6b3a');
         setTimeout(()=>{ resetBtn(); renderShareModal(s); }, 2500);
       } else {
         // User not yet registered — write invitation for when they first log in
