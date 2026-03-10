@@ -3882,13 +3882,20 @@ async function sendInvitation(sid){
         s.sharedWith = sw;
         await fbDb.collection('students').doc(String(s.id)).update({sharedWith: sw});
         // Also write a notification so they see the 🔔 bell
-        fbDb.collection('invitations').add({
-          studentId:s.id, studentName:`${s.firstName} ${s.lastName}`,
-          fromUid:fbCurrentUser.uid, fromName,
-          fromEmail:(fbCurrentUser.email||'').toLowerCase(),
-          toEmail, status:'pending',
-          createdAt:firebase.firestore.FieldValue.serverTimestamp(),
-        }).catch(err=>console.error('Firestore notify write failed:',err));
+        try{
+          await fbDb.collection('invitations').add({
+            studentId:s.id, studentName:`${s.firstName} ${s.lastName}`,
+            fromUid:fbCurrentUser.uid, fromName,
+            fromEmail:(fbCurrentUser.email||'').toLowerCase(),
+            toEmail, status:'pending',
+            createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+          });
+        }catch(err){
+          console.error('Firestore notify write failed:',err);
+          setFeedback(`✅ Access granted, but notification failed: ${err.message}. Check Firestore rules.`,'#b7791f');
+          setTimeout(()=>{ resetBtn(); renderShareModal(s); }, 4000);
+          return;
+        }
         logActivity(`shared <strong>${s.firstName} ${s.lastName}</strong>'s profile with <em>${toEmail}</em>`);
         firestoreOk = true;
         input.value='';
@@ -3918,14 +3925,19 @@ async function sendInvitation(sid){
           </div>`;
         }
 
-        // Background write to invitations collection
-        fbDb.collection('invitations').add({
-          studentId:s.id, studentName:`${s.firstName} ${s.lastName}`,
-          fromUid:fbCurrentUser.uid, fromName,
-          fromEmail:(fbCurrentUser.email||'').toLowerCase(),
-          toEmail, status:'pending',
-          createdAt:firebase.firestore.FieldValue.serverTimestamp(),
-        }).catch(err=>console.error('Firestore invite write failed:',err));
+        // Write to invitations collection
+        try{
+          await fbDb.collection('invitations').add({
+            studentId:s.id, studentName:`${s.firstName} ${s.lastName}`,
+            fromUid:fbCurrentUser.uid, fromName,
+            fromEmail:(fbCurrentUser.email||'').toLowerCase(),
+            toEmail, status:'pending',
+            createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+          });
+        }catch(err){
+          console.error('Firestore invite write failed:',err);
+          setFeedback(`⚠️ Invite sent but notification failed: ${err.message}. Update Firestore rules to fix.`,'#c0392b');
+        }
       }
     } else {
       resetBtn();
