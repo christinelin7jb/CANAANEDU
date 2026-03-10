@@ -3840,8 +3840,29 @@ async function sendInvitation(sid){
     if(!s){setFeedback('❌ Student not found — please close and reopen.','#c0392b');return;}
 
     if(fbCurrentUser&&fbCurrentUser.email&&toEmail===fbCurrentUser.email.toLowerCase()){setFeedback("❌ Can't invite yourself.",'#c0392b');return;}
-    if((s.sharedWith||[]).some(u=>{const c=(allConsultants||[]).find(x=>x.uid===u);return c&&c.email&&c.email.toLowerCase()===toEmail;})){
-      setFeedback('⚠️ This person already has access.','#b7791f');return;
+    const alreadyHasAccess=(s.sharedWith||[]).some(u=>{const c=(allConsultants||[]).find(x=>x.uid===u);return c&&c.email&&c.email.toLowerCase()===toEmail;});
+    if(alreadyHasAccess){
+      // Already in sharedWith — but still write a notification if they don't have one pending
+      const fromName2=fbCurrentUser?.displayName||fbCurrentUser?.email||'Your colleague';
+      const knownUser2=allConsultants.find(c=>c.email&&c.email.toLowerCase()===toEmail);
+      if(fbDb&&knownUser2){
+        const existing=await fbDb.collection('invitations').where('toEmail','==',toEmail).where('studentId','==',s.id).where('status','==','pending').get();
+        if(existing.empty){
+          fbDb.collection('invitations').add({
+            studentId:s.id, studentName:`${s.firstName} ${s.lastName}`,
+            fromUid:fbCurrentUser.uid, fromName:fromName2,
+            fromEmail:(fbCurrentUser.email||'').toLowerCase(),
+            toEmail, status:'pending',
+            createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+          }).catch(err=>console.error('Firestore notify write failed:',err));
+          setFeedback('🔔 They already have access — a notification has been sent.','#b7791f');
+        } else {
+          setFeedback('⚠️ This person already has access and a pending notification.','#b7791f');
+        }
+      } else {
+        setFeedback('⚠️ This person already has access.','#b7791f');
+      }
+      return;
     }
 
     setBtnState('Sending…',true,'#888','#fff');
