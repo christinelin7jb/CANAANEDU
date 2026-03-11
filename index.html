@@ -3437,7 +3437,7 @@ function exportCSV(){
 const FB_CONFIG_KEY = 'canaan_fb_config';
 let fbApp=null, fbAuth=null, fbDb=null, fbCurrentUser=null;
 let _unsubStudents=null, _unsubDeadlines=null, _unsubPresence=null, _unsubFeed=null;
-let _presenceRef=null, _syncSaveTimer=null;
+let _presenceRef=null, _syncSaveTimer=null, _syncSaveTimers={};
 
 function loadFbConfig(){
   // Pre-configured for Canaan Education — no manual setup needed
@@ -3723,7 +3723,11 @@ function subscribeStudents(){
 }
 
 function _applyStudents(remote){
-  students = remote.map(r=>deserializeStudent(r));
+  // Preserve locally-added students that haven't synced to Firestore yet
+  // (e.g. added within the last few seconds, save still in-flight)
+  const remoteIds = new Set(remote.map(r=>String(r._docId||r.id)));
+  const pendingLocal = students.filter(s=>!remoteIds.has(String(s.id)));
+  students = [...remote.map(r=>deserializeStudent(r)), ...pendingLocal];
   globalDeadlines = [];
   students.forEach(s=>(s._deadlines||[]).forEach(d=>globalDeadlines.push({...d,studentId:s.id})));
   renderSidebar(); renderDashboard(); renderEssayTracker(); populateDropdowns(); updateUrgBadge();
@@ -4240,21 +4244,27 @@ function unshareStudent(sid, consultantUid){
 }
 
 // ── Write helpers ──
-function saveStudentToFirestore(s){
+async function _doSaveStudent(s){
+  try{
+    const data = serializeStudent(s);
+    await fbDb.collection('students').doc(String(s.id)).set(data, {merge:true});
+    setSyncStatus('live');
+  }catch(e){
+    console.error('Save failed:', e); setSyncStatus('offline');
+  }
+}
+
+// immediate=true skips debounce (used for new students to prevent data loss on quick refresh)
+function saveStudentToFirestore(s, immediate=false){
   if(!fbDb||!fbCurrentUser)return;
-  clearTimeout(_syncSaveTimer);
+  // Per-student timer so edits to different students don't cancel each other
+  clearTimeout(_syncSaveTimers[s.id]);
   setSyncStatus('saving');
-  _syncSaveTimer=setTimeout(async()=>{
-    try{
-      const data = serializeStudent(s);
-      await fbDb.collection('students').doc(String(s.id)).set(data, {merge:true});
-      // Log to activity feed
-      logActivity(`updated <strong>${s.firstName} ${s.lastName}</strong>`);
-      setSyncStatus('live');
-    }catch(e){
-      console.error('Save failed:', e); setSyncStatus('offline');
-    }
-  }, 800); // debounce 800ms
+  if(immediate){
+    _doSaveStudent(s);
+  } else {
+    _syncSaveTimers[s.id]=setTimeout(()=>_doSaveStudent(s), 800);
+  }
 }
 
 function saveAllStudentsToFirestore(){
@@ -4375,7 +4385,7 @@ addStudent = function(){
     // Tag the creator so sharing works correctly
     s.ownerId = fbCurrentUser?.uid || null;
     s.sharedWith = [];
-    saveStudentToFirestore(s);
+    saveStudentToFirestore(s, /*immediate=*/true); // no debounce — prevent loss on quick refresh
     logActivity(`added new student <strong>${s.firstName} ${s.lastName}</strong>`);
   }
 };
