@@ -3662,6 +3662,9 @@ async function registerUserProfile(user){
 function subscribeUsers(){
   fbDb.collection('users').onSnapshot(snap=>{
     allConsultants = snap.docs.map(d=>d.data());
+    if(snap.size <= 1) console.warn('[Users] Only',snap.size,'user(s) visible — Firestore rules may be restricting /users collection reads. Update rules to: allow read, write: if request.auth != null');
+  }, err=>{
+    console.error('[Users] subscribeUsers failed:', err.code, '— Firestore rules are blocking /users reads');
   });
 }
 
@@ -3965,8 +3968,16 @@ async function sendInvitation(sid){
     const fromName=fbCurrentUser?.displayName||fbCurrentUser?.email||'Your colleague';
 
     if(fbDb&&fbCurrentUser){
-      // Check if invitee is already registered in /users (already logged in before)
-      const knownUser = allConsultants.find(c=>c.email&&c.email.toLowerCase()===toEmail);
+      // Check if invitee is registered: first check cached allConsultants,
+      // then fall back to a direct /users query in case Firestore rules restrict
+      // the collection-level read (which would make allConsultants only contain own profile)
+      let knownUser = allConsultants.find(c=>c.email&&c.email.toLowerCase()===toEmail);
+      if(!knownUser){
+        try{
+          const snap=await fbDb.collection('users').where('email','==',toEmail).limit(1).get();
+          if(!snap.empty) knownUser=snap.docs[0].data();
+        }catch(e){ console.warn('[Share] /users email lookup blocked:',e.code); }
+      }
 
       if(knownUser){
         // Direct share: add their UID to sharedWith + embed notification in student doc
