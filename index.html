@@ -3850,14 +3850,18 @@ async function sendInvitation(sid){
       if(fbDb&&knownUser2){
         const existing=await fbDb.collection('invitations').where('toEmail','==',toEmail).where('studentId','==',s.id).where('status','==','pending').get();
         if(existing.empty){
-          fbDb.collection('invitations').add({
-            studentId:s.id, studentName:`${s.firstName} ${s.lastName}`,
-            fromUid:fbCurrentUser.uid, fromName:fromName2,
-            fromEmail:(fbCurrentUser.email||'').toLowerCase(),
-            toEmail, status:'pending',
-            createdAt:firebase.firestore.FieldValue.serverTimestamp(),
-          }).catch(err=>console.error('Firestore notify write failed:',err));
-          setFeedback('🔔 They already have access — a notification has been sent.','#b7791f');
+          try{
+            await fbDb.collection('invitations').add({
+              studentId:s.id, studentName:`${s.firstName} ${s.lastName}`,
+              fromUid:fbCurrentUser.uid, fromName:fromName2,
+              fromEmail:(fbCurrentUser.email||'').toLowerCase(),
+              toEmail, status:'pending',
+              createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+            });
+            setFeedback('🔔 They already have access — a notification has been sent.','#b7791f');
+          }catch(err){
+            setFeedback(`⚠️ Notification failed: ${err.message} — check Firestore rules.`,'#c0392b');
+          }
         } else {
           setFeedback('⚠️ This person already has access and a pending notification.','#b7791f');
         }
