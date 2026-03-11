@@ -3734,21 +3734,36 @@ let _unsubInvitations = null;
 let _pendingInvites = []; // invites TO me (pending)
 
 function subscribeInvitations(){
-  if(!fbDb||!fbCurrentUser) return;
+  if(!fbDb||!fbCurrentUser){console.warn('[Notif] subscribeInvitations: fbDb=',!!fbDb,'fbCurrentUser=',!!fbCurrentUser);return;}
   const myEmail = (fbCurrentUser.email||'').toLowerCase();
-  if(!myEmail){console.warn('subscribeInvitations: no email on current user');return;}
-  // Single-field query only (no composite index required)
+  if(!myEmail){console.warn('[Notif] subscribeInvitations: no email on current user');return;}
+  console.log('[Notif] Subscribing to invitations for:', myEmail);
   _unsubInvitations = fbDb.collection('invitations')
     .where('toEmail','==',myEmail)
     .onSnapshot(snap=>{
-      // Filter pending client-side to avoid needing a composite index
+      console.log('[Notif] Snapshot received, total docs:', snap.size);
       _pendingInvites = snap.docs.map(d=>({id:d.id,...d.data()})).filter(d=>d.status==='pending');
+      console.log('[Notif] Pending invites:', _pendingInvites.length, _pendingInvites.map(x=>x.studentName+' from '+x.fromName));
       updateNotifBadge(_pendingInvites.length);
       renderNotifList();
     }, err=>{
-      console.error('subscribeInvitations failed:',err.code||err.message);
+      console.error('[Notif] subscribeInvitations FAILED:',err.code, err.message);
     });
 }
+
+// Debug helper — type debugNotif() in console to check invitation status
+window.debugNotif = function(){
+  if(!fbCurrentUser){console.log('Not logged in');return;}
+  const myEmail=(fbCurrentUser.email||'').toLowerCase();
+  console.log('My email:', myEmail);
+  console.log('Pending invites in memory:', _pendingInvites.length);
+  fbDb.collection('invitations').where('toEmail','==',myEmail).get()
+    .then(s=>{console.log('Firestore invitations for me:', s.size, s.docs.map(d=>d.data()));})
+    .catch(e=>console.error('Query failed:',e.code,e.message));
+  fbDb.collection('invitations').limit(5).get()
+    .then(s=>{console.log('All recent invitations (any user):', s.size, s.docs.map(d=>({to:d.data().toEmail,status:d.data().status,student:d.data().studentName})));})
+    .catch(e=>console.error('All-invitations query failed:',e.code,e.message));
+};
 
 function updateNotifBadge(n){
   const badge=document.getElementById('notifBadge');
