@@ -3666,31 +3666,57 @@ function subscribeUsers(){
 }
 
 // ── Students sync ──
+// Uses two parallel queries to handle all Firestore rule configurations:
+//   1. Blanket query — returns docs accessible per current rules (e.g., null-ownerId seeded data)
+//   2. sharedWith query — returns docs explicitly shared with this user
+// Results are merged and deduplicated. This makes the system work regardless of
+// whether Firestore rules use blanket auth or per-doc ownership checks.
 function subscribeStudents(){
   setSyncStatus('connecting');
   const uid = fbCurrentUser?.uid || '';
-  _unsubStudents = fbDb.collection('students')
-    .orderBy('createdAt','asc')
+  let blanketDocs = null, sharedDocs = null, seeded = false;
+
+  function tryMerge(){
+    if(blanketDocs === null || sharedDocs === null) return; // wait for both
+    setSyncStatus('live');
+    const seen = new Set();
+    const all = [...blanketDocs, ...sharedDocs].filter(d=>{
+      const k = d._docId; if(seen.has(k)) return false; seen.add(k); return true;
+    }).sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
+    if(all.length === 0 && !seeded && !localStorage.getItem('canaan_seeded')){
+      seeded = true; localStorage.setItem('canaan_seeded','1'); seedToFirestore();
+    } else {
+      _applyStudents(all);
+    }
+  }
+
+  // Query 1: Blanket — all docs this user can read per Firestore rules
+  const u1 = fbDb.collection('students').orderBy('createdAt','asc')
     .onSnapshot(snap=>{
-      setSyncStatus('live');
-      const remote = snap.docs.map(d=>({...d.data(), _docId:d.id}));
-      if(remote.length === 0){
-        // Only seed demo data once ever
-        if(!localStorage.getItem('canaan_seeded')){
-          localStorage.setItem('canaan_seeded','1');
-          seedToFirestore();
-        } else if(!_usingOwnershipFallback){
-          // Data exists but Firestore rules may be filtering by ownership —
-          // fall back to targeted queries (ownerId + sharedWith)
-          _startOwnershipFallback(uid);
-        }
-      } else {
-        _applyStudents(remote);
-      }
+      blanketDocs = snap.docs.map(d=>({...d.data(),_docId:d.id}));
+      tryMerge();
     }, err=>{
-      setSyncStatus('offline');
-      console.error('Firestore error:', err);
+      console.error('[Students] blanket query error:', err.code, err.message);
+      if(blanketDocs === null) blanketDocs = [];
+      setSyncStatus('offline'); tryMerge();
     });
+
+  // Query 2: Students explicitly shared with this user
+  // Catches docs with ownerId set that strict Firestore rules filter from blanket query.
+  // NOTE: This query only returns docs if Firestore rules allow reads by sharedWith members.
+  // If it returns 0 despite docs existing, update Firestore rules to:
+  //   allow read, write: if request.auth != null;
+  const u2 = fbDb.collection('students').where('sharedWith','array-contains',uid)
+    .onSnapshot(snap=>{
+      sharedDocs = snap.docs.map(d=>({...d.data(),_docId:d.id}));
+      tryMerge();
+    }, err=>{
+      console.error('[Students] sharedWith query error:', err.code, err.message);
+      if(sharedDocs === null) sharedDocs = [];
+      tryMerge();
+    });
+
+  _unsubStudents = ()=>{ [u1,u2].forEach(u=>{ try{u();}catch(e){} }); };
 }
 
 function _applyStudents(remote){
@@ -3705,32 +3731,22 @@ function _applyStudents(remote){
   _detectShareNotifs();
 }
 
-let _unsubOwnership = null;
-let _usingOwnershipFallback = false;
-
-function _startOwnershipFallback(uid){
-  if(_usingOwnershipFallback) return;
-  _usingOwnershipFallback = true;
-  console.log('[Students] Blanket query returned 0 — falling back to ownership queries for uid:', uid);
-  let ownedDocs = [], sharedDocs = [], done = [false, false];
-  function merge(){
-    if(!done[0]||!done[1]) return;
-    const seen = new Set();
-    const all = [...ownedDocs, ...sharedDocs].filter(d=>{
-      const k = d._docId||String(d.id);
-      if(seen.has(k)) return false;
-      seen.add(k); return true;
-    }).sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
-    _applyStudents(all);
-  }
-  const u1 = fbDb.collection('students').where('ownerId','==',uid)
-    .onSnapshot(s=>{ ownedDocs=s.docs.map(d=>({...d.data(),_docId:d.id})); done[0]=true; merge(); },
-    e=>{ console.error('[Students] owned query err:',e.code); done[0]=true; merge(); });
-  const u2 = fbDb.collection('students').where('sharedWith','array-contains',uid)
-    .onSnapshot(s=>{ sharedDocs=s.docs.map(d=>({...d.data(),_docId:d.id})); done[1]=true; merge(); },
-    e=>{ console.error('[Students] shared query err:',e.code); done[1]=true; merge(); });
-  _unsubOwnership = ()=>{ try{u1();}catch(e){} try{u2();}catch(e){} };
-}
+// Diagnose Firestore access issues — run debugShareAccess() in browser console
+window.debugShareAccess = async function(){
+  if(!fbCurrentUser){console.log('Not logged in');return;}
+  const uid=fbCurrentUser.uid, email=fbCurrentUser.email;
+  console.log('=== Firestore Access Diagnostic ===');
+  console.log('User:', email, '|', uid);
+  const b = await fbDb.collection('students').get().catch(e=>({error:e}));
+  if(b.error) console.log('Blanket query: ❌ ERROR -', b.error.code, b.error.message);
+  else console.log('Blanket query: ✅', b.size, 'docs -', b.docs.map(d=>d.data().firstName+'('+d.data().ownerId+')'));
+  const sw = await fbDb.collection('students').where('sharedWith','array-contains',uid).get().catch(e=>({error:e}));
+  if(sw.error) console.log('sharedWith query: ❌ ERROR -', sw.error.code, '← Update Firestore rules!');
+  else console.log('sharedWith query: ✅', sw.size, 'docs -', sw.docs.map(d=>d.data().firstName));
+  try{const r=await fbDb.collection('invitations').add({_test:true});await r.delete();console.log('/invitations write: ✅ ALLOWED');}
+  catch(e){console.log('/invitations write: ❌ BLOCKED -', e.code, '← Update Firestore rules!');}
+  console.log('Fix: Firebase Console → Firestore → Rules → change to: allow read, write: if request.auth != null;');
+};
 
 // Check student docs for share notifications embedded by owners (works even when /invitations write is blocked by Firestore rules)
 function _detectShareNotifs(){
