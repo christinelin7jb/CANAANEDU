@@ -3500,8 +3500,8 @@ async function initFirebase(cfg){
     }
     fbAuth = firebase.auth();
     fbDb   = firebase.firestore();
-    // Enable offline persistence so writes commit to local cache instantly
-    fbDb.enablePersistence({synchronizeTabs:true}).catch(()=>{});
+    // Note: offline persistence disabled — it caused writes to get stuck in local cache
+    // and never sync to Firestore server, breaking real-time collaboration features.
 
     // Handle redirect result (from signInWithRedirect)
     try{
