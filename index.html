@@ -3668,33 +3668,90 @@ function subscribeUsers(){
 // ── Students sync ──
 function subscribeStudents(){
   setSyncStatus('connecting');
+  const uid = fbCurrentUser?.uid || '';
   _unsubStudents = fbDb.collection('students')
     .orderBy('createdAt','asc')
     .onSnapshot(snap=>{
       setSyncStatus('live');
-      // Merge remote data into local students array
       const remote = snap.docs.map(d=>({...d.data(), _docId:d.id}));
       if(remote.length === 0){
-        // Only seed demo data once ever (use localStorage flag to prevent re-seeding)
+        // Only seed demo data once ever
         if(!localStorage.getItem('canaan_seeded')){
           localStorage.setItem('canaan_seeded','1');
           seedToFirestore();
+        } else if(!_usingOwnershipFallback){
+          // Data exists but Firestore rules may be filtering by ownership —
+          // fall back to targeted queries (ownerId + sharedWith)
+          _startOwnershipFallback(uid);
         }
       } else {
-        // All authenticated consultants can see all students
-        students = remote.map(r=>deserializeStudent(r));
-        globalDeadlines = [];
-        students.forEach(s=>(s._deadlines||[]).forEach(d=>globalDeadlines.push({...d,studentId:s.id})));
-        renderSidebar(); renderDashboard(); renderEssayTracker(); populateDropdowns(); updateUrgBadge();
-        if(currentStudentId){
-          const s=students.find(x=>x.id===currentStudentId);
-          if(s) renderOverview(s);
-        }
+        _applyStudents(remote);
       }
     }, err=>{
       setSyncStatus('offline');
       console.error('Firestore error:', err);
     });
+}
+
+function _applyStudents(remote){
+  students = remote.map(r=>deserializeStudent(r));
+  globalDeadlines = [];
+  students.forEach(s=>(s._deadlines||[]).forEach(d=>globalDeadlines.push({...d,studentId:s.id})));
+  renderSidebar(); renderDashboard(); renderEssayTracker(); populateDropdowns(); updateUrgBadge();
+  if(currentStudentId){
+    const s=students.find(x=>x.id===currentStudentId);
+    if(s) renderOverview(s);
+  }
+  _detectShareNotifs();
+}
+
+let _unsubOwnership = null;
+let _usingOwnershipFallback = false;
+
+function _startOwnershipFallback(uid){
+  if(_usingOwnershipFallback) return;
+  _usingOwnershipFallback = true;
+  console.log('[Students] Blanket query returned 0 — falling back to ownership queries for uid:', uid);
+  let ownedDocs = [], sharedDocs = [], done = [false, false];
+  function merge(){
+    if(!done[0]||!done[1]) return;
+    const seen = new Set();
+    const all = [...ownedDocs, ...sharedDocs].filter(d=>{
+      const k = d._docId||String(d.id);
+      if(seen.has(k)) return false;
+      seen.add(k); return true;
+    }).sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
+    _applyStudents(all);
+  }
+  const u1 = fbDb.collection('students').where('ownerId','==',uid)
+    .onSnapshot(s=>{ ownedDocs=s.docs.map(d=>({...d.data(),_docId:d.id})); done[0]=true; merge(); },
+    e=>{ console.error('[Students] owned query err:',e.code); done[0]=true; merge(); });
+  const u2 = fbDb.collection('students').where('sharedWith','array-contains',uid)
+    .onSnapshot(s=>{ sharedDocs=s.docs.map(d=>({...d.data(),_docId:d.id})); done[1]=true; merge(); },
+    e=>{ console.error('[Students] shared query err:',e.code); done[1]=true; merge(); });
+  _unsubOwnership = ()=>{ try{u1();}catch(e){} try{u2();}catch(e){} };
+}
+
+// Check student docs for share notifications embedded by owners (works even when /invitations write is blocked by Firestore rules)
+function _detectShareNotifs(){
+  const myUid = fbCurrentUser?.uid; if(!myUid) return;
+  const embedded = [];
+  students.forEach(s=>{
+    (s._shareNotifs||[]).forEach(n=>{
+      if(n.toUid===myUid && n.status==='pending'){
+        embedded.push({id:`sn_${s.id}_${n.fromUid}`, studentId:s.id,
+          studentName:`${s.firstName} ${s.lastName}`, fromName:n.fromName,
+          fromUid:n.fromUid, status:'pending', _embedded:true});
+      }
+    });
+  });
+  const existing = _pendingInvites.filter(i=>!i._embedded);
+  const merged = [...existing, ...embedded];
+  if(merged.length !== _pendingInvites.length || embedded.length > 0){
+    _pendingInvites = merged;
+    updateNotifBadge(_pendingInvites.length);
+    renderNotifList();
+  }
 }
 
 function subscribeDeadlines(){
@@ -3896,30 +3953,31 @@ async function sendInvitation(sid){
       const knownUser = allConsultants.find(c=>c.email&&c.email.toLowerCase()===toEmail);
 
       if(knownUser){
-        // Direct share: add their UID to sharedWith immediately
+        // Direct share: add their UID to sharedWith + embed notification in student doc
+        // (embedding avoids Firestore rules blocking writes to /invitations collection)
         const sw = [...new Set([...(s.sharedWith||[]), knownUser.uid])];
         s.sharedWith = sw;
-        await fbDb.collection('students').doc(String(s.id)).update({sharedWith: sw});
-        // Also write a notification so they see the 🔔 bell
-        try{
-          await fbDb.collection('invitations').add({
-            studentId:s.id, studentName:`${s.firstName} ${s.lastName}`,
-            fromUid:fbCurrentUser.uid, fromName,
-            fromEmail:(fbCurrentUser.email||'').toLowerCase(),
-            toEmail, status:'pending',
-            createdAt:firebase.firestore.FieldValue.serverTimestamp(),
-          });
-        }catch(err){
-          console.error('Firestore notify write failed:',err);
-          setFeedback(`✅ Access granted, but notification failed: ${err.message}. Check Firestore rules.`,'#b7791f');
-          setTimeout(()=>{ resetBtn(); renderShareModal(s); }, 4000);
-          return;
-        }
+        const newNotif = {toUid:knownUser.uid, toEmail, fromUid:fbCurrentUser.uid, fromName, status:'pending', createdAt:Date.now()};
+        const cleanNotifs = (s._shareNotifs||[]).filter(n=>!(n.toUid===knownUser.uid&&n.status==='pending'));
+        s._shareNotifs = [...cleanNotifs, newNotif];
+        // Single atomic update: sharedWith access + embedded notification
+        await fbDb.collection('students').doc(String(s.id)).update({
+          sharedWith: sw,
+          _shareNotifs: s._shareNotifs
+        });
+        // Also attempt /invitations write (non-fatal if Firestore rules block it)
+        fbDb.collection('invitations').add({
+          studentId:s.id, studentName:`${s.firstName} ${s.lastName}`,
+          fromUid:fbCurrentUser.uid, fromName,
+          fromEmail:(fbCurrentUser.email||'').toLowerCase(),
+          toEmail, status:'pending',
+          createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+        }).catch(err=>console.warn('[Share] /invitations write blocked (Firestore rules):', err.code));
         logActivity(`shared <strong>${s.firstName} ${s.lastName}</strong>'s profile with <em>${toEmail}</em>`);
         firestoreOk = true;
         input.value='';
         setBtnState('✓ Shared!',false,'#2a7a4b','#fff');
-        setFeedback(`✅ <strong>${knownUser.name||toEmail}</strong> now has access — they'll also see a 🔔 notification.`,'#1a6b3a');
+        setFeedback(`✅ <strong>${knownUser.name||toEmail}</strong> now has access — they'll see a 🔔 notification.`,'#1a6b3a');
         setTimeout(()=>{ resetBtn(); renderShareModal(s); }, 2500);
       } else {
         // User not yet registered — write invitation for when they first log in
@@ -3992,10 +4050,27 @@ async function sendInvitation(sid){
 }
 
 async function acceptInvitation(inviteId, studentId, fromName){
+  const inv = _pendingInvites.find(i=>i.id===inviteId);
+  if(inv?._embedded){
+    // Notification embedded in student doc — just mark it accepted
+    try{
+      const s=students.find(x=>x.id===studentId);
+      if(s){
+        s._shareNotifs=(s._shareNotifs||[]).map(n=>(n.toUid===fbCurrentUser.uid&&n.status==='pending')?{...n,status:'accepted'}:n);
+        await fbDb.collection('students').doc(String(studentId)).update({_shareNotifs:s._shareNotifs});
+      }
+      logActivity(`accepted collaboration invite for <strong>${s?.firstName||''} ${s?.lastName||''}</strong>`);
+      _pendingInvites=_pendingInvites.filter(i=>i.id!==inviteId);
+      updateNotifBadge(_pendingInvites.length);
+      renderNotifList();
+      document.getElementById('notifPanel').style.display='none';
+    }catch(e){ alert('Failed to accept: '+e.message); }
+    return;
+  }
+  // Legacy: notification in /invitations collection
   try{
     const s=students.find(x=>x.id===studentId);
     const uid=fbCurrentUser.uid;
-    // Add current user to student's sharedWith
     const sw=s?[...(s.sharedWith||[]),uid]:[uid];
     const uniqueSw=[...new Set(sw)];
     if(s){ s.sharedWith=uniqueSw; }
@@ -4009,6 +4084,17 @@ async function acceptInvitation(inviteId, studentId, fromName){
 }
 
 async function declineInvitation(inviteId){
+  const inv = _pendingInvites.find(i=>i.id===inviteId);
+  if(inv?._embedded){
+    const s=students.find(x=>x.id===inv.studentId);
+    if(s){
+      s._shareNotifs=(s._shareNotifs||[]).map(n=>(n.toUid===fbCurrentUser.uid&&n.status==='pending')?{...n,status:'declined'}:n);
+      await fbDb.collection('students').doc(String(inv.studentId)).update({_shareNotifs:s._shareNotifs}).catch(()=>{});
+    }
+    _pendingInvites=_pendingInvites.filter(i=>i.id!==inviteId);
+    updateNotifBadge(_pendingInvites.length); renderNotifList();
+    return;
+  }
   await fbDb.collection('invitations').doc(inviteId).update({status:'declined'});
 }
 
