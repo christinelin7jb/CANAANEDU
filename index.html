@@ -3090,7 +3090,7 @@ function editTodo(sid, tid) {
 function saveTodo() {
   const text = document.getElementById('todoText').value.trim();
   if (!text) { document.getElementById('todoText').focus(); return; }
-  const s = students.find(x => x.id === _todoSid); if (!s) return;
+  const s = students.find(x => x.id == _todoSid); if (!s) return;
   if (!s.todos) s.todos = [];
   const payload = {
     text,
