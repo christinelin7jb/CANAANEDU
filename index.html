@@ -1246,7 +1246,7 @@ function goPage(name,title,sub){
 function switchTab(tab){
   document.querySelectorAll('#profileTabs .tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab));
   document.querySelectorAll('#page-profile .tc').forEach(tc=>tc.classList.toggle('active',tc.id==='tab-'+tab));
-  const s=students.find(x=>x.id===currentStudentId);
+  const s=students.find(x=>x.id==currentStudentId);
   if(!s)return;
   if(tab==='transcript')renderTranscript(s);
   if(tab==='schools')renderSchoolList(s);
@@ -1340,7 +1340,7 @@ function renderDashboard(){
   const now=new Date(),cutoff=new Date();cutoff.setDate(cutoff.getDate()+30);
   const soon=globalDeadlines.filter(d=>!d.done&&new Date(d.date)>=now&&new Date(d.date)<=cutoff).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,5);
   document.getElementById('upcomingDeadlines').innerHTML=soon.length?soon.map(d=>{
-    const s=students.find(x=>x.id===d.studentId);
+    const s=students.find(x=>x.id==d.studentId);
     const days=daysUntil(d.date);
     return`<div class="dl-item" onclick="openProfile(${d.studentId});goPage('profile')">
       <div class="dl-date-box"><div class="dl-month">${new Date(d.date+'T00:00:00').toLocaleDateString('en-US',{month:'short'})}</div><div class="dl-day">${new Date(d.date+'T00:00:00').getDate()}</div></div>
@@ -1436,7 +1436,7 @@ function renderCalendar(){
   let dls=[...globalDeadlines].sort((a,b)=>new Date(a.date)-new Date(b.date));
   if(dlFilter)dls=dls.filter(d=>d.type===dlFilter);
   document.getElementById('dlList').innerHTML=dls.map(d=>{
-    const s=students.find(x=>x.id===d.studentId);
+    const s=students.find(x=>x.id==d.studentId);
     const days=daysUntil(d.date);
     const past=days<0,urgCls=d.done?'green':past?'red':days<=7?'red':days<=14?'orange':'green';
     const dt=new Date(d.date+'T00:00:00');
@@ -1455,14 +1455,14 @@ function renderCalendar(){
   // Overdue
   const overdue=globalDeadlines.filter(d=>!d.done&&daysUntil(d.date)<0);
   document.getElementById('dlOverdue').innerHTML=overdue.length?overdue.map(d=>{
-    const s=students.find(x=>x.id===d.studentId);
+    const s=students.find(x=>x.id==d.studentId);
     return`<div class="cb lo" style="margin-bottom:6px"><span class="cb-ico">✗</span><div class="cb-txt"><span class="cb-lbl">${d.title}</span>${s?s.firstName+' '+s.lastName:''} — ${Math.abs(daysUntil(d.date))}d overdue</div></div>`;
   }).join(''):'<div style="color:var(--muted);font-size:12px">No overdue deadlines 🎉</div>';
   // By student this month
   const monthEnd=new Date();monthEnd.setDate(monthEnd.getDate()+30);
   const byS={};globalDeadlines.filter(d=>!d.done&&new Date(d.date)>=now&&new Date(d.date)<=monthEnd).forEach(d=>{if(!byS[d.studentId])byS[d.studentId]=[];byS[d.studentId].push(d);});
   document.getElementById('dlByStudent').innerHTML=Object.entries(byS).map(([sid,dls])=>{
-    const s=students.find(x=>x.id===parseInt(sid));
+    const s=students.find(x=>x.id==parseInt(sid));
     return`<div style="margin-bottom:10px">
       <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px"><div class="av" style="width:20px;height:20px;font-size:8px;background:${s?.color||'#888'}">${s?.firstName[0]}${s?.lastName[0]}</div><span style="font-size:12px;font-weight:500;color:var(--cream)">${s?.firstName} ${s?.lastName}</span></div>
       ${dls.map(d=>`<div style="font-size:11px;color:var(--muted);padding:3px 0 3px 27px;border-left:2px solid var(--border);margin-left:10px;padding-left:10px">${d.title} <span style="color:var(--orange)">${daysUntil(d.date)}d</span></div>`).join('')}
@@ -1518,19 +1518,19 @@ function renderEssayTracker(){
       </div>`).join(''):'<div style="padding:16px;color:var(--muted);font-size:12px">No essays tracked yet. Add essays per student in their profile.</div>'}`;
 }
 function updateEssayStatus(sid,eid,status){
-  const s=students.find(x=>x.id===sid);if(!s)return;
+  const s=students.find(x=>x.id==sid);if(!s)return;
   const e=(s.essays||[]).find(x=>x.id===eid);if(!e)return;
   e.status=status;renderEssayTracker();
 }
 function deleteEssay(sid,eid){
-  const s=students.find(x=>x.id===sid);if(!s)return;
+  const s=students.find(x=>x.id==sid);if(!s)return;
   s.essays=(s.essays||[]).filter(x=>x.id!==eid);renderEssayTracker();
   if(currentStudentId===sid)renderEssayProfile(s);
 }
 function addEssay(){
   const sid=parseInt(document.getElementById('essStudent').value);const title=document.getElementById('essTitle').value.trim();
   if(!title||!sid)return;
-  const s=students.find(x=>x.id===sid);if(!s)return;
+  const s=students.find(x=>x.id==sid);if(!s)return;
   if(!s.essays)s.essays=[];
   s.essays.push({id:Date.now(),title,type:document.getElementById('essType').value,school:document.getElementById('essSchool').value,wordLimit:parseInt(document.getElementById('essWords').value)||650,due:document.getElementById('essDue').value,status:'Not Started',drafts:0,lastEdit:'',notes:''});
   closeMo('moAddEssay');['essTitle','essSchool','essWords','essDue'].forEach(id=>document.getElementById(id).value='');
@@ -1542,7 +1542,7 @@ function addEssay(){
 // ══════════════════════════════════════════════════════
 function openProfile(id){
   currentStudentId=id;
-  const s=students.find(x=>x.id===id);if(!s)return;
+  const s=students.find(x=>x.id==id);if(!s)return;
   renderSidebar();
   goPage('profile',`${s.firstName} ${s.lastName}`,`Grade ${s.grade} · ${s.major}`);
   const c=getConf(s),u=getUrgency(s);
@@ -1766,7 +1766,7 @@ function renderRigor(tr,s){
 }
 function toggleYr(yr){const b=document.getElementById('tryb-'+yr);if(b)b.style.display=b.style.display==='none'?'':'none';}
 function setDefaultGradeSys(sid,sys){
-  const s=students.find(x=>x.id===sid);if(s)s.defaultGradeSys=sys;
+  const s=students.find(x=>x.id==sid);if(s)s.defaultGradeSys=sys;
   // update all open year-selectors to match
   document.querySelectorAll('[id^="csys-"]').forEach(sel=>sel.value=sys);
   document.querySelectorAll('[id^="cgr-"]').forEach(sel=>{
@@ -1785,7 +1785,7 @@ function updateGradeOpts(yr){
   if(opts[sys])opts[sys].forEach(g=>{const o=document.createElement('option');o.value=g;o.textContent=g;sel.appendChild(o);});
 }
 function addCourse(sid,year){
-  const s=students.find(x=>x.id===sid);if(!s)return;
+  const s=students.find(x=>x.id==sid);if(!s)return;
   const name=document.getElementById('cn-'+year).value.trim();if(!name)return;
   if(!s.transcript)s.transcript=[];
   const sys=document.getElementById('csys-'+year).value||'us';
@@ -1796,7 +1796,7 @@ function addCourse(sid,year){
   renderTranscript(s);renderSidebar();
 }
 function delCourse(sid,cid){
-  const s=students.find(x=>x.id===sid);if(!s||!confirm('Remove course?'))return;
+  const s=students.find(x=>x.id==sid);if(!s||!confirm('Remove course?'))return;
   s.transcript=s.transcript.filter(c=>c.id!==cid);
   const gpas=calcGPAs(s.transcript);if(gpas.uw!=='—')s.gpa=gpas.uw;
   renderTranscript(s);
@@ -1812,7 +1812,7 @@ function editUpdateSys(cid){
   else{sel.style.display='';cn.style.display='none';sel.innerHTML=editGradeOptions(sys,'');}
 }
 function editCourse(sid,cid){
-  const s=students.find(x=>x.id===sid);if(!s)return;
+  const s=students.find(x=>x.id==sid);if(!s)return;
   const c=s.transcript.find(x=>x.id===cid);if(!c)return;
   const row=document.getElementById('cr-'+cid);if(!row)return;
   const sys=c.gradeSystem||'us';const isChina=sys==='cn';
@@ -1832,12 +1832,12 @@ function editCourse(sid,cid){
       <input class="mi" id="ecgr-cn-${cid}" placeholder="e.g. 92" value="${isChina?c.grade:''}" style="width:62px;${isChina?'':'display:none'}">
       <select class="ms" id="ecsm-${cid}">${['Full','Sem1','Sem2'].map(t=>`<option value="${t}"${t===c.sem?' selected':''}>${t==='Full'?'Full Yr':t}</option>`).join('')}</select>
       <button class="btn btn-gold btn-sm" onclick="saveCourse(${sid},${cid})">✓ Save</button>
-      <button class="btn btn-out btn-sm" onclick="renderTranscript(students.find(x=>x.id===${sid}))">Cancel</button>
+      <button class="btn btn-out btn-sm" onclick="renderTranscript(students.find(x=>x.id==${sid}))">Cancel</button>
     </div>
   </div>`;
 }
 function saveCourse(sid,cid){
-  const s=students.find(x=>x.id===sid);if(!s)return;
+  const s=students.find(x=>x.id==sid);if(!s)return;
   const c=s.transcript.find(x=>x.id===cid);if(!c)return;
   const sys=document.getElementById('ecsys-'+cid).value;
   const name=document.getElementById('ecn-'+cid).value.trim();
@@ -2119,14 +2119,14 @@ function renderSchoolList(s){
     <p style="font-size:10px;color:var(--muted);margin-top:10px">${hasAI?'✦ AI estimates use full student profile via Claude AI. Click "Re-run" to refresh.':'* Formula-based estimates. Click "AI Estimate Chances" for a more accurate AI-powered analysis.'}</p>`;
 }
 function deleteSchoolFromList(sid,idx){
-  const s=students.find(x=>x.id===sid);if(!s)return;
+  const s=students.find(x=>x.id==sid);if(!s)return;
   if(!s.schoolList)s.schoolList=getOrInitSchoolList(s);
   s.schoolList.splice(idx,1);
   saveStudentToFirestore(s);
   renderSchoolList(s);
 }
 function addSchoolToList(sid){
-  const s=students.find(x=>x.id===sid);if(!s)return;
+  const s=students.find(x=>x.id==sid);if(!s)return;
   const name=document.getElementById('newSchoolName').value.trim();
   if(!name)return;
   const detail=document.getElementById('newSchoolDetail').value.trim()||'';
@@ -2145,7 +2145,7 @@ function mergeAIChances(matches,aiChances){
   }).sort((a,b)=>b.chance-a.chance);
 }
 async function aiEstimateChances(sid){
-  const s=students.find(x=>x.id===sid);if(!s)return;
+  const s=students.find(x=>x.id==sid);if(!s)return;
   const btn=document.getElementById('aiChanceBtn');
   const status=document.getElementById('aiChanceStatus');
   if(btn){btn.disabled=true;btn.innerHTML='<span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span> Analyzing...';}
@@ -2264,7 +2264,7 @@ function renderNotes(s){
     </div>`;
 }
 function addNote(sid){
-  const s=students.find(x=>x.id===sid);if(!s)return;
+  const s=students.find(x=>x.id==sid);if(!s)return;
   const content=document.getElementById('newNote').value.trim();if(!content)return;
   s.meetings.unshift({date:document.getElementById('noteDate').value,content,tag:document.getElementById('noteTag').value});
   renderNotes(s);renderOverview(s);
@@ -2295,7 +2295,7 @@ function renderAITab(s){
 // PRE-MEETING BRIEF
 // ══════════════════════════════════════════════════════
 async function openMeetingBrief(sid){
-  const s=students.find(x=>x.id===sid);if(!s)return;
+  const s=students.find(x=>x.id==sid);if(!s)return;
   document.getElementById('meetingTitle').textContent=`⚡ Pre-Meeting Brief — ${s.firstName} ${s.lastName}`;
   const out=document.getElementById('meetingContent');
   out.innerHTML=`<div class="aibadge">✦ Generating brief <span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div>`;
@@ -2340,7 +2340,7 @@ Be direct and specific. This is a working brief for the consultant, not a studen
 // PARENT REPORT
 // ══════════════════════════════════════════════════════
 async function openParentReport(sid){
-  const s=students.find(x=>x.id===sid);if(!s)return;
+  const s=students.find(x=>x.id==sid);if(!s)return;
   document.getElementById('reportTitle').textContent=`📄 Parent Report — ${s.firstName} ${s.lastName}`;
   const out=document.getElementById('reportContent');
   out.innerHTML=`<div class="aibadge">✦ Generating parent report <span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div>`;
@@ -2412,7 +2412,7 @@ async function callClaude(prompt,outEl,loadMsg){
 
 async function generateAI(type,sid){
   const id=sid?parseInt(sid):currentStudentId;
-  const s=students.find(x=>x.id===id);
+  const s=students.find(x=>x.id==id);
   const out=document.getElementById(type==='cohort'?'cohortAIOut':'aiOut');
   if(!out)return;
   if(!s&&type!=='cohort')return;
@@ -2494,7 +2494,7 @@ function renderStrategyPlan(s){
 }
 
 function saveStrategyPlan(sid){
-  const s=students.find(x=>x.id===sid);if(!s)return;
+  const s=students.find(x=>x.id==sid);if(!s)return;
   s.strategyPlan={
     objectives:document.getElementById('sp-objectives').value,
     fall:document.getElementById('sp-fall').value,
@@ -2509,7 +2509,7 @@ function saveStrategyPlan(sid){
 }
 
 async function generateStrategyPlanAI(sid){
-  const s=students.find(x=>x.id===sid);if(!s)return;
+  const s=students.find(x=>x.id==sid);if(!s)return;
   const out=document.getElementById('spAIOut');if(!out)return;
   const gpas=calcGPAs(s.transcript);
   const apCount=(s.transcript||[]).filter(c=>c.level==='AP'||c.level==='IB').length;
@@ -2570,7 +2570,7 @@ async function askStrategy(){
   const q=document.getElementById('stratQ').value.trim();if(!q)return;
   const out=document.getElementById('stratOut');
   const sid=parseInt(document.getElementById('stratStu').value);
-  let ctx=sid?`Student context: ${(()=>{const s=students.find(x=>x.id===sid);return`${s.firstName} ${s.lastName}, Gr${s.grade}, GPA${s.gpa}, ${s.major}, ${tierLabel(s.tier)}, activities: ${s.activities}`;})()}\n\n`:`Cohort: ${students.map(s=>`${s.firstName}(Gr${s.grade},GPA${s.gpa})`).join('; ')}\n\n`;
+  let ctx=sid?`Student context: ${(()=>{const s=students.find(x=>x.id==sid);return`${s.firstName} ${s.lastName}, Gr${s.grade}, GPA${s.gpa}, ${s.major}, ${tierLabel(s.tier)}, activities: ${s.activities}`;})()}\n\n`:`Cohort: ${students.map(s=>`${s.firstName}(Gr${s.grade},GPA${s.gpa})`).join('; ')}\n\n`;
   await callClaude(`You are an expert college admissions consultant. ${ctx}Question: ${q}\n\nProvide expert, actionable advice.`,out,'Consulting AI...');
 }
 
@@ -2607,7 +2607,7 @@ function renderSummerTab(s){
 }
 
 async function generateSummerRec(sid){
-  const s=students.find(x=>x.id===sid);if(!s)return;
+  const s=students.find(x=>x.id==sid);if(!s)return;
   const out=document.getElementById('sumAIOut');if(!out)return;
   const gpas=calcGPAs(s.transcript);
   const apCount=(s.transcript||[]).filter(c=>c.level==='AP'||c.level==='IB').length;
@@ -2660,7 +2660,7 @@ Write in a warm, professional tone suitable for parents. Be specific — do not 
 }
 
 function saveSummerNotes(sid){
-  const s=students.find(x=>x.id===sid);if(!s)return;
+  const s=students.find(x=>x.id==sid);if(!s)return;
   const notes=document.getElementById('sumNotes')?.value||'';
   s.summerRec={...(s.summerRec||{}),notes};
   if(fbDb)saveStudentToFirestore(s);
@@ -2668,7 +2668,7 @@ function saveSummerNotes(sid){
 }
 
 function exportSummerReport(sid){
-  const s=students.find(x=>x.id===sid);if(!s)return;
+  const s=students.find(x=>x.id==sid);if(!s)return;
   const rec=s.summerRec||{};
   if(!rec.text){alert('Please generate AI recommendations first.');return;}
   const fmt=rec.text
@@ -2958,7 +2958,7 @@ function renderTodos(s) {
         <div style="font-size:11px;color:var(--muted);margin-top:2px">${open.length} open · ${closed.length} completed</div>
       </div>
       <div style="display:flex;gap:7px">
-        <select class="fse" id="todoFilterCat" style="width:auto;padding:5px 10px;font-size:11px" onchange="renderTodos(students.find(x=>x.id===${s.id}))">
+        <select class="fse" id="todoFilterCat" style="width:auto;padding:5px 10px;font-size:11px" onchange="renderTodos(students.find(x=>x.id==${s.id}))">
           <option value="">All Categories</option>
           ${TODO_CATS.map(c=>`<option value="${c}">${c}</option>`).join('')}
         </select>
@@ -3340,7 +3340,7 @@ async function addStudent(){
 
 let _editStudentId = null;
 function openEditStudent(id){
-  const s=students.find(x=>x.id===id);if(!s)return;
+  const s=students.find(x=>x.id==id);if(!s)return;
   _editStudentId=id;
   document.getElementById('eFN').value=s.firstName||'';
   document.getElementById('eLN').value=s.lastName||'';
@@ -3355,7 +3355,7 @@ function openEditStudent(id){
 }
 
 function saveEditStudent(){
-  const s=students.find(x=>x.id===_editStudentId);if(!s)return;
+  const s=students.find(x=>x.id==_editStudentId);if(!s)return;
   const fn=document.getElementById('eFN').value.trim(),ln=document.getElementById('eLN').value.trim();
   if(!fn||!ln)return;
   s.firstName=fn; s.lastName=ln;
@@ -3372,7 +3372,7 @@ function saveEditStudent(){
 }
 
 function deleteStudent(id){
-  const s=students.find(x=>x.id===id);if(!s)return;
+  const s=students.find(x=>x.id==id);if(!s)return;
   if(!confirm(`Remove ${s.firstName} ${s.lastName}? This cannot be undone.`))return;
   students=students.filter(x=>x.id!==id);
   if(fbDb){
@@ -3707,7 +3707,7 @@ function _applyStudents(remote){
   students.forEach(s=>(s._deadlines||[]).forEach(d=>globalDeadlines.push({...d,studentId:s.id})));
   renderSidebar(); renderDashboard(); renderEssayTracker(); populateDropdowns(); updateUrgBadge();
   if(currentStudentId){
-    const s=students.find(x=>x.id===currentStudentId);
+    const s=students.find(x=>x.id==currentStudentId);
     if(s) renderOverview(s);
   }
   _detectShareNotifs();
@@ -4118,7 +4118,7 @@ async function acceptInvitation(inviteId, studentId, fromName){
   if(inv?._embedded){
     // Notification embedded in student doc — just mark it accepted
     try{
-      const s=students.find(x=>x.id===studentId);
+      const s=students.find(x=>x.id==studentId);
       if(s){
         s._shareNotifs=(s._shareNotifs||[]).map(n=>(n.toUid===fbCurrentUser.uid&&n.status==='pending')?{...n,status:'accepted'}:n);
         await fbDb.collection('students').doc(String(studentId)).update({_shareNotifs:s._shareNotifs});
@@ -4133,7 +4133,7 @@ async function acceptInvitation(inviteId, studentId, fromName){
   }
   // Notification from /invitations OR /users/{uid}/inbox
   try{
-    const s=students.find(x=>x.id===studentId);
+    const s=students.find(x=>x.id==studentId);
     const uid=fbCurrentUser.uid;
     const sw=s?[...(s.sharedWith||[]),uid]:[uid];
     const uniqueSw=[...new Set(sw)];
@@ -4157,7 +4157,7 @@ async function acceptInvitation(inviteId, studentId, fromName){
 async function declineInvitation(inviteId){
   const inv = _pendingInvites.find(i=>i.id===inviteId);
   if(inv?._embedded){
-    const s=students.find(x=>x.id===inv.studentId);
+    const s=students.find(x=>x.id==inv.studentId);
     if(s){
       s._shareNotifs=(s._shareNotifs||[]).map(n=>(n.toUid===fbCurrentUser.uid&&n.status==='pending')?{...n,status:'declined'}:n);
       await fbDb.collection('students').doc(String(inv.studentId)).update({_shareNotifs:s._shareNotifs}).catch(()=>{});
@@ -4177,12 +4177,12 @@ async function declineInvitation(inviteId){
 
 async function cancelInvitation(inviteId, sid){
   await fbDb.collection('invitations').doc(inviteId).delete();
-  const s=students.find(x=>x.id===sid); if(s) renderShareModal(s);
+  const s=students.find(x=>x.id==sid); if(s) renderShareModal(s);
 }
 
 // ── Share / Collaboration ──
 function openShareModal(sid){
-  const s=students.find(x=>x.id===sid);if(!s)return;
+  const s=students.find(x=>x.id==sid);if(!s)return;
   document.getElementById('shareTitle').textContent=`👥 Share — ${s.firstName} ${s.lastName}`;
   openMo('moShare');
   renderShareModal(s); // no await — renders sync part immediately, loads pending async
@@ -4278,7 +4278,7 @@ async function renderShareModal(s){
 
 
 function unshareStudent(sid, consultantUid){
-  const s=students.find(x=>x.id===sid);if(!s)return;
+  const s=students.find(x=>x.id==sid);if(!s)return;
   s.sharedWith=(s.sharedWith||[]).filter(u=>u!==consultantUid);
   if(fbDb){
     fbDb.collection('students').doc(String(sid)).update({sharedWith:s.sharedWith});
@@ -4381,45 +4381,45 @@ async function seedToFirestore(){
 const _origAddNote = addNote;
 addNote = function(sid){
   _origAddNote(sid);
-  const s=students.find(x=>x.id===sid); if(s)saveStudentToFirestore(s);
-  logActivity(`added a note for <strong>${students.find(x=>x.id===sid)?.firstName}</strong>`);
+  const s=students.find(x=>x.id==sid); if(s)saveStudentToFirestore(s);
+  logActivity(`added a note for <strong>${students.find(x=>x.id==sid)?.firstName}</strong>`);
 };
 
 const _origAddCourse = addCourse;
 addCourse = function(sid,year){
   _origAddCourse(sid,year);
-  const s=students.find(x=>x.id===sid); if(s)saveStudentToFirestore(s);
+  const s=students.find(x=>x.id==sid); if(s)saveStudentToFirestore(s);
 };
 
 const _origDelCourse = delCourse;
 delCourse = function(sid,cid){
   _origDelCourse(sid,cid);
-  const s=students.find(x=>x.id===sid); if(s)saveStudentToFirestore(s);
+  const s=students.find(x=>x.id==sid); if(s)saveStudentToFirestore(s);
 };
 
 const _origSaveTodo = saveTodo;
 saveTodo = function(){
   _origSaveTodo();
-  const s=students.find(x=>x.id===_todoSid); if(s){saveStudentToFirestore(s);logActivity(`updated to-do for <strong>${s.firstName} ${s.lastName}</strong>`);}
+  const s=students.find(x=>x.id==_todoSid); if(s){saveStudentToFirestore(s);logActivity(`updated to-do for <strong>${s.firstName} ${s.lastName}</strong>`);}
 };
 
 const _origToggleTodo = toggleTodo;
 toggleTodo = function(sid,tid){
   _origToggleTodo(sid,tid);
-  const s=students.find(x=>x.id===sid); if(s)saveStudentToFirestore(s);
+  const s=students.find(x=>x.id==sid); if(s)saveStudentToFirestore(s);
 };
 
 const _origSaveActivities = saveActivities;
 saveActivities = function(){
   _origSaveActivities();
-  const s=students.find(x=>x.id===_actEditorStudentId);
+  const s=students.find(x=>x.id==_actEditorStudentId);
   if(s){saveStudentToFirestore(s);logActivity(`updated activities for <strong>${s.firstName} ${s.lastName}</strong>`);}
 };
 
 const _origUpdateEssayStatus = updateEssayStatus;
 updateEssayStatus = function(sid,eid,status){
   _origUpdateEssayStatus(sid,eid,status);
-  const s=students.find(x=>x.id===sid); if(s)saveStudentToFirestore(s);
+  const s=students.find(x=>x.id==sid); if(s)saveStudentToFirestore(s);
 };
 
 const _origAddStudent = addStudent;
@@ -4441,7 +4441,7 @@ addDeadline = function(){
   _origAddDeadline();
   // Deadlines are saved per-student embedded — find affected student
   const sid=parseInt(document.getElementById('dlStudent')?.value);
-  const s=sid?students.find(x=>x.id===sid):null;
+  const s=sid?students.find(x=>x.id==sid):null;
   if(s)saveStudentToFirestore(s);
   else saveAllStudentsToFirestore();
   logActivity(`added a deadline`);
