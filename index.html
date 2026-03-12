@@ -3331,7 +3331,10 @@ async function addStudent(){
     await fbDb.collection('students').doc(docId).set(data);
     console.log('[addStudent] ✅ Saved to Firestore | docId:',docId,'| ownerId:',data.ownerId);
     logActivity(`added student <strong>${fn} ${ln}</strong>`);
-    // UI update is handled by onSnapshot in subscribeStudents() — no local push needed
+    // Optimistically show the new student immediately; onSnapshot will confirm & replace shortly.
+    students.push({...data, id:docId, todos:[], essays:[], transcript:[], activitiesList:[], meetings:data.meetings||[], sharedWith:[]});
+    renderSidebar(); renderDashboard(); populateDropdowns(); updateUrgBadge();
+    openProfile(docId);
   }catch(e){
     console.error('[addStudent] ❌ Firestore write FAILED | code:',e.code,'| message:',e.message);
     alert(`保存失败: ${e.message}\n\n请检查浏览器控制台获取详细错误。`);
