@@ -3792,56 +3792,66 @@ let _unsubInvitations = null;
 let _pendingInvites = []; // invites TO me (pending)
 
 function subscribeInvitations(){
-  if(!fbDb||!fbCurrentUser){console.warn('[Notif] subscribeInvitations: fbDb=',!!fbDb,'fbCurrentUser=',!!fbCurrentUser);return;}
+  if(!fbDb||!fbCurrentUser){console.warn('[Notif] subscribeInvitations: no fbDb/fbCurrentUser');return;}
   const myEmail = (fbCurrentUser.email||'').toLowerCase();
   const myUid = fbCurrentUser.uid;
-  if(!myEmail){console.warn('[Notif] subscribeInvitations: no email on current user');return;}
+  // Do NOT bail out when email is null — use UID-based queries as fallback
 
-  // Merged results from both sources
-  let fromInvitations = [], fromInbox = [];
+  let fromByEmail = [], fromByUid = [], fromInbox = [];
   function mergeAndRender(){
     const seen = new Set();
-    const all = [...fromInvitations, ...fromInbox].filter(d=>{
-      // deduplicate by studentId+fromUid
+    const all = [...fromByEmail, ...fromByUid, ...fromInbox].filter(d=>{
       const k = `${d.studentId}_${d.fromUid}`;
       if(seen.has(k)) return false; seen.add(k); return true;
     }).filter(d=>d.status==='pending');
     _pendingInvites = all;
-    console.log('[Notif] Merged pending invites:', all.length, all.map(x=>x.studentName+' from '+x.fromName));
     updateNotifBadge(all.length);
     renderNotifList();
   }
 
-  // Source 1: top-level /invitations collection (old path)
-  console.log('[Notif] Subscribing to /invitations for:', myEmail);
-  const unsub1 = fbDb.collection('invitations')
-    .where('toEmail','==',myEmail)
+  const unsubList = [];
+
+  // Source 1a: /invitations by toEmail (only if email is available)
+  if(myEmail){
+    const u1 = fbDb.collection('invitations')
+      .where('toEmail','==',myEmail)
+      .onSnapshot(snap=>{
+        fromByEmail = snap.docs.map(d=>({id:d.id,...d.data()}));
+        mergeAndRender();
+      }, err=>{
+        console.warn('[Notif] /invitations email query blocked:', err.code);
+        mergeAndRender();
+      });
+    unsubList.push(u1);
+  }
+
+  // Source 1b: /invitations by toUid (handles null-email users)
+  const u2 = fbDb.collection('invitations')
+    .where('toUid','==',myUid)
     .onSnapshot(snap=>{
-      console.log('[Notif] /invitations snapshot:', snap.size, 'docs');
-      fromInvitations = snap.docs.map(d=>({id:d.id,...d.data()}));
+      fromByUid = snap.docs.map(d=>({id:d.id,...d.data()}));
       mergeAndRender();
     }, err=>{
-      console.warn('[Notif] /invitations query blocked:', err.code, '(checking inbox instead)');
+      console.warn('[Notif] /invitations UID query blocked:', err.code);
       mergeAndRender();
     });
+  unsubList.push(u2);
 
-  // Source 2: /users/{myUid}/inbox — recipient always has read access to own subcollection
-  console.log('[Notif] Subscribing to /users/'+myUid+'/inbox');
-  const unsub2 = fbDb.collection('users').doc(myUid).collection('inbox')
+  // Source 2: /users/{myUid}/inbox — always readable by the recipient themselves
+  const u3 = fbDb.collection('users').doc(myUid).collection('inbox')
     .where('status','==','pending')
     .onSnapshot(snap=>{
-      console.log('[Notif] /inbox snapshot:', snap.size, 'docs');
       fromInbox = snap.docs.map(d=>({id:'inbox_'+d.id,...d.data()}));
       mergeAndRender();
     }, err=>{
       console.warn('[Notif] /inbox query blocked:', err.code);
       mergeAndRender();
     });
+  unsubList.push(u3);
 
-  // Source 3: _shareNotifs embedded in student docs — checked on each student load via _detectShareNotifs
-  // (already wired up in _applyStudents → _detectShareNotifs)
+  // Source 3: _shareNotifs embedded in student docs (via _detectShareNotifs in _applyStudents)
 
-  _unsubInvitations = ()=>{ try{unsub1();}catch(e){} try{unsub2();}catch(e){} };
+  _unsubInvitations = ()=>{ unsubList.forEach(u=>{ try{u();}catch(e){} }); };
 }
 
 // Debug helper — type debugNotif() in console to check invitation status
@@ -4069,15 +4079,26 @@ async function sendInvitation(sid){
           </div>`;
         }
 
-        // Write to invitations collection
+        // Try to find recipient UID via name fuzzy-match (handles null-email users already in the system)
+        const un = toEmail.split('@')[0].replace(/[._-]/g,' ').toLowerCase().replace(/\s+/g,'');
+        const fuzzyUser = (allConsultants||[]).find(c=>c.uid&&!c.email&&(c.name||'').toLowerCase().replace(/\s+/g,'').includes(un));
+        const toUid = fuzzyUser?.uid || null;
+
+        const inviteDoc = {
+          studentId:s.id, studentName:`${s.firstName} ${s.lastName}`,
+          fromUid:fbCurrentUser.uid, fromName,
+          fromEmail:(fbCurrentUser.email||'').toLowerCase(),
+          toEmail, toUid, status:'pending',
+          createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+        };
+
         try{
-          await fbDb.collection('invitations').add({
-            studentId:s.id, studentName:`${s.firstName} ${s.lastName}`,
-            fromUid:fbCurrentUser.uid, fromName,
-            fromEmail:(fbCurrentUser.email||'').toLowerCase(),
-            toEmail, status:'pending',
-            createdAt:firebase.firestore.FieldValue.serverTimestamp(),
-          });
+          await fbDb.collection('invitations').add(inviteDoc);
+          // Also write to recipient inbox if we found their UID — works even without email
+          if(toUid){
+            fbDb.collection('users').doc(toUid).collection('inbox').add(inviteDoc)
+              .catch(e=>console.warn('[Share] inbox write blocked:',e.code));
+          }
         }catch(err){
           console.error('Firestore invite write failed:',err);
           setFeedback(`⚠️ Invite sent but notification failed: ${err.message}. Update Firestore rules to fix.`,'#c0392b');
