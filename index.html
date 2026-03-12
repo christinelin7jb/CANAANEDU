@@ -3500,10 +3500,6 @@ async function initFirebase(cfg){
     }
     fbAuth = firebase.auth();
     fbDb   = firebase.firestore();
-    // Force HTTP long polling instead of WebSocket.
-    // Required for networks that block WebSocket connections to firestore.googleapis.com
-    // (e.g. corporate firewalls, VPN environments, China mainland network).
-    fbDb.settings({ experimentalForceLongPolling: true, merge: true });
     // Note: offline persistence disabled — it caused writes to get stuck in local cache
     // and never sync to Firestore server, breaking real-time collaboration features.
 
