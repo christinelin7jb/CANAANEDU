@@ -3374,12 +3374,12 @@ function saveEditStudent(){
 function deleteStudent(id){
   const s=students.find(x=>x.id==id);if(!s)return;
   if(!confirm(`Remove ${s.firstName} ${s.lastName}? This cannot be undone.`))return;
-  students=students.filter(x=>x.id!==id);
+  students=students.filter(x=>x.id!=id);
   if(fbDb){
     fbDb.collection('students').doc(String(id)).delete();
     logActivity(`removed student <strong>${s.firstName} ${s.lastName}</strong>`);
   }
-  if(currentStudentId===id){
+  if(currentStudentId==id){
     currentStudentId=students.length?students[0].id:null;
     if(currentStudentId)openProfile(currentStudentId);else goPage('dashboard');
   }
