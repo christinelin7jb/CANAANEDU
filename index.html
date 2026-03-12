@@ -3298,12 +3298,19 @@ Rules:
 // STUDENT CRUD
 // ══════════════════════════════════════════════════════
 async function addStudent(){
+  console.log('🚨 SAVE BUTTON CLICKED! addStudent() triggered.');
   const fn=document.getElementById('nFN').value.trim(),ln=document.getElementById('nLN').value.trim();
-  if(!fn||!ln)return;
+  console.log('[addStudent] fn=',JSON.stringify(fn),'ln=',JSON.stringify(ln));
+  if(!fn||!ln){
+    console.warn('[addStudent] ⚠️ Validation failed — missing first or last name. fn:',JSON.stringify(fn),'ln:',JSON.stringify(ln));
+    alert('请填写学生的姓（Last Name）和名（First Name）后再保存。');
+    return;
+  }
   if(!fbDb||!fbCurrentUser){
     console.error('[addStudent] ❌ Not connected — fbDb:',!!fbDb,'fbCurrentUser:',!!fbCurrentUser);
     alert('未连接数据库，请先登录。');return;
   }
+  console.log('[addStudent] Checks passed. Writing to Firestore...');
   const docId=String(Date.now());
   const data={
     id:docId,
