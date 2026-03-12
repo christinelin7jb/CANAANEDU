@@ -3371,19 +3371,27 @@ function saveEditStudent(){
   renderSidebar();renderDashboard();openProfile(s.id);
 }
 
-function deleteStudent(id){
+async function deleteStudent(id){
   const s=students.find(x=>x.id==id);if(!s)return;
   if(!confirm(`Remove ${s.firstName} ${s.lastName}? This cannot be undone.`))return;
+  // Remove locally first for instant UI response
   students=students.filter(x=>x.id!=id);
-  if(fbDb){
-    fbDb.collection('students').doc(String(id)).delete();
-    logActivity(`removed student <strong>${s.firstName} ${s.lastName}</strong>`);
-  }
   if(currentStudentId==id){
     currentStudentId=students.length?students[0].id:null;
     if(currentStudentId)openProfile(currentStudentId);else goPage('dashboard');
   }
   renderSidebar();renderDashboard();populateDropdowns();updateUrgBadge();
+  if(fbDb){
+    try{
+      await fbDb.collection('students').doc(String(id)).delete();
+      logActivity(`removed student <strong>${s.firstName} ${s.lastName}</strong>`);
+    }catch(e){
+      console.error('[deleteStudent] Firestore delete failed:',e.code,e.message);
+      alert(`删除失败: ${e.message}`);
+      // Deletion failed — re-fetch from Firestore to restore accurate state
+      subscribeStudents();
+    }
+  }
 }
 
 // ══════════════════════════════════════════════════════
