@@ -1022,53 +1022,7 @@ async function saveClaudeKey(val){
 }
 function getClaudeKey(){return _claudeKey;}
 
-let students=[
-  {id:1,firstName:'Emma',lastName:'Chen',grade:12,gpa:3.95,sat:1540,act:35,major:'Computer Science',tier:'t10',hook:'legacy',
-   activities:'Math Olympiad President, Varsity Tennis Captain, Stanford AI Lab intern, Coding club founder, 3x USAMO',
-   activitiesList:[
-     {name:'Math Olympiad',role:'President & Team Captain',description:'Led 40-member team to state finals 3 consecutive years. Qualified for USAMO three times, placed in top 200 nationally.',hours:200,years:'9th–12th'},
-     {name:'Varsity Tennis',role:'Captain',description:'Led team to regional championships senior year. Maintained 4.0 GPA while competing in 30+ matches annually.',hours:180,years:'9th–12th'},
-     {name:'Stanford AI Research Lab',role:'Research Intern',description:'Built NLP model for medical record analysis under Prof. Chen. Co-authored paper submitted to ICML 2025.',hours:300,years:'11th–12th'},
-     {name:'Coding Club',role:'Founder & President',description:'Founded school&#39;s first coding club; grew to 60 members. Organized 3 hackathons with 200+ participants from local schools.',hours:120,years:'10th–12th'},
-   ],
-   meetings:[{date:'2024-11-15',content:'Discussed MIT vs Penn ED. Essay on coding club founding is compelling. Strengthen "why CS" narrative.',tag:'Essays'},{date:'2024-10-20',content:'SAT 1540 (up from 1490). No further testing. Finalized school list.',tag:'Testing'}],
-   color:COLORS[0],transcript:[],essays:[],deadlines:[],todos:[
-    {id:1001,text:'Finalize MIT supplemental essays (Why MIT? + Activity)',priority:'high',category:'Essays',due:'2025-10-25',done:false,createdAt:'2024-11-01'},
-    {id:1002,text:'Request teacher recommendation from Mr. Davidson (AP Calc)',priority:'high',category:'Applications',due:'2025-10-01',done:true,createdAt:'2024-10-01'},
-    {id:1003,text:'Research MIT EECS vs Course 6-3 program differences',priority:'med',category:'School Research',due:null,done:false,createdAt:'2024-11-10'},
-    {id:1004,text:'Common App activities section — finalize order and descriptions',priority:'high',category:'Applications',due:'2025-10-20',done:false,createdAt:'2024-11-05'},
-    {id:1005,text:'Send SAT scores to all schools',priority:'med',category:'Applications',due:'2025-10-30',done:false,createdAt:'2024-11-08'},
-  ]},
-  {id:2,firstName:'Marcus',lastName:'Johnson',grade:11,gpa:3.7,sat:1380,act:null,major:'Business / Economics',tier:'t25',hook:'',
-   activities:'JV Basketball, Student Gov VP, Entrepreneurship club founder, Family business part-time, Model UN',
-   meetings:[{date:'2024-11-01',content:'Summer plan: Wharton Leadership Academy. SAT prep targeting 1450+. Strong entrepreneur narrative.',tag:'Academic'}],
-   color:COLORS[1],transcript:[],essays:[],deadlines:[],todos:[
-    {id:2001,text:'Register for December SAT — target 1450+',priority:'high',category:'Testing',due:'2025-11-01',done:false,createdAt:'2024-11-01'},
-    {id:2002,text:'Apply to Wharton Leadership Academy summer program',priority:'med',category:'Applications',due:'2025-02-01',done:false,createdAt:'2024-11-05'},
-    {id:2003,text:'Get Khan Academy SAT prep schedule set up',priority:'med',category:'Testing',due:null,done:true,createdAt:'2024-10-15'},
-  ]},
-  {id:3,firstName:'Sofia',lastName:'Martinez',grade:10,gpa:3.6,sat:null,act:null,major:'Biology / Pre-Med',tier:'t50',hook:'urm',
-   activities:'Hospital volunteer 200+ hrs, Spanish Club President, Track & Field, Science Olympiad',
-   meetings:[{date:'2024-10-10',content:'GPA on track. Pursue summer research. PSAT prep for sophomore year.',tag:'Academic'}],
-   color:COLORS[2],transcript:[],essays:[],deadlines:[],todos:[
-    {id:3001,text:'Research summer hospital research program applications',priority:'med',category:'Applications',due:'2025-01-15',done:false,createdAt:'2024-11-01'},
-    {id:3002,text:'PSAT score review — identify weak areas',priority:'med',category:'Testing',due:null,done:false,createdAt:'2024-11-05'},
-  ]},
-  {id:4,firstName:'James',lastName:'Park',grade:12,gpa:3.85,sat:1510,act:34,major:'Film & Media Studies',tier:'t25',hook:'',
-   activities:'Film club director, 2 viral short films (50k+ views), News station intern, Photography',
-   meetings:[{date:'2024-11-10',content:'Portfolio review — excellent. USC video and NYU Tisch ED top priorities.',tag:'Essays'}],
-   color:COLORS[3],transcript:[],essays:[],deadlines:[],todos:[
-    {id:4001,text:'Complete NYU Tisch portfolio video — final cut',priority:'high',category:'Applications',due:'2025-10-28',done:true,createdAt:'2024-10-01'},
-    {id:4002,text:'USC Cinematic Arts essay — second draft',priority:'high',category:'Essays',due:'2025-11-20',done:false,createdAt:'2024-11-10'},
-    {id:4003,text:'Book campus visit to NYU Tisch',priority:'low',category:'Visits',due:null,done:false,createdAt:'2024-11-05'},
-  ]},
-  {id:5,firstName:'Aisha',lastName:'Williams',grade:9,gpa:3.5,sat:null,act:null,major:'Undecided',tier:'t50',hook:'firstgen',
-   activities:'Debate team, Art club, Choir, Community garden',
-   meetings:[{date:'2024-09-15',content:'Intro meeting. Gifted writer. Explore broadly in 9th. First-gen hook is meaningful.',tag:'General'}],
-   color:COLORS[4],transcript:[],essays:[],deadlines:[],todos:[
-    {id:5001,text:'Explore summer enrichment programs — debate, writing, STEM',priority:'low',category:'Academic',due:'2025-02-01',done:false,createdAt:'2024-11-01'},
-  ]},
-];
+let students=[]
 
 let schoolDB=[
   {id:1,name:'MIT',acceptance:4,sat25:1510,sat75:1580,gpaMin:3.9,edBoost:'no',notes:'Top STEM, research culture',source:'Estimated',verified:false},
@@ -1089,14 +1043,7 @@ let schoolDB=[
   {id:16,name:'USC',acceptance:16,sat25:1350,sat75:1530,gpaMin:3.8,edBoost:'modest',notes:'Film school tier 1',source:'Estimated',verified:false},
 ];
 
-let globalDeadlines=[
-  {id:1,studentId:1,title:'MIT Early Decision',date:'2025-11-01',type:'ED',notes:'Emma top choice',done:false},
-  {id:2,studentId:4,title:'NYU Tisch EA',date:'2025-11-01',type:'EA',notes:'James strong portfolio',done:false},
-  {id:3,studentId:1,title:'SAT Final Attempt',date:'2025-10-05',type:'Test',notes:'',done:true},
-  {id:4,studentId:2,title:'SAT Target Date',date:'2025-12-07',type:'Test',notes:'Target 1450+',done:false},
-  {id:5,studentId:4,title:'USC RD Application',date:'2026-01-15',type:'RD',notes:'',done:false},
-  {id:6,studentId:1,title:'Common App RD Deadline',date:'2026-01-01',type:'RD',notes:'Backup schools',done:false},
-];
+let globalDeadlines=[];
 
 // ══════════════════════════════════════════════════════
 // SEED DATA
@@ -3687,11 +3634,7 @@ function subscribeStudents(){
     const all = [...blanketDocs, ...sharedDocs].filter(d=>{
       const k = d._docId; if(seen.has(k)) return false; seen.add(k); return true;
     }).sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
-    if(all.length === 0 && !seeded && !localStorage.getItem('canaan_seeded')){
-      seeded = true; localStorage.setItem('canaan_seeded','1'); seedToFirestore();
-    } else {
-      _applyStudents(all);
-    }
+    _applyStudents(all);
   }
 
   // Query 1: Blanket — all docs this user can read per Firestore rules
