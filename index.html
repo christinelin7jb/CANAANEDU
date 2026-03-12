@@ -3297,14 +3297,45 @@ Rules:
 // ══════════════════════════════════════════════════════
 // STUDENT CRUD
 // ══════════════════════════════════════════════════════
-function addStudent(){
+async function addStudent(){
   const fn=document.getElementById('nFN').value.trim(),ln=document.getElementById('nLN').value.trim();
   if(!fn||!ln)return;
-  const s={id:Date.now(),firstName:fn,lastName:ln,grade:parseInt(document.getElementById('nGrade').value),gpa:parseFloat(document.getElementById('nGPA').value)||null,sat:parseInt(document.getElementById('nSAT').value)||null,act:parseInt(document.getElementById('nACT').value)||null,major:document.getElementById('nMajor').value||'Undecided',tier:document.getElementById('nTier').value,hook:document.getElementById('nHook').value,activities:document.getElementById('nECs').value||'',meetings:document.getElementById('nNotes').value?[{date:new Date().toISOString().split('T')[0],content:document.getElementById('nNotes').value,tag:'General'}]:[],color:COLORS[students.length%COLORS.length],transcript:[],essays:[],deadlines:[],todos:[],activitiesList:[],ownerId:fbCurrentUser?.uid||null,sharedWith:[]};
-  students.push(s);closeMo('moAddStudent');
+  if(!fbDb||!fbCurrentUser){
+    console.error('[addStudent] ❌ Not connected — fbDb:',!!fbDb,'fbCurrentUser:',!!fbCurrentUser);
+    alert('未连接数据库，请先登录。');return;
+  }
+  const docId=String(Date.now());
+  const data={
+    id:docId,
+    firstName:fn,lastName:ln,
+    grade:parseInt(document.getElementById('nGrade').value),
+    gpa:parseFloat(document.getElementById('nGPA').value)||null,
+    sat:parseInt(document.getElementById('nSAT').value)||null,
+    act:parseInt(document.getElementById('nACT').value)||null,
+    major:document.getElementById('nMajor').value||'Undecided',
+    tier:document.getElementById('nTier').value,
+    hook:document.getElementById('nHook').value,
+    activities:document.getElementById('nECs').value||'',
+    meetings:document.getElementById('nNotes').value?[{date:new Date().toISOString().split('T')[0],content:document.getElementById('nNotes').value,tag:'General'}]:[],
+    color:COLORS[students.length%COLORS.length],
+    transcript:[],essays:[],deadlines:[],todos:[],activitiesList:[],
+    ownerId: fbCurrentUser.uid,
+    sharedWith: [],
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    updatedBy: fbCurrentUser.email
+  };
+  closeMo('moAddStudent');
   ['nFN','nLN','nGPA','nSAT','nACT','nMajor','nECs','nNotes'].forEach(id=>document.getElementById(id).value='');
-  if(fbDb){saveStudentToFirestore(s,true);logActivity(`added student <strong>${fn} ${ln}</strong>`);}
-  renderSidebar();renderDashboard();populateDropdowns();updateUrgBadge();openProfile(s.id);
+  try{
+    await fbDb.collection('students').doc(docId).set(data);
+    console.log('[addStudent] ✅ Saved to Firestore | docId:',docId,'| ownerId:',data.ownerId);
+    logActivity(`added student <strong>${fn} ${ln}</strong>`);
+    // UI update is handled by onSnapshot in subscribeStudents() — no local push needed
+  }catch(e){
+    console.error('[addStudent] ❌ Firestore write FAILED | code:',e.code,'| message:',e.message);
+    alert(`保存失败: ${e.message}\n\n请检查浏览器控制台获取详细错误。`);
+  }
 }
 
 let _editStudentId = null;
