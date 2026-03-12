@@ -4004,40 +4004,48 @@ async function sendInvitation(sid){
     const fromName=fbCurrentUser?.displayName||fbCurrentUser?.email||'Your colleague';
 
     if(fbDb&&fbCurrentUser){
-      // Try to find invitee's UID via 3 sources (in order of likely Firestore rule access):
-      // 1. allConsultants cache (populated by /users onSnapshot)
-      // 2. Direct /users query by email
-      // 3. /presence query by email (presence is readable by all auth users for "who's online")
-      let knownUser = allConsultants.find(c=>c.email&&c.email.toLowerCase()===toEmail);
+      console.log('🚀 [DEBUG] sendInvitation START — toEmail:', toEmail, '| senderUID:', fbCurrentUser.uid, '| studentId:', sid);
+      console.log('🚀 [DEBUG] allConsultants cache size:', allConsultants.length, '| emails:', allConsultants.map(c=>c.email));
+
+      // ── Step 1: Find recipient UID (3 sources) ──
+      let knownUser = allConsultants.find(c=>c.email&&c.email.toLowerCase().trim()===toEmail);
+      console.log('🚀 [DEBUG] Step1a allConsultants lookup:', knownUser ? `✅ found uid=${knownUser.uid}` : '❌ not found');
+
       if(!knownUser){
         try{
+          console.log('🚀 [DEBUG] Step1b querying /users where email==', toEmail);
           const snap=await fbDb.collection('users').where('email','==',toEmail).limit(1).get();
-          if(!snap.empty) knownUser=snap.docs[0].data();
-        }catch(e){ console.warn('[Share] /users email lookup blocked:',e.code); }
-      }
-      if(!knownUser){
-        try{
-          const snap=await fbDb.collection('presence').where('email','==',toEmail).limit(1).get();
-          if(!snap.empty) knownUser=snap.docs[0].data();
-        }catch(e){ console.warn('[Share] /presence email lookup blocked:',e.code); }
+          console.log('🚀 [DEBUG] Step1b /users result: empty=', snap.empty, '| size=', snap.size);
+          if(!snap.empty){ knownUser=snap.docs[0].data(); console.log('🚀 [DEBUG] Step1b found uid=', knownUser.uid); }
+        }catch(e){ console.warn('🚀 [DEBUG] Step1b /users query BLOCKED:', e.code, e.message); }
       }
 
+      if(!knownUser){
+        try{
+          console.log('🚀 [DEBUG] Step1c querying /presence where email==', toEmail);
+          const snap=await fbDb.collection('presence').where('email','==',toEmail).limit(1).get();
+          console.log('🚀 [DEBUG] Step1c /presence result: empty=', snap.empty);
+          if(!snap.empty){ knownUser=snap.docs[0].data(); console.log('🚀 [DEBUG] Step1c found uid=', knownUser.uid); }
+        }catch(e){ console.warn('🚀 [DEBUG] Step1c /presence query BLOCKED:', e.code, e.message); }
+      }
+
+      console.log('🚀 [DEBUG] UID lookup result:', knownUser ? `✅ knownUser uid=${knownUser.uid} name=${knownUser.name}` : '❌ UNKNOWN USER — will use email-only invite path');
+
       if(knownUser){
-        // Direct share: add their UID to sharedWith + embed notification in student doc
-        // (embedding avoids Firestore rules blocking writes to /invitations collection)
+        // ── Step 2: Update student doc (sharedWith + _shareNotifs) ──
         const sw = [...new Set([...(s.sharedWith||[]), knownUser.uid])];
         s.sharedWith = sw;
         const newNotif = {toUid:knownUser.uid, toEmail, fromUid:fbCurrentUser.uid, fromName, status:'pending', createdAt:Date.now()};
         const cleanNotifs = (s._shareNotifs||[]).filter(n=>!(n.toUid===knownUser.uid&&n.status==='pending'));
         s._shareNotifs = [...cleanNotifs, newNotif];
-        // Single atomic update: sharedWith access + embedded notification
+        console.log('🚀 [DEBUG] Step2 updating student doc — sharedWith:', sw, '| _shareNotifs count:', s._shareNotifs.length);
         await fbDb.collection('students').doc(String(s.id)).update({
           sharedWith: sw,
           _shareNotifs: s._shareNotifs
         });
-        // Write to recipient's OWN inbox subcollection — they can always read their own data.
-        // Pattern from inbox architecture: anyone can write to someone's inbox,
-        // only the owner can read it. Works even with strict per-user Firestore rules.
+        console.log('🚀 [DEBUG] Step2 ✅ student doc updated');
+
+        // ── Step 3: Write to recipient inbox ──
         const inboxData = {
           studentId:s.id, studentName:`${s.firstName} ${s.lastName}`,
           fromUid:fbCurrentUser.uid, fromName,
@@ -4045,24 +4053,31 @@ async function sendInvitation(sid){
           toEmail, toUid:knownUser.uid, status:'pending',
           createdAt:firebase.firestore.FieldValue.serverTimestamp(),
         };
-        // Await inbox write — this is the primary real-time delivery channel to Chloe
+        const inboxPath = `/users/${knownUser.uid}/inbox`;
+        console.log('🚀 [DEBUG] Step3 writing to inbox path:', inboxPath);
         try{
-          await fbDb.collection('users').doc(knownUser.uid).collection('inbox').add(inboxData);
-          console.log('[Share] ✅ Inbox notification written to /users/'+knownUser.uid+'/inbox');
+          const inboxRef = await fbDb.collection('users').doc(knownUser.uid).collection('inbox').add(inboxData);
+          console.log('🚀 [DEBUG] Step3 ✅ inbox write SUCCESS — docId:', inboxRef.id, '| full path:', inboxPath+'/'+inboxRef.id);
         }catch(err){
-          console.warn('[Share] ⚠️ inbox write blocked:', err.code, err.message, '— _shareNotifs fallback is active');
+          console.error('🚀 [DEBUG] Step3 ❌ inbox write FAILED:', err.code, err.message);
         }
-        // Also write to /invitations as secondary fallback (for toUid query in subscribeInvitations)
+
+        // ── Step 4: Write to /invitations (secondary fallback for toUid listener) ──
+        console.log('🚀 [DEBUG] Step4 writing to /invitations (secondary fallback)');
         fbDb.collection('invitations').add(inboxData)
-          .catch(err=>console.warn('[Share] /invitations write blocked:', err.code));
+          .then(r=>console.log('🚀 [DEBUG] Step4 ✅ /invitations write SUCCESS — docId:', r.id))
+          .catch(err=>console.warn('🚀 [DEBUG] Step4 ❌ /invitations write FAILED:', err.code));
+
         logActivity(`shared <strong>${s.firstName} ${s.lastName}</strong>'s profile with <em>${toEmail}</em>`);
         firestoreOk = true;
         input.value='';
         setBtnState('✓ Shared!',false,'#2a7a4b','#fff');
         setFeedback(`✅ <strong>${knownUser.name||toEmail}</strong> now has access — they'll see a 🔔 notification.`,'#1a6b3a');
         setTimeout(()=>{ resetBtn(); renderShareModal(s); }, 2500);
+        console.log('🚀 [DEBUG] sendInvitation COMPLETE (known user path)');
       } else {
-        // User not yet registered — write invitation for when they first log in
+        // ── Unknown user path: email-only invite ──
+        console.log('🚀 [DEBUG] UNKNOWN USER PATH — writing email-only invite to /invitations');
         firestoreOk=true;
         input.value='';
         setBtnState('✓ Sent!',false,'#2a7a4b','#fff');
@@ -4070,7 +4085,6 @@ async function sendInvitation(sid){
         setTimeout(resetBtn,3500);
         logActivity(`invited <em>${toEmail}</em> to collaborate on <strong>${s.firstName} ${s.lastName}</strong>`);
 
-        // Show optimistic pending row
         const pendingEl=document.getElementById('pendingInviteSection');
         if(pendingEl&&!pendingEl.querySelector(`[data-email="${toEmail}"]`)){
           if(!pendingEl.children.length)
@@ -4084,10 +4098,10 @@ async function sendInvitation(sid){
           </div>`;
         }
 
-        // Try to find recipient UID via name fuzzy-match (handles null-email users already in the system)
         const un = toEmail.split('@')[0].replace(/[._-]/g,' ').toLowerCase().replace(/\s+/g,'');
         const fuzzyUser = (allConsultants||[]).find(c=>c.uid&&!c.email&&(c.name||'').toLowerCase().replace(/\s+/g,'').includes(un));
         const toUid = fuzzyUser?.uid || null;
+        console.log('🚀 [DEBUG] fuzzy UID match:', toUid||'null — no inbox write possible');
 
         const inviteDoc = {
           studentId:s.id, studentName:`${s.firstName} ${s.lastName}`,
@@ -4098,16 +4112,18 @@ async function sendInvitation(sid){
         };
 
         try{
-          await fbDb.collection('invitations').add(inviteDoc);
-          // Also write to recipient inbox if we found their UID — works even without email
+          const invRef = await fbDb.collection('invitations').add(inviteDoc);
+          console.log('🚀 [DEBUG] ✅ /invitations doc written — docId:', invRef.id, '| toEmail:', toEmail, '| toUid:', toUid);
           if(toUid){
             fbDb.collection('users').doc(toUid).collection('inbox').add(inviteDoc)
-              .catch(e=>console.warn('[Share] inbox write blocked:',e.code));
+              .then(r=>console.log('🚀 [DEBUG] ✅ inbox written via fuzzy uid — docId:', r.id))
+              .catch(e=>console.warn('🚀 [DEBUG] ❌ inbox write (fuzzy) blocked:', e.code));
           }
         }catch(err){
-          console.error('Firestore invite write failed:',err);
+          console.error('🚀 [DEBUG] ❌ /invitations write FAILED:', err.code, err.message);
           setFeedback(`⚠️ Invite sent but notification failed: ${err.message}. Update Firestore rules to fix.`,'#c0392b');
         }
+        console.log('🚀 [DEBUG] sendInvitation COMPLETE (unknown user path)');
       }
     } else {
       resetBtn();
