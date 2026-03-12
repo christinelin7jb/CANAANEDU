@@ -3505,6 +3505,19 @@ async function initFirebase(cfg){
     fbAuth.onAuthStateChanged(user=>{
       if(user){
         fbCurrentUser = user;
+        // Always upsert user doc immediately on any auth state change
+        // (handles users who logged in before registerUserProfile existed)
+        const emailLower = (user.email||'').toLowerCase().trim();
+        fbDb.collection('users').doc(user.uid).set({
+          uid: user.uid,
+          name: user.displayName || emailLower,
+          email: emailLower,
+          photo: user.photoURL || null,
+          initial: (user.displayName||emailLower||'?')[0].toUpperCase(),
+          color: COLORS[Math.abs(hashStr(user.uid)) % COLORS.length],
+        }, {merge:true}).then(()=>{
+          console.log('[Auth] ✅ /users doc upserted for', emailLower, '| uid:', user.uid);
+        }).catch(e=>console.warn('[Auth] /users upsert failed:', e.code));
         onSignedIn(user);
       } else {
         document.getElementById('authScreen').style.display='flex';
