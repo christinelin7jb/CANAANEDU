@@ -3298,64 +3298,43 @@ Rules:
 // STUDENT CRUD
 // ══════════════════════════════════════════════════════
 async function addStudent(){
-  console.log('🚨 SAVE BUTTON CLICKED! addStudent() triggered.');
   const fn=document.getElementById('nFN').value.trim(),ln=document.getElementById('nLN').value.trim();
-  console.log('[addStudent] fn=',JSON.stringify(fn),'ln=',JSON.stringify(ln));
-  if(!fn||!ln){
-    console.warn('[addStudent] ⚠️ Validation failed — missing first or last name. fn:',JSON.stringify(fn),'ln:',JSON.stringify(ln));
-    alert('请填写学生的姓（Last Name）和名（First Name）后再保存。');
-    return;
-  }
-  if(!fbDb||!fbCurrentUser){
-    console.error('[addStudent] ❌ Not connected — fbDb:',!!fbDb,'fbCurrentUser:',!!fbCurrentUser);
-    alert('未连接数据库，请先登录。');return;
-  }
-  console.log('[addStudent] Checks passed. Writing to Firestore...');
-  const docId = String(Date.now());
-
-  // 强制排雷：过滤掉所有可能的 undefined
-  const userEmail = fbCurrentUser.email || "no-email@test.com";
-
-  const data = {
-    id: docId,
-    firstName: fn,
-    lastName: ln,
-    grade: parseInt(document.getElementById('nGrade').value) || 0,
-    gpa: parseFloat(document.getElementById('nGPA').value) || null,
-    sat: parseInt(document.getElementById('nSAT').value) || null,
-    act: parseInt(document.getElementById('nACT').value) || null,
-    major: document.getElementById('nMajor').value || 'Undecided',
-    tier: document.getElementById('nTier').value || '',
-    hook: document.getElementById('nHook').value || '',
-    activities: document.getElementById('nECs').value || '',
-    color: '#3182ce',
-    transcript: [], essays: [], deadlines: [], todos: [], activitiesList: [],
-    ownerId: fbCurrentUser.uid,
-    sharedWith: [],
-    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-    updatedBy: userEmail
+  if(!fn||!ln){ alert('请填写学生的姓（Last Name）和名（First Name）后再保存。'); return; }
+  if(!fbDb||!fbCurrentUser){ alert('未连接数据库，请先登录。'); return; }
+  const docId=String(Date.now());
+  const userEmail=fbCurrentUser.email||'unknown@consultant';
+  const data={
+    id:docId,
+    firstName:fn,lastName:ln,
+    grade:parseInt(document.getElementById('nGrade').value)||9,
+    gpa:parseFloat(document.getElementById('nGPA').value)||null,
+    sat:parseInt(document.getElementById('nSAT').value)||null,
+    act:parseInt(document.getElementById('nACT').value)||null,
+    major:document.getElementById('nMajor').value||'Undecided',
+    tier:document.getElementById('nTier').value||'t50',
+    hook:document.getElementById('nHook').value||'None',
+    activities:document.getElementById('nECs').value||'',
+    meetings:document.getElementById('nNotes').value?[{date:new Date().toISOString().split('T')[0],content:document.getElementById('nNotes').value,tag:'General'}]:[],
+    color:COLORS[students.length%COLORS.length],
+    transcript:[],essays:[],deadlines:[],todos:[],activitiesList:[],
+    ownerId:fbCurrentUser.uid,
+    sharedWith:[],
+    createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+    updatedAt:firebase.firestore.FieldValue.serverTimestamp(),
+    updatedBy:userEmail
   };
-
-  console.log("🔥 Prepared Data:", data);
-
-  // 暂时注释掉，防止干扰页面状态
-  // closeMo('moAddStudent');
-  // ['nFN','nLN','nGPA','nSAT','nACT','nMajor','nECs','nNotes'].forEach(id=>document.getElementById(id).value='');
-
-  try {
-    console.log("🔥 发送请求中...开始倒计时 5 秒");
-    const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("TIMEOUT_HANG")), 5000));
-    const writeTask = fbDb.collection('students').doc(docId).set(data);
-    await Promise.race([writeTask, timeout]);
-    console.log('✅ Saved successfully to server!');
-    alert("写入成功！");
-  } catch(e) {
-    if (e.message === "TIMEOUT_HANG") {
-      console.error('❌ [死机确诊] 请求卡死了 5 秒！Firestore 没报错但也没发送，说明网络层被劫持或断开了。');
-    } else {
-      console.error('❌ Firestore 抛出真实报错:', e.message);
-    }
+  // Optimistically update UI immediately; Firestore syncs in background
+  students.push({...data,id:docId,todos:[],essays:[],transcript:[],activitiesList:[],meetings:data.meetings||[],sharedWith:[]});
+  closeMo('moAddStudent');
+  ['nFN','nLN','nGPA','nSAT','nACT','nMajor','nECs','nNotes'].forEach(id=>document.getElementById(id).value='');
+  renderSidebar(); renderDashboard(); populateDropdowns(); updateUrgBadge();
+  openProfile(docId);
+  try{
+    await fbDb.collection('students').doc(docId).set(data);
+    logActivity(`added student <strong>${fn} ${ln}</strong>`);
+  }catch(e){
+    console.error('[addStudent] Firestore write failed:',e.code,e.message);
+    alert(`学生已在本地添加，但同步失败: ${e.message}`);
   }
 }
 
