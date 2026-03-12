@@ -3656,42 +3656,37 @@ function subscribeUsers(){
 }
 
 // ── Students sync ──
-// Uses two parallel queries to handle all Firestore rule configurations:
-//   1. Blanket query — returns docs accessible per current rules (e.g., null-ownerId seeded data)
-//   2. sharedWith query — returns docs explicitly shared with this user
-// Results are merged and deduplicated. This makes the system work regardless of
-// whether Firestore rules use blanket auth or per-doc ownership checks.
+// Two parallel queries matching the strict Firestore security rules:
+//   1. ownedDocs  — students where ownerId == current user's uid
+//   2. sharedDocs — students where sharedWith array contains current user's uid
+// Results are merged and deduplicated.
 function subscribeStudents(){
   setSyncStatus('connecting');
   const uid = fbCurrentUser?.uid || '';
-  let blanketDocs = null, sharedDocs = null, seeded = false;
+  let ownedDocs = null, sharedDocs = null;
 
   function tryMerge(){
-    if(blanketDocs === null || sharedDocs === null) return; // wait for both
+    if(ownedDocs === null || sharedDocs === null) return;
     setSyncStatus('live');
     const seen = new Set();
-    const all = [...blanketDocs, ...sharedDocs].filter(d=>{
+    const all = [...ownedDocs, ...sharedDocs].filter(d=>{
       const k = d._docId; if(seen.has(k)) return false; seen.add(k); return true;
     }).sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
     _applyStudents(all);
   }
 
-  // Query 1: Blanket — all docs this user can read per Firestore rules
-  const u1 = fbDb.collection('students').orderBy('createdAt','asc')
+  // Query 1: Students owned by this user
+  const u1 = fbDb.collection('students').where('ownerId','==',uid)
     .onSnapshot(snap=>{
-      blanketDocs = snap.docs.map(d=>({...d.data(),_docId:d.id}));
+      ownedDocs = snap.docs.map(d=>({...d.data(),_docId:d.id}));
       tryMerge();
     }, err=>{
-      console.error('[Students] blanket query error:', err.code, err.message);
-      if(blanketDocs === null) blanketDocs = [];
+      console.error('[Students] owned query error:', err.code, err.message);
+      if(ownedDocs === null) ownedDocs = [];
       setSyncStatus('offline'); tryMerge();
     });
 
   // Query 2: Students explicitly shared with this user
-  // Catches docs with ownerId set that strict Firestore rules filter from blanket query.
-  // NOTE: This query only returns docs if Firestore rules allow reads by sharedWith members.
-  // If it returns 0 despite docs existing, update Firestore rules to:
-  //   allow read, write: if request.auth != null;
   const u2 = fbDb.collection('students').where('sharedWith','array-contains',uid)
     .onSnapshot(snap=>{
       sharedDocs = snap.docs.map(d=>({...d.data(),_docId:d.id}));
