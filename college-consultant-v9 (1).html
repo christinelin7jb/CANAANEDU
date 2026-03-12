@@ -3143,37 +3143,54 @@ function subscribeUsers(){
 // ── Students sync ──
 function subscribeStudents(){
   setSyncStatus('connecting');
-  _unsubStudents = fbDb.collection('students')
-    .orderBy('createdAt','asc')
-    .onSnapshot(snap=>{
-      setSyncStatus('live');
-      // Merge remote data into local students array
-      const remote = snap.docs.map(d=>({...d.data(), _docId:d.id}));
-      if(remote.length === 0){
-        // First run — seed demo data to Firestore
-        seedToFirestore();
-      } else {
-        // Filter to only students this consultant owns or has been shared with
-        const uid = fbCurrentUser?.uid;
-        const visible = remote.filter(r=>{
-          if(!r.ownerId) return true; // legacy docs visible to all
-          if(r.ownerId === uid) return true;
-          if((r.sharedWith||[]).includes(uid)) return true;
-          return false;
-        });
-        students = visible.map(r=>deserializeStudent(r));
-        globalDeadlines = [];
-        students.forEach(s=>(s._deadlines||[]).forEach(d=>globalDeadlines.push({...d,studentId:s.id})));
-        renderSidebar(); renderDashboard(); renderEssayTracker(); populateDropdowns(); updateUrgBadge();
-        if(currentStudentId){
-          const s=students.find(x=>x.id===currentStudentId);
-          if(s) renderOverview(s);
-        }
+  const uid = fbCurrentUser?.uid || '';
+  let ownedDocs = null, sharedDocs = null;
+
+  function applyMerged(){
+    if(ownedDocs === null || sharedDocs === null) return; // wait for both queries
+    setSyncStatus('live');
+    const seen = new Set();
+    const remote = [...ownedDocs, ...sharedDocs]
+      .filter(d=>{ if(seen.has(d._docId)) return false; seen.add(d._docId); return true; })
+      .sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
+    if(remote.length === 0){
+      // First-time user — seed demo data
+      seedToFirestore();
+    } else {
+      students = remote.map(r=>deserializeStudent(r));
+      globalDeadlines = [];
+      students.forEach(s=>(s._deadlines||[]).forEach(d=>globalDeadlines.push({...d,studentId:s.id})));
+      renderSidebar(); renderDashboard(); renderEssayTracker(); populateDropdowns(); updateUrgBadge();
+      if(currentStudentId){
+        const s=students.find(x=>x.id===currentStudentId);
+        if(s) renderOverview(s);
       }
+    }
+  }
+
+  // Query 1: students this user owns (matches rule: ownerId == request.auth.uid)
+  const u1 = fbDb.collection('students').where('ownerId','==',uid)
+    .onSnapshot(snap=>{
+      ownedDocs = snap.docs.map(d=>({...d.data(),_docId:d.id}));
+      applyMerged();
     }, err=>{
-      setSyncStatus('offline');
-      console.error('Firestore error:', err);
+      console.error('[Students] owned query error:', err.code, err.message);
+      if(ownedDocs === null) ownedDocs = [];
+      setSyncStatus('offline'); applyMerged();
     });
+
+  // Query 2: students shared with this user (matches rule: uid in sharedWith)
+  const u2 = fbDb.collection('students').where('sharedWith','array-contains',uid)
+    .onSnapshot(snap=>{
+      sharedDocs = snap.docs.map(d=>({...d.data(),_docId:d.id}));
+      applyMerged();
+    }, err=>{
+      console.error('[Students] sharedWith query error:', err.code, err.message);
+      if(sharedDocs === null) sharedDocs = [];
+      applyMerged();
+    });
+
+  _unsubStudents = ()=>{ [u1,u2].forEach(u=>{ try{u();}catch(e){} }); };
 }
 
 function subscribeDeadlines(){
