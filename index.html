@@ -3353,9 +3353,10 @@ Rules:
 function addStudent(){
   const fn=document.getElementById('nFN').value.trim(),ln=document.getElementById('nLN').value.trim();
   if(!fn||!ln)return;
-  const s={id:Date.now(),firstName:fn,lastName:ln,grade:parseInt(document.getElementById('nGrade').value),gpa:parseFloat(document.getElementById('nGPA').value)||null,sat:parseInt(document.getElementById('nSAT').value)||null,act:parseInt(document.getElementById('nACT').value)||null,major:document.getElementById('nMajor').value||'Undecided',tier:document.getElementById('nTier').value,hook:document.getElementById('nHook').value,activities:document.getElementById('nECs').value||'',meetings:document.getElementById('nNotes').value?[{date:new Date().toISOString().split('T')[0],content:document.getElementById('nNotes').value,tag:'General'}]:[],color:COLORS[students.length%COLORS.length],transcript:[],essays:[],deadlines:[]};
+  const s={id:Date.now(),firstName:fn,lastName:ln,grade:parseInt(document.getElementById('nGrade').value),gpa:parseFloat(document.getElementById('nGPA').value)||null,sat:parseInt(document.getElementById('nSAT').value)||null,act:parseInt(document.getElementById('nACT').value)||null,major:document.getElementById('nMajor').value||'Undecided',tier:document.getElementById('nTier').value,hook:document.getElementById('nHook').value,activities:document.getElementById('nECs').value||'',meetings:document.getElementById('nNotes').value?[{date:new Date().toISOString().split('T')[0],content:document.getElementById('nNotes').value,tag:'General'}]:[],color:COLORS[students.length%COLORS.length],transcript:[],essays:[],deadlines:[],todos:[],activitiesList:[],ownerId:fbCurrentUser?.uid||null,sharedWith:[]};
   students.push(s);closeMo('moAddStudent');
   ['nFN','nLN','nGPA','nSAT','nACT','nMajor','nECs','nNotes'].forEach(id=>document.getElementById(id).value='');
+  if(fbDb){saveStudentToFirestore(s,true);logActivity(`added student <strong>${fn} ${ln}</strong>`);}
   renderSidebar();renderDashboard();populateDropdowns();updateUrgBadge();openProfile(s.id);
 }
 
