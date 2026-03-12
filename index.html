@@ -3635,15 +3635,17 @@ let allConsultants = []; // all known consultants incl. current user
 
 async function registerUserProfile(user){
   try{
+    const emailLower = (user.email||'').toLowerCase().trim();
     await fbDb.collection('users').doc(user.uid).set({
       uid: user.uid,
-      name: user.displayName || user.email,
-      email: user.email,
+      name: user.displayName || emailLower,
+      email: emailLower,   // always lowercase — required for sendInvitation lookup
       photo: user.photoURL || null,
-      initial: (user.displayName||user.email||'?')[0].toUpperCase(),
+      initial: (user.displayName||emailLower||'?')[0].toUpperCase(),
       color: COLORS[Math.abs(hashStr(user.uid)) % COLORS.length],
     }, {merge:true});
-  }catch(e){ console.warn('registerUserProfile:', e); }
+    console.log('[Auth] ✅ registerUserProfile uid=', user.uid, 'email=', emailLower);
+  }catch(e){ console.warn('registerUserProfile failed:', e); }
 }
 
 function subscribeUsers(){
@@ -3812,18 +3814,23 @@ function subscribeInvitations(){
 
   const unsubList = [];
 
-  // Source 1a: /invitations by toEmail (only if email is available)
+  // Source 1a: /invitations by toEmail — fallback when UID lookup fails
   if(myEmail){
+    console.log('[Notif] 🔔 subscribing /invitations where toEmail==', myEmail);
     const u1 = fbDb.collection('invitations')
       .where('toEmail','==',myEmail)
       .onSnapshot(snap=>{
         fromByEmail = snap.docs.map(d=>({id:d.id,...d.data()}));
+        const pending = fromByEmail.filter(d=>d.status==='pending');
+        console.log('[Notif] 🔔 /invitations toEmail snapshot — total:', snap.size, '| pending:', pending.length, '| docs:', pending.map(d=>d.studentName+'('+d.fromName+')'));
         mergeAndRender();
       }, err=>{
-        console.warn('[Notif] /invitations email query blocked:', err.code);
+        console.warn('[Notif] ❌ /invitations email query blocked:', err.code, err.message);
         mergeAndRender();
       });
     unsubList.push(u1);
+  } else {
+    console.warn('[Notif] ⚠️ myEmail is empty — Source 1a skipped, only UID+inbox paths active');
   }
 
   // Source 1b: /invitations by toUid (handles null-email users)
