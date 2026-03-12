@@ -3800,12 +3800,13 @@ function subscribeInvitations(){
   let fromByEmail = [], fromByUid = [], fromInbox = [];
   function mergeAndRender(){
     const seen = new Set();
-    const all = [...fromByEmail, ...fromByUid, ...fromInbox].filter(d=>{
-      const k = `${d.studentId}_${d.fromUid}`;
-      if(seen.has(k)) return false; seen.add(k); return true;
-    }).filter(d=>d.status==='pending');
-    _pendingInvites = all;
-    updateNotifBadge(all.length);
+    const fromSources = [...fromByEmail, ...fromByUid, ...fromInbox]
+      .filter(d=>{ const k=`${d.studentId}_${d.fromUid}`; if(seen.has(k))return false; seen.add(k); return true; })
+      .filter(d=>d.status==='pending');
+    // Preserve _embedded entries (from _detectShareNotifs/_shareNotifs) not already covered by a server source
+    const preserved = _pendingInvites.filter(i=>i._embedded && !seen.has(`${i.studentId}_${i.fromUid}`));
+    _pendingInvites = [...fromSources, ...preserved];
+    updateNotifBadge(_pendingInvites.length);
     renderNotifList();
   }
 
@@ -4044,12 +4045,16 @@ async function sendInvitation(sid){
           toEmail, toUid:knownUser.uid, status:'pending',
           createdAt:firebase.firestore.FieldValue.serverTimestamp(),
         };
-        fbDb.collection('users').doc(knownUser.uid).collection('inbox').add(inboxData)
-          .then(()=>console.log('[Share] ✅ Inbox notification written to /users/'+knownUser.uid+'/inbox'))
-          .catch(err=>console.warn('[Share] /users/{uid}/inbox write blocked:', err.code));
-        // Also attempt top-level /invitations write as secondary fallback
+        // Await inbox write — this is the primary real-time delivery channel to Chloe
+        try{
+          await fbDb.collection('users').doc(knownUser.uid).collection('inbox').add(inboxData);
+          console.log('[Share] ✅ Inbox notification written to /users/'+knownUser.uid+'/inbox');
+        }catch(err){
+          console.warn('[Share] ⚠️ inbox write blocked:', err.code, err.message, '— _shareNotifs fallback is active');
+        }
+        // Also write to /invitations as secondary fallback (for toUid query in subscribeInvitations)
         fbDb.collection('invitations').add(inboxData)
-          .catch(err=>console.warn('[Share] /invitations write blocked (Firestore rules):', err.code));
+          .catch(err=>console.warn('[Share] /invitations write blocked:', err.code));
         logActivity(`shared <strong>${s.firstName} ${s.lastName}</strong>'s profile with <em>${toEmail}</em>`);
         firestoreOk = true;
         input.value='';
@@ -4159,10 +4164,11 @@ async function acceptInvitation(inviteId, studentId, fromName){
   try{
     const s=students.find(x=>x.id==studentId);
     const uid=fbCurrentUser.uid;
-    const sw=s?[...(s.sharedWith||[]),uid]:[uid];
-    const uniqueSw=[...new Set(sw)];
-    if(s){ s.sharedWith=uniqueSw; }
-    const updates=[fbDb.collection('students').doc(String(studentId)).update({sharedWith:uniqueSw})];
+    // Use arrayUnion — safe atomic add, never overwrites other UIDs in the array
+    if(s){ s.sharedWith=[...new Set([...(s.sharedWith||[]),uid])]; }
+    const updates=[fbDb.collection('students').doc(String(studentId)).update({
+      sharedWith: firebase.firestore.FieldValue.arrayUnion(uid)
+    })];
     if(inviteId.startsWith('inbox_')){
       // From own inbox subcollection
       const realId=inviteId.slice(6);
