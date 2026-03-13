@@ -3030,21 +3030,21 @@ function todoCard(t, sid) {
 }
 
 function toggleTodo(sid, tid) {
-  const s = students.find(x => x.id === sid); if (!s) return;
-  const t = (s.todos||[]).find(x => x.id === tid); if (!t) return;
+  const s = students.find(x => x.id == sid); if (!s) return;
+  const t = (s.todos||[]).find(x => x.id == tid); if (!t) return;
   t.done = !t.done;
   t.completedAt = t.done ? new Date().toISOString().split('T')[0] : null;
   renderTodos(s);
 }
 
 function deleteTodo(sid, tid) {
-  const s = students.find(x => x.id === sid); if (!s) return;
-  s.todos = (s.todos||[]).filter(x => x.id !== tid);
+  const s = students.find(x => x.id == sid); if (!s) return;
+  s.todos = (s.todos||[]).filter(x => x.id != tid);
   renderTodos(s);
 }
 
 function clearCompleted(sid) {
-  const s = students.find(x => x.id === sid); if (!s) return;
+  const s = students.find(x => x.id == sid); if (!s) return;
   if (!confirm('Remove all completed tasks?')) return;
   s.todos = (s.todos||[]).filter(t => !t.done);
   renderTodos(s);
@@ -3075,8 +3075,8 @@ function openAddTodo(sid) {
 }
 
 function editTodo(sid, tid) {
-  const s = students.find(x => x.id === sid); if (!s) return;
-  const t = (s.todos||[]).find(x => x.id === tid); if (!t) return;
+  const s = students.find(x => x.id == sid); if (!s) return;
+  const t = (s.todos||[]).find(x => x.id == tid); if (!t) return;
   _todoSid = sid; _todoEditId = tid;
   document.getElementById('todoModalTitle').textContent = 'Edit Task';
   document.getElementById('todoText').value = t.text;
