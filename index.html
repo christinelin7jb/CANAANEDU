@@ -3030,17 +3030,23 @@ function todoCard(t, sid) {
 }
 
 function toggleTodo(sid, tid) {
-  const s = students.find(x => x.id == sid); if (!s) return;
-  const t = (s.todos||[]).find(x => x.id == tid); if (!t) return;
+  console.log('[toggleTodo] called sid=', sid, typeof sid, 'tid=', tid, typeof tid);
+  const s = students.find(x => { console.log('  check id=', x.id, typeof x.id, '==', sid, '→', x.id == sid); return x.id == sid; });
+  if (!s) { console.error('[toggleTodo] student NOT FOUND, sid=', sid, 'students ids=', students.map(x=>x.id)); return; }
+  const t = (s.todos||[]).find(x => x.id == tid);
+  if (!t) { console.error('[toggleTodo] todo NOT FOUND, tid=', tid, 'todos ids=', (s.todos||[]).map(x=>x.id)); return; }
   t.done = !t.done;
   t.completedAt = t.done ? new Date().toISOString().split('T')[0] : null;
-  renderTodos(s);
+  try { renderTodos(s); } catch(e) { console.error('[toggleTodo] renderTodos threw:', e); }
 }
 
 function deleteTodo(sid, tid) {
-  const s = students.find(x => x.id == sid); if (!s) return;
+  console.log('[deleteTodo] called sid=', sid, typeof sid, 'tid=', tid, typeof tid);
+  const s = students.find(x => x.id == sid);
+  if (!s) { console.error('[deleteTodo] student NOT FOUND, sid=', sid, 'students ids=', students.map(x=>x.id)); return; }
   s.todos = (s.todos||[]).filter(x => x.id != tid);
-  renderTodos(s);
+  try { renderTodos(s); } catch(e) { console.error('[deleteTodo] renderTodos threw:', e); }
+  if(fbDb) saveStudentToFirestore(s);
 }
 
 function clearCompleted(sid) {
