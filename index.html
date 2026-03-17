@@ -1337,7 +1337,8 @@ function renderDashboard(){
 
   // Upcoming deadlines
   const now=new Date(),cutoff=new Date();cutoff.setDate(cutoff.getDate()+30);
-  const soon=globalDeadlines.filter(d=>!d.done&&new Date(d.date)>=now&&new Date(d.date)<=cutoff).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,5);
+  const todayStart=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const soon=globalDeadlines.filter(d=>!d.done&&new Date(d.date+'T00:00:00')>=todayStart&&new Date(d.date+'T00:00:00')<=cutoff).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,5);
   document.getElementById('upcomingDeadlines').innerHTML=soon.length?soon.map(d=>{
     const s=students.find(x=>x.id==d.studentId);
     const days=daysUntil(d.date);
@@ -1516,8 +1517,8 @@ function addDeadline(){
   const effectiveSid=(sidRaw&&sidRaw!=='all')?sidRaw:(_dlStudentId||null);
   const dl={id:Date.now(),studentId:effectiveSid,title,date,type:document.getElementById('dlType').value,notes:document.getElementById('dlNotes').value,done:false};
   globalDeadlines.push(dl);
-  // embed into student._deadlines so it persists via saveStudentToFirestore
-  if(effectiveSid){const s=students.find(x=>x.id==effectiveSid);if(s){if(!s._deadlines)s._deadlines=[];s._deadlines.push({...dl});}}
+  // embed into student._deadlines and save to Firestore immediately
+  if(effectiveSid){const s=students.find(x=>x.id==effectiveSid);if(s){if(!s._deadlines)s._deadlines=[];s._deadlines.push({...dl});saveStudentToFirestore(s);}}
   _dlStudentId=null;
   closeMo('moAddDeadline');['dlTitle','dlNotes'].forEach(id=>document.getElementById(id).value='');
   renderCalendar();renderDashboard();updateUrgBadge();
