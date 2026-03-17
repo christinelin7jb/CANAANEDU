@@ -1524,17 +1524,17 @@ function updateEssayStatus(sid,eid,status){
 }
 function deleteEssay(sid,eid){
   const s=students.find(x=>x.id==sid);if(!s)return;
-  s.essays=(s.essays||[]).filter(x=>x.id!==eid);renderEssayTracker();
-  if(currentStudentId===sid)renderEssayProfile(s);
+  s.essays=(s.essays||[]).filter(x=>x.id!=eid);renderEssayTracker();
+  if(currentStudentId==sid)renderEssayProfile(s);
 }
 function addEssay(){
-  const sid=parseInt(document.getElementById('essStudent').value);const title=document.getElementById('essTitle').value.trim();
+  const sid=document.getElementById('essStudent').value;const title=document.getElementById('essTitle').value.trim();
   if(!title||!sid)return;
   const s=students.find(x=>x.id==sid);if(!s)return;
   if(!s.essays)s.essays=[];
   s.essays.push({id:Date.now(),title,type:document.getElementById('essType').value,school:document.getElementById('essSchool').value,wordLimit:parseInt(document.getElementById('essWords').value)||650,due:document.getElementById('essDue').value,status:'Not Started',drafts:0,lastEdit:'',notes:''});
   closeMo('moAddEssay');['essTitle','essSchool','essWords','essDue'].forEach(id=>document.getElementById(id).value='');
-  renderEssayTracker();if(currentStudentId===sid)renderEssayProfile(s);
+  renderEssayTracker();if(currentStudentId==sid)renderEssayProfile(s);
 }
 
 // ══════════════════════════════════════════════════════
@@ -2242,8 +2242,7 @@ function renderEssayProfile(s){
           <div class="ec" style="font-size:11.5px;color:${e.due&&daysUntil(e.due)<=14?'var(--orange)':'var(--muted)'}">${e.due?formatDate(e.due):'—'}</div>
           <div class="ec" style="font-family:'DM Mono',monospace;font-size:12px">${e.wordLimit||'—'}</div>
           <div class="ec"><button class="del-btn" onclick="deleteEssay(${s.id},${e.id})">✕</button></div>
-        </div>`).join('')}
-        ${e=>e.notes?`<div class="nc" style="margin-top:8px"><div class="nc-date">Notes</div><div class="nc-txt">${e.notes}</div></div>`:''}
+        </div>${e.notes?`<div class="nc" style="margin-top:4px;margin-bottom:6px"><div class="nc-date">Notes</div><div class="nc-txt">${escHtml(e.notes)}</div></div>`:''}`).join('')}
       `:'<p style="color:var(--muted);font-size:12.5px">No essays tracked yet. Click + Add Essay to start.</p>'}
     </div>`;
 }
@@ -4537,6 +4536,19 @@ addDeadline = function(){
   if(s)saveStudentToFirestore(s);
   else saveAllStudentsToFirestore();
   logActivity(`added a deadline`);
+};
+
+const _origAddEssay = addEssay;
+addEssay = function(){
+  _origAddEssay();
+  const sid=document.getElementById('essStudent').value;
+  const s=students.find(x=>x.id==sid); if(s){saveStudentToFirestore(s);logActivity(`added an essay for <strong>${s.firstName} ${s.lastName}</strong>`);}
+};
+
+const _origDeleteEssay = deleteEssay;
+deleteEssay = function(sid,eid){
+  _origDeleteEssay(sid,eid);
+  const s=students.find(x=>x.id==sid); if(s)saveStudentToFirestore(s);
 };
 
 // ── Offline fallback: if Firebase not configured, run local mode ──
