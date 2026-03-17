@@ -522,27 +522,27 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   <!-- ══ COMMAND CENTER ══ -->
   <div class="page active" id="page-dashboard">
     <div class="g4" id="statsGrid" style="margin-bottom:16px"></div>
-    <div class="g2">
+    <div class="g2" style="margin-bottom:16px">
       <div>
-        <div class="card">
-          <div class="card-hd"><span class="ico">🚨</span>Urgent Attention Board</div>
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-hd"><span class="ico">🚨</span>Student Status</div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px" id="urgBoard"></div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><span class="ico">◷</span>Upcoming Deadlines — Next 30 Days</div>
+          <div id="upcomingDeadlines"></div>
         </div>
       </div>
       <div>
         <div class="card">
-          <div class="card-hd"><span class="ico">◷</span>Next 30 Days — Deadlines</div>
-          <div id="upcomingDeadlines"></div>
-        </div>
-        <div class="card">
-          <div class="card-hd"><span class="ico">📊</span>Cohort Grade Distribution</div>
-          <div id="gradeChart"></div>
+          <div class="card-hd"><span class="ico">☑</span>All Students — Open To-Dos</div>
+          <div id="dashTodoBoard"></div>
         </div>
       </div>
     </div>
-    <div class="card">
-      <div class="card-hd" style="justify-content:space-between;display:flex"><span style="display:flex;align-items:center;gap:8px"><span class="ico">⬡</span>All Students — Quick View</span></div>
-      <table class="dt"><thead><tr><th>Student</th><th>Grade</th><th>GPA</th><th>Test</th><th>Urgency</th><th>AG Status</th><th>Essays</th><th>Next Deadline</th><th></th></tr></thead>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-hd"><span class="ico">⬡</span>Student Overview</div>
+      <table class="dt"><thead><tr><th>Student</th><th>Grade</th><th>Status</th><th>Open Tasks</th><th>Next Deadline</th><th>Essays</th><th>A-G</th><th></th></tr></thead>
       <tbody id="dashTableBody"></tbody></table>
     </div>
     <div class="card" id="activityFeedCard">
@@ -1296,15 +1296,15 @@ function renderSidebar(){
 
 function renderDashboard(){
   const total=students.length,seniors=students.filter(s=>s.grade===12).length;
-  const tested=students.filter(s=>s.sat);
-  const avgSat=tested.length?Math.round(tested.reduce((a,s)=>a+s.sat,0)/tested.length):'—';
-  const avgGpa=(students.reduce((a,s)=>a+(parseFloat(s.gpa)||0),0)/total).toFixed(2);
   const urgent=students.filter(s=>getUrgency(s).level==='red').length;
+  const openTodos=students.reduce((a,s)=>(s.todos||[]).filter(t=>!t.done).length+a,0);
+  const now=new Date(),cutoff=new Date();cutoff.setDate(cutoff.getDate()+30);
+  const dlCount=globalDeadlines.filter(d=>!d.done&&new Date(d.date)>=now&&new Date(d.date)<=cutoff).length;
   document.getElementById('statsGrid').innerHTML=`
     <div class="stat"><div class="stat-ico">◎</div><div class="stat-v">${total}</div><div class="stat-l">Total Students</div><div class="stat-s">${seniors} seniors this cycle</div></div>
-    <div class="stat"><div class="stat-ico">⭐</div><div class="stat-v">${avgGpa}</div><div class="stat-l">Avg Cohort GPA</div><div class="stat-s">Unweighted</div></div>
-    <div class="stat"><div class="stat-ico">📊</div><div class="stat-v">${avgSat}</div><div class="stat-l">Avg SAT</div><div class="stat-s">${tested.length} students tested</div></div>
-    <div class="stat" style="--before-bg:var(--red)"><div class="stat-ico">🚨</div><div class="stat-v" style="color:var(--red)">${urgent}</div><div class="stat-l">Need Urgent Attention</div><div class="stat-s">Click to review</div></div>`;
+    <div class="stat"><div class="stat-ico">☑</div><div class="stat-v" style="color:var(--gold)">${openTodos}</div><div class="stat-l">Open To-Dos</div><div class="stat-s">Across all students</div></div>
+    <div class="stat"><div class="stat-ico">◷</div><div class="stat-v" style="color:${dlCount?'var(--orange)':'var(--green)'}">${dlCount}</div><div class="stat-l">Deadlines in 30 Days</div><div class="stat-s">${dlCount?'Needs attention':'All clear'}</div></div>
+    <div class="stat"><div class="stat-ico">🚨</div><div class="stat-v" style="color:${urgent?'var(--red)':'var(--green)'}">${urgent}</div><div class="stat-l">Need Urgent Attention</div><div class="stat-s">${urgent?'Click to review':'All students on track'}</div></div>`;
 
   // Urgency board
   const red=students.filter(s=>getUrgency(s).level==='red');
@@ -1349,33 +1349,60 @@ function renderDashboard(){
     </div>`;
   }).join(''):'<div style="color:var(--muted);font-size:12px;padding:8px">No deadlines in next 30 days</div>';
 
-  // Grade chart
-  const gc={9:0,10:0,11:0,12:0};students.forEach(s=>gc[s.grade]++);
-  document.getElementById('gradeChart').innerHTML=Object.entries(gc).map(([g,c])=>`
-    <div style="margin-bottom:10px">
-      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-        <span style="font-size:11px;color:var(--muted)">Grade ${g}</span>
-        <span style="font-size:11px;font-weight:600;color:var(--text)">${c}</span>
+  // All To-Dos board — grouped by student
+  const PRI_COLOR={high:'var(--red)',med:'var(--orange)',low:'var(--muted)'};
+  const PRI_LABEL={high:'High',med:'Med',low:'Low'};
+  const todoBoardHtml=students.map(s=>{
+    const open=(s.todos||[]).filter(t=>!t.done).sort((a,b)=>{
+      const po={high:0,med:1,low:2};
+      const pd=(po[a.priority]||1)-(po[b.priority]||1);
+      if(pd!==0)return pd;
+      if(a.due&&b.due)return new Date(a.due)-new Date(b.due);
+      return a.due?-1:1;
+    });
+    if(!open.length)return`<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:#f9f9f8;border:1px solid var(--border);border-radius:8px;margin-bottom:7px">
+      <div style="display:flex;align-items:center;gap:8px"><div class="av" style="width:24px;height:24px;font-size:9px;background:${s.color}">${s.firstName[0]}${s.lastName[0]}</div><span style="font-size:12px;font-weight:500">${s.firstName} ${s.lastName}</span></div>
+      <span style="font-size:11px;color:var(--green)">✓ All done</span></div>`;
+    return`<div style="border:1px solid var(--border);border-radius:8px;margin-bottom:10px;overflow:hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#f5f4f0;border-bottom:1px solid var(--border);cursor:pointer" onclick="openProfile(${s.id});switchTab('todos')">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="av" style="width:24px;height:24px;font-size:9px;background:${s.color}">${s.firstName[0]}${s.lastName[0]}</div>
+          <span style="font-size:12.5px;font-weight:600">${s.firstName} ${s.lastName}</span>
+          <span style="font-size:10px;color:var(--muted)">Gr.${s.grade}</span>
+        </div>
+        <span style="font-size:11px;background:rgba(201,168,76,0.15);color:var(--gold);padding:2px 8px;border-radius:20px;font-weight:600">${open.length} open</span>
       </div>
-      <div class="pb"><div class="pf" style="width:${(c/total)*100}%;background:${gradeColor(parseInt(g))}"></div></div>
-    </div>`).join('');
+      ${open.slice(0,4).map(t=>{
+        const days=t.due?daysUntil(t.due):null;
+        const overdue=days!==null&&days<0;
+        const soon=days!==null&&days>=0&&days<=3;
+        return`<div style="display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:1px solid rgba(0,0,0,0.04);background:#fff">
+          <span style="width:6px;height:6px;border-radius:50%;background:${PRI_COLOR[t.priority]||'var(--muted)'};flex-shrink:0"></span>
+          <span style="flex:1;font-size:12px;color:#1a1a1a">${escHtml(t.text)}</span>
+          ${t.category?`<span style="font-size:9px;color:var(--muted);background:#f0f0f0;padding:1px 6px;border-radius:10px">${t.category}</span>`:''}
+          ${days!==null?`<span style="font-size:10px;font-weight:600;color:${overdue?'var(--red)':soon?'var(--orange)':'var(--muted)'}">${overdue?`${Math.abs(days)}d late`:days===0?'Today':`${days}d`}</span>`:''}
+        </div>`;
+      }).join('')}
+      ${open.length>4?`<div style="padding:6px 12px;font-size:11px;color:var(--muted);background:#fff;cursor:pointer" onclick="openProfile(${s.id});switchTab('todos')">+${open.length-4} more tasks →</div>`:''}
+    </div>`;
+  }).join('');
+  document.getElementById('dashTodoBoard').innerHTML=todoBoardHtml||'<div style="color:var(--muted);font-size:12px;padding:8px">No students yet.</div>';
 
   // Main table
   document.getElementById('dashTableBody').innerHTML=students.map(s=>{
     const u=getUrgency(s),ep=essayProgress(s),ag=agPct(s);
     const nextDL=globalDeadlines.filter(d=>d.studentId==s.id&&!d.done&&new Date(d.date)>=new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date))[0];
+    const openTodoCount=(s.todos||[]).filter(t=>!t.done).length;
+    const highPriTodo=(s.todos||[]).filter(t=>!t.done&&t.priority==='high')[0];
     return`<tr class="clickable" onclick="openProfile(${s.id})">
       <td><div style="display:flex;align-items:center;gap:8px"><div class="av" style="width:28px;height:28px;font-size:11px;background:${s.color}">${s.firstName[0]}${s.lastName[0]}</div><div><div style="font-weight:500">${s.firstName} ${s.lastName}</div><div style="font-size:10px;color:var(--muted)">${s.major}</div></div></div></td>
       <td><span class="gp" style="background:${gradeColor(s.grade)}">${s.grade}th</span></td>
-      <td style="font-weight:600">${s.gpa||'—'}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:11px">${s.sat?s.sat:s.act?'ACT '+s.act:'<span style="color:var(--muted)">—</span>'}</td>
       <td><span style="display:flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:50%;background:${u.level==='red'?'var(--red)':u.level==='orange'?'var(--orange)':'var(--green)'}"></span><span style="font-size:11px">${u.level==='red'?'Urgent':u.level==='orange'?'Attention':'On Track'}</span></span></td>
-      <td><div style="display:flex;align-items:center;gap:6px"><span style="font-size:11px;font-family:'DM Mono',monospace">${ag}%</span><div class="mini-bar"><div class="mini-fill" style="width:${ag}%;background:${ag>=80?'var(--green)':ag>=50?'var(--orange)':'var(--red)'}"></div></div></div></td>
+      <td><div style="display:flex;align-items:center;gap:6px"><span style="font-size:12px;font-weight:600;color:${openTodoCount>0?'var(--gold)':'var(--green)'}">${openTodoCount}</span>${highPriTodo?`<span style="font-size:10px;color:var(--red);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">● ${escHtml(highPriTodo.text)}</span>`:openTodoCount===0?'<span style="font-size:10px;color:var(--green)">✓ All done</span>':''}</div></td>
+      <td style="font-size:11px;color:var(--muted)">${nextDL?`<span style="color:${daysUntil(nextDL.date)<=14?'var(--orange)':'var(--text)'}">${formatDate(nextDL.date)}<br><span style="font-size:10px;color:var(--muted)">${nextDL.title}</span></span>`:'—'}</td>
       <td><span style="font-size:11px">${ep.done}/${ep.total} final</span></td>
-      <td style="font-size:11px;color:var(--muted)">${nextDL?`<span style="color:${daysUntil(nextDL.date)<=14?'var(--orange)':'var(--text)'}">${formatDate(nextDL.date)}</span>`:'—'}</td>
-      <td>
-        <button class="btn btn-blue btn-sm" onclick="event.stopPropagation();openMeetingBrief(${s.id})">⚡ Brief</button>
-      </td>
+      <td><div style="display:flex;align-items:center;gap:6px"><span style="font-size:11px;font-family:'DM Mono',monospace">${ag}%</span><div class="mini-bar"><div class="mini-fill" style="width:${ag}%;background:${ag>=80?'var(--green)':ag>=50?'var(--orange)':'var(--red)'}"></div></div></div></td>
+      <td><button class="btn btn-blue btn-sm" onclick="event.stopPropagation();openMeetingBrief(${s.id})">⚡ Brief</button></td>
     </tr>`;
   }).join('');
 }
