@@ -1342,10 +1342,12 @@ function renderDashboard(){
   document.getElementById('upcomingDeadlines').innerHTML=soon.length?soon.map(d=>{
     const s=students.find(x=>x.id==d.studentId);
     const days=daysUntil(d.date);
-    return`<div class="dl-item" onclick="openProfile(${d.studentId});goPage('profile')">
+    return`<div class="dl-item" onclick="openProfile(${d.studentId});goPage('profile')" style="${d.done?'opacity:.5':''}">
       <div class="dl-date-box"><div class="dl-month">${new Date(d.date+'T00:00:00').toLocaleDateString('en-US',{month:'short'})}</div><div class="dl-day">${new Date(d.date+'T00:00:00').getDate()}</div></div>
-      <div class="dl-info"><div class="dl-title">${d.title}</div><div class="dl-sub">${s?s.firstName+' '+s.lastName:'All'}</div></div>
+      <div class="dl-info"><div class="dl-title">${d.done?'<s>':''} ${d.title} ${d.done?'</s>':''}</div><div class="dl-sub">${s?s.firstName+' '+s.lastName:'All'}</div></div>
       <span class="dl-urg ${days<=7?'red':days<=14?'orange':'green'}">${days}d</span>
+      <button onclick="event.stopPropagation();toggleDL(${d.id})" class="btn btn-sm ${d.done?'btn-out':'btn-gold'}" style="padding:2px 7px;font-size:10px">${d.done?'↺':'✓'}</button>
+      <button onclick="event.stopPropagation();deleteDL(${d.id})" class="btn btn-red btn-sm" style="padding:2px 6px;font-size:10px">✕</button>
     </div>`;
   }).join(''):'<div style="color:var(--muted);font-size:12px;padding:8px">No deadlines in next 30 days</div>';
 
@@ -1502,6 +1504,7 @@ function toggleDL(id){
   // sync back to student._deadlines
   if(d&&d.studentId){const s=students.find(x=>x.id==d.studentId);if(s&&s._deadlines){const sd=s._deadlines.find(x=>x.id==id);if(sd)sd.done=d.done;saveStudentToFirestore(s);}}
   renderCalendar();renderDashboard();
+  if(currentStudentId){const cs=students.find(x=>x.id==currentStudentId);if(cs)renderOverview(cs);}
 }
 function deleteDL(id){
   const d=globalDeadlines.find(x=>x.id==id);
@@ -1509,6 +1512,7 @@ function deleteDL(id){
   // sync back to student._deadlines
   if(d&&d.studentId){const s=students.find(x=>x.id==d.studentId);if(s&&s._deadlines){s._deadlines=s._deadlines.filter(x=>x.id!=id);saveStudentToFirestore(s);}}
   renderCalendar();renderDashboard();
+  if(currentStudentId){const cs=students.find(x=>x.id==currentStudentId);if(cs)renderOverview(cs);}
 }
 function addDeadline(){
   const title=document.getElementById('dlTitle').value.trim();const date=document.getElementById('dlDate').value;
@@ -1638,7 +1642,7 @@ function renderOverview(s){
   const c=getConf(s),u=getUrgency(s),gpas=calcGPAs(s.transcript);
   const agSt=getAGStatus(s.transcript,s.grade);const metAG=agSt.filter(r=>r.uc>0&&r.met).length;
   const ep=essayProgress(s);
-  const nextDLs=globalDeadlines.filter(d=>d.studentId==s.id&&!d.done&&new Date(d.date)>=new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,3);
+  const nextDLs=globalDeadlines.filter(d=>d.studentId==s.id).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,5);
   document.getElementById('ovContent').innerHTML=`
     <div class="g2">
       <div>
@@ -1694,7 +1698,7 @@ function renderOverview(s){
             </div>
           </div>
           <div class="card-hd" style="margin-bottom:8px;font-size:13px"><span class="ico">◷</span>Upcoming Deadlines</div>
-          ${nextDLs.length?nextDLs.map(d=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(201,168,76,0.05)"><span style="font-size:12px">${d.title}</span><span style="font-size:10.5px;color:${daysUntil(d.date)<=14?'var(--orange)':'var(--muted)'}">${formatDate(d.date)}</span></div>`).join(''):'<p style="font-size:11.5px;color:var(--muted)">No upcoming deadlines</p>'}
+          ${nextDLs.length?nextDLs.map(d=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(201,168,76,0.05);${d.done?'opacity:.5':''}"><span style="font-size:12px;${d.done?'text-decoration:line-through;color:var(--muted)':''}">${d.title}</span><div style="display:flex;align-items:center;gap:5px;flex-shrink:0"><span style="font-size:10.5px;color:${daysUntil(d.date)<=14&&!d.done?'var(--orange)':'var(--muted)'}">${formatDate(d.date)}</span><button onclick="toggleDL(${d.id})" class="btn btn-sm ${d.done?'btn-out':'btn-gold'}" style="padding:2px 7px;font-size:10px">${d.done?'↺':'✓'}</button><button onclick="deleteDL(${d.id})" class="btn btn-red btn-sm" style="padding:2px 6px;font-size:10px">✕</button></div></div>`).join(''):'<p style="font-size:11.5px;color:var(--muted)">No deadlines yet</p>'}
           <button class="btn btn-out btn-sm" style="margin-top:10px" onclick="_dlStudentId='${s.id}';document.getElementById('dlStudent').value='${s.id}';openMo('moAddDeadline')">+ Add Deadline</button>
         </div>
         <div class="card">
