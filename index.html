@@ -1512,14 +1512,16 @@ function deleteDL(id){
 function addDeadline(){
   const title=document.getElementById('dlTitle').value.trim();const date=document.getElementById('dlDate').value;
   if(!title||!date)return;
-  const sidRaw=document.getElementById('dlStudent').value;
-  const dl={id:Date.now(),studentId:sidRaw||null,title,date,type:document.getElementById('dlType').value,notes:document.getElementById('dlNotes').value,done:false};
+  const sidRaw=document.getElementById('dlStudent').value||_dlStudentId;
+  const effectiveSid=(sidRaw&&sidRaw!=='all')?sidRaw:(_dlStudentId||null);
+  const dl={id:Date.now(),studentId:effectiveSid,title,date,type:document.getElementById('dlType').value,notes:document.getElementById('dlNotes').value,done:false};
   globalDeadlines.push(dl);
   // embed into student._deadlines so it persists via saveStudentToFirestore
-  if(sidRaw){const s=students.find(x=>x.id==sidRaw);if(s){if(!s._deadlines)s._deadlines=[];s._deadlines.push({...dl});}}
+  if(effectiveSid){const s=students.find(x=>x.id==effectiveSid);if(s){if(!s._deadlines)s._deadlines=[];s._deadlines.push({...dl});}}
+  _dlStudentId=null;
   closeMo('moAddDeadline');['dlTitle','dlNotes'].forEach(id=>document.getElementById(id).value='');
   renderCalendar();renderDashboard();updateUrgBadge();
-  if(currentStudentId==sidRaw)renderOverview(students.find(x=>x.id==sidRaw));
+  if(currentStudentId==effectiveSid)renderOverview(students.find(x=>x.id==effectiveSid));
 }
 
 // ══════════════════════════════════════════════════════
@@ -1692,7 +1694,7 @@ function renderOverview(s){
           </div>
           <div class="card-hd" style="margin-bottom:8px;font-size:13px"><span class="ico">◷</span>Upcoming Deadlines</div>
           ${nextDLs.length?nextDLs.map(d=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(201,168,76,0.05)"><span style="font-size:12px">${d.title}</span><span style="font-size:10.5px;color:${daysUntil(d.date)<=14?'var(--orange)':'var(--muted)'}">${formatDate(d.date)}</span></div>`).join(''):'<p style="font-size:11.5px;color:var(--muted)">No upcoming deadlines</p>'}
-          <button class="btn btn-out btn-sm" style="margin-top:10px" onclick="document.getElementById('dlStudent').value=${s.id};openMo('moAddDeadline')">+ Add Deadline</button>
+          <button class="btn btn-out btn-sm" style="margin-top:10px" onclick="_dlStudentId='${s.id}';document.getElementById('dlStudent').value='${s.id}';openMo('moAddDeadline')">+ Add Deadline</button>
         </div>
         <div class="card">
           <div class="card-hd"><span class="ico">📅</span>Meeting History</div>
@@ -3175,6 +3177,7 @@ function toggleCompletedTodos() {
 // ── ADD / EDIT TODO MODAL ──
 let _todoEditId = null;
 let _todoSid = null;
+let _dlStudentId = null; // student ID pre-set when opening Add Deadline from a profile
 
 function openAddTodo(sid) {
   _todoSid = sid; _todoEditId = null;
@@ -3517,9 +3520,12 @@ function populateDropdowns(){
     students.forEach(s=>{const o=document.createElement('option');o.value=s.id;o.textContent=`${s.firstName} ${s.lastName} (Gr.${s.grade})`;sel.appendChild(o);});
   });
   ['dlStudent','essStudent'].forEach(selId=>{
-    const sel=document.getElementById(selId);sel.innerHTML='';
+    const sel=document.getElementById(selId);
+    const prev=sel.value; // preserve current selection before clearing
+    sel.innerHTML='';
     if(selId==='dlStudent'){const o=document.createElement('option');o.value='all';o.textContent='All Students';sel.appendChild(o);}
     students.forEach(s=>{const o=document.createElement('option');o.value=s.id;o.textContent=`${s.firstName} ${s.lastName}`;sel.appendChild(o);});
+    if(prev)sel.value=prev; // restore previous selection if it still exists
   });
 }
 
@@ -4649,13 +4655,15 @@ addStudent = function(){
 
 const _origAddDeadline = addDeadline;
 addDeadline = function(){
+  const _preSid=_dlStudentId; // capture before _origAddDeadline clears it
   _origAddDeadline();
-  const sid=document.getElementById('dlStudent')?.value;
-  const s=(sid&&sid!=='all')?students.find(x=>x.id==sid):null;
+  const sid=(document.getElementById('dlStudent')?.value||_preSid);
+  const effectiveSid=(sid&&sid!=='all')?sid:(_preSid||null);
+  const s=effectiveSid?students.find(x=>x.id==effectiveSid):null;
   if(s){
     saveStudentToFirestore(s);
     logActivity(`added a deadline for <strong>${s.firstName} ${s.lastName}</strong>`);
-    if(currentStudentId==sid) renderOverview(s);
+    if(currentStudentId==effectiveSid) renderOverview(s);
   } else {
     saveAllStudentsToFirestore();
     logActivity(`added a deadline`);
