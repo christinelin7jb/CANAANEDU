@@ -1279,7 +1279,7 @@ function updateUrgBadge(){
 function renderSidebar(){
   document.getElementById('studentList').innerHTML=students.map(s=>{
     const u=getUrgency(s);
-    return`<div class="sc ${currentStudentId===s.id?'active':''}" onclick="openProfile(${s.id})" style="position:relative">
+    return`<div class="sc ${currentStudentId==s.id?'active':''}" onclick="openProfile(${s.id})" style="position:relative">
       <div class="av" style="width:26px;height:26px;font-size:10px;background:${s.color}">${s.firstName[0]}${s.lastName[0]}</div>
       <div class="sc-info">
         <div class="sc-name">${s.firstName} ${s.lastName}</div>
@@ -1519,7 +1519,7 @@ function renderEssayTracker(){
 }
 function updateEssayStatus(sid,eid,status){
   const s=students.find(x=>x.id==sid);if(!s)return;
-  const e=(s.essays||[]).find(x=>x.id===eid);if(!e)return;
+  const e=(s.essays||[]).find(x=>x.id==eid);if(!e)return;
   e.status=status;renderEssayTracker();
 }
 function deleteEssay(sid,eid){
@@ -1813,7 +1813,7 @@ function editUpdateSys(cid){
 }
 function editCourse(sid,cid){
   const s=students.find(x=>x.id==sid);if(!s)return;
-  const c=s.transcript.find(x=>x.id===cid);if(!c)return;
+  const c=s.transcript.find(x=>x.id==cid);if(!c)return;
   const row=document.getElementById('cr-'+cid);if(!row)return;
   const sys=c.gradeSystem||'us';const isChina=sys==='cn';
   row.style.gridTemplateColumns='1fr';
@@ -1838,7 +1838,7 @@ function editCourse(sid,cid){
 }
 function saveCourse(sid,cid){
   const s=students.find(x=>x.id==sid);if(!s)return;
-  const c=s.transcript.find(x=>x.id===cid);if(!c)return;
+  const c=s.transcript.find(x=>x.id==cid);if(!c)return;
   const sys=document.getElementById('ecsys-'+cid).value;
   const name=document.getElementById('ecn-'+cid).value.trim();
   if(name)c.subject=name;
@@ -3105,7 +3105,7 @@ function saveTodo() {
     done: false,
   };
   if (_todoEditId) {
-    const t = s.todos.find(x => x.id === _todoEditId);
+    const t = s.todos.find(x => x.id == _todoEditId);
     if (t) Object.assign(t, payload);
   } else {
     s.todos.unshift({id: Date.now(), ...payload, createdAt: new Date().toISOString().split('T')[0]});
@@ -3123,7 +3123,7 @@ let _actChatMsgs = [];         // chat history for display
 
 function openActivityEditor(sid) {
   _actEditorStudentId = sid;
-  const s = students.find(x => x.id === sid);
+  const s = students.find(x => x.id == sid);
   if (!s) return;
   document.getElementById('actEdTitle').textContent = `Activities & Awards — ${s.firstName} ${s.lastName}`;
   // Deep copy existing list
@@ -3180,7 +3180,7 @@ function addBlankActivity() {
 }
 
 function saveActivities() {
-  const s = students.find(x => x.id === _actEditorStudentId);
+  const s = students.find(x => x.id == _actEditorStudentId);
   if (!s) return;
   s.activitiesList = _pendingActivities.filter(a => a.name.trim());
   // Keep legacy string for AI prompts
@@ -3211,7 +3211,7 @@ async function sendActivityChat() {
   input.value = '';
   addChatBubble('user', msg);
 
-  const s = students.find(x => x.id === _actEditorStudentId);
+  const s = students.find(x => x.id == _actEditorStudentId);
   const existing = _pendingActivities.length
     ? `Current activities in their profile:\n${_pendingActivities.map(a => `- ${a.name}${a.role?' | '+a.role:''}${a.description?' | '+a.description:''}${a.hours?' | '+a.hours+'h/yr':''}${a.years?' | '+a.years:''}`).join('\n')}\n\n`
     : '';
@@ -4377,7 +4377,7 @@ function unshareStudent(sid, consultantUid){
     logActivity(`removed ${c?.name||'a consultant'}'s access to <strong>${s.firstName} ${s.lastName}</strong>`);
   }
   renderShareModal(s);
-  if(currentStudentId===sid) openProfile(sid); // refresh header avatars
+  if(currentStudentId==sid) openProfile(sid); // refresh header avatars
 }
 
 // ── Write helpers ──
