@@ -2264,10 +2264,34 @@ function renderEssayProfile(s){
 }
 
 function renderNotes(s){
+  const NOTE_TAGS=['General','Academic','Essays','Testing','School List','Parent','Financial Aid'];
   document.getElementById('notesContent').innerHTML=`
     <div class="card">
       <div class="card-hd"><span class="ico">📝</span>Meeting Notes</div>
-      ${s.meetings.map(m=>`<div class="nc"><div class="nc-date">${m.date} · <span class="tag tb" style="font-size:9px">${m.tag}</span></div><div class="nc-txt">${m.content}</div></div>`).join('')||'<p style="color:var(--muted);font-size:12px;margin-bottom:14px">No notes yet.</p>'}
+      ${s.meetings.length?s.meetings.map((m,i)=>`
+        <div class="nc" id="note-${i}" style="position:relative">
+          <div id="note-view-${i}">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+              <div class="nc-date">${m.date} · <span class="tag tb" style="font-size:9px">${m.tag}</span></div>
+              <div style="display:flex;gap:4px">
+                <button class="btn btn-out btn-sm" style="font-size:10px;padding:2px 8px" onclick="editNoteStart(${s.id},${i})">✎ Edit</button>
+                <button class="btn btn-red btn-sm" style="font-size:10px;padding:2px 8px" onclick="deleteNote(${s.id},${i})">✕</button>
+              </div>
+            </div>
+            <div class="nc-txt">${escHtml(m.content)}</div>
+          </div>
+          <div id="note-edit-${i}" style="display:none">
+            <div class="fr" style="margin-bottom:6px">
+              <div class="fg"><label class="fl">Date</label><input type="date" class="fi" id="note-date-${i}" value="${m.date}"></div>
+              <div class="fg"><label class="fl">Category</label><select class="fse" id="note-tag-${i}">${NOTE_TAGS.map(t=>`<option${t===m.tag?' selected':''}>${t}</option>`).join('')}</select></div>
+            </div>
+            <textarea class="fta" id="note-content-${i}" style="min-height:80px;margin-bottom:8px">${escHtml(m.content)}</textarea>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-gold btn-sm" onclick="editNoteSave(${s.id},${i})">Save</button>
+              <button class="btn btn-out btn-sm" onclick="editNoteCancel(${i})">Cancel</button>
+            </div>
+          </div>
+        </div>`).join(''):'<p style="color:var(--muted);font-size:12px;margin-bottom:14px">No notes yet.</p>'}
       <div class="dv"></div>
       <div style="font-size:12px;font-weight:600;color:var(--cream);margin-bottom:10px">Add Note</div>
       <div class="fg"><textarea class="fta" id="newNote" placeholder="Meeting notes..." style="min-height:80px"></textarea></div>
@@ -2277,6 +2301,26 @@ function renderNotes(s){
       </div>
       <button class="btn btn-gold btn-sm" onclick="addNote(${s.id})">Save Note</button>
     </div>`;
+}
+function editNoteStart(sid,i){
+  document.getElementById('note-view-'+i).style.display='none';
+  document.getElementById('note-edit-'+i).style.display='block';
+}
+function editNoteCancel(i){
+  document.getElementById('note-view-'+i).style.display='block';
+  document.getElementById('note-edit-'+i).style.display='none';
+}
+function editNoteSave(sid,i){
+  const s=students.find(x=>x.id==sid);if(!s)return;
+  const content=document.getElementById('note-content-'+i).value.trim();if(!content)return;
+  s.meetings[i]={date:document.getElementById('note-date-'+i).value,content,tag:document.getElementById('note-tag-'+i).value};
+  renderNotes(s);renderOverview(s);
+}
+function deleteNote(sid,i){
+  const s=students.find(x=>x.id==sid);if(!s)return;
+  if(!confirm('Delete this note?'))return;
+  s.meetings.splice(i,1);
+  renderNotes(s);renderOverview(s);
 }
 function addNote(sid){
   const s=students.find(x=>x.id==sid);if(!s)return;
@@ -4490,6 +4534,18 @@ addNote = function(sid){
   _origAddNote(sid);
   const s=students.find(x=>x.id==sid); if(s)saveStudentToFirestore(s);
   logActivity(`added a note for <strong>${students.find(x=>x.id==sid)?.firstName}</strong>`);
+};
+
+const _origEditNoteSave = editNoteSave;
+editNoteSave = function(sid,i){
+  _origEditNoteSave(sid,i);
+  const s=students.find(x=>x.id==sid); if(s)saveStudentToFirestore(s);
+};
+
+const _origDeleteNote = deleteNote;
+deleteNote = function(sid,i){
+  _origDeleteNote(sid,i);
+  const s=students.find(x=>x.id==sid); if(s)saveStudentToFirestore(s);
 };
 
 const _origAddCourse = addCourse;
