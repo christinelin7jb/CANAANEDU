@@ -1692,7 +1692,7 @@ function renderOverview(s){
           </div>
           <div class="card-hd" style="margin-bottom:8px;font-size:13px"><span class="ico">◷</span>Upcoming Deadlines</div>
           ${nextDLs.length?nextDLs.map(d=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(201,168,76,0.05)"><span style="font-size:12px">${d.title}</span><span style="font-size:10.5px;color:${daysUntil(d.date)<=14?'var(--orange)':'var(--muted)'}">${formatDate(d.date)}</span></div>`).join(''):'<p style="font-size:11.5px;color:var(--muted)">No upcoming deadlines</p>'}
-          <button class="btn btn-out btn-sm" style="margin-top:10px" onclick="openMo('moAddDeadline')">+ Add Deadline</button>
+          <button class="btn btn-out btn-sm" style="margin-top:10px" onclick="document.getElementById('dlStudent').value=${s.id};openMo('moAddDeadline')">+ Add Deadline</button>
         </div>
         <div class="card">
           <div class="card-hd"><span class="ico">📅</span>Meeting History</div>
@@ -4650,12 +4650,16 @@ addStudent = function(){
 const _origAddDeadline = addDeadline;
 addDeadline = function(){
   _origAddDeadline();
-  // Deadlines are saved per-student embedded — find affected student
-  const sid=parseInt(document.getElementById('dlStudent')?.value);
-  const s=sid?students.find(x=>x.id==sid):null;
-  if(s)saveStudentToFirestore(s);
-  else saveAllStudentsToFirestore();
-  logActivity(`added a deadline`);
+  const sid=document.getElementById('dlStudent')?.value;
+  const s=(sid&&sid!=='all')?students.find(x=>x.id==sid):null;
+  if(s){
+    saveStudentToFirestore(s);
+    logActivity(`added a deadline for <strong>${s.firstName} ${s.lastName}</strong>`);
+    if(currentStudentId==sid) renderOverview(s);
+  } else {
+    saveAllStudentsToFirestore();
+    logActivity(`added a deadline`);
+  }
 };
 
 const _origAddEssay = addEssay;
