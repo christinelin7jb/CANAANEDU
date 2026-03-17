@@ -3639,8 +3639,37 @@ async function initFirebase(cfg){
           photo: user.photoURL || null,
           initial: (user.displayName||emailLower||'?')[0].toUpperCase(),
           color: COLORS[Math.abs(hashStr(user.uid)) % COLORS.length],
-        }, {merge:true}).then(()=>{
+        }, {merge:true}).then(async ()=>{
           console.log('[Auth] ✅ /users doc upserted for', emailLower, '| uid:', user.uid);
+          // Backfill: any invitation sent before this user ever logged in will have
+          // toUid=null (because the /users doc didn't exist when the sender looked up
+          // the UID). Fix it now so the toUid-based listener fires, and also copy to
+          // own inbox for guaranteed delivery via Source 2 (always-readable subcollection).
+          try {
+            const snap = await fbDb.collection('invitations')
+              .where('toEmail','==',emailLower)
+              .where('status','==','pending')
+              .get();
+            if(!snap.empty){
+              const batch = fbDb.batch();
+              let backfilled = 0;
+              snap.docs.forEach(d=>{
+                if(!d.data().toUid){
+                  batch.update(d.ref, { toUid: user.uid });
+                  fbDb.collection('users').doc(user.uid).collection('inbox')
+                    .add({...d.data(), toUid: user.uid}).catch(()=>{});
+                  backfilled++;
+                }
+              });
+              if(backfilled > 0){
+                await batch.commit();
+                console.log('[Auth] ✅ Backfilled toUid in', backfilled, 'pending invitation(s) for', emailLower);
+              }
+            }
+          } catch(e){
+            console.warn('[Auth] ℹ️ Could not backfill invitations (Firestore rule may block /invitations reads by email) —',
+              'ensure rules include: allow read, write: if request.auth != null | error:', e.code);
+          }
         }).catch(e=>console.warn('[Auth] /users upsert failed:', e.code));
         onSignedIn(user);
       } else {
@@ -3960,9 +3989,19 @@ function subscribeInvitations(){
         fromByEmail = snap.docs.map(d=>({id:d.id,...d.data()}));
         const pending = fromByEmail.filter(d=>d.status==='pending');
         console.log('[Notif] 🔔 /invitations toEmail snapshot — total:', snap.size, '| pending:', pending.length, '| docs:', pending.map(d=>d.studentName+'('+d.fromName+')'));
+        // Self-heal: if any pending invite still has toUid=null (sender sent before
+        // we had logged in), backfill it now and mirror to inbox.
+        // This ensures Sources 1b and 2 also find it going forward.
+        pending.filter(d=>!d.toUid).forEach(d=>{
+          console.log('[Notif] ℹ️ Self-healing toUid=null for invitation', d.id, '→ setting toUid=', myUid);
+          fbDb.collection('invitations').doc(d.id).update({ toUid: myUid }).catch(()=>{});
+          fbDb.collection('users').doc(myUid).collection('inbox')
+            .add({...d, toUid: myUid}).catch(()=>{});
+        });
         mergeAndRender();
       }, err=>{
-        console.warn('[Notif] ❌ /invitations email query blocked:', err.code, err.message);
+        console.warn('[Notif] ❌ /invitations toEmail query blocked:', err.code, err.message,
+          '\n  Fix Firestore rules: allow read, write: if request.auth != null');
         mergeAndRender();
       });
     unsubList.push(u1);
@@ -4242,10 +4281,19 @@ async function sendInvitation(sid){
           </div>`;
         }
 
-        const un = toEmail.split('@')[0].replace(/[._-]/g,' ').toLowerCase().replace(/\s+/g,'');
-        const fuzzyUser = (allConsultants||[]).find(c=>c.uid&&!c.email&&(c.name||'').toLowerCase().replace(/\s+/g,'').includes(un));
-        const toUid = fuzzyUser?.uid || null;
-        console.log('🚀 [DEBUG] fuzzy UID match:', toUid||'null — no inbox write possible');
+        // UID is definitively unknown — all 3 lookup methods failed.
+        // Do NOT silently use null; log a clear error so this is diagnosable.
+        const toUid = null;
+        console.error('[sendInvitation] ❌ Could not resolve UID for:', toEmail,
+          '\n  All lookup sources exhausted:',
+          '\n    • allConsultants cache (subscribeUsers) — not found',
+          '\n    • /users where email==', toEmail, '— query failed or no doc',
+          '\n    • /presence where email==', toEmail, '— query failed or no doc',
+          '\n  Root cause is usually ONE of:',
+          '\n    1. Recipient has never signed in to the portal (no /users doc yet)',
+          '\n    2. Firestore rules block /users reads — fix: allow read: if request.auth != null',
+          '\n  Invite will be stored with toUid=null.',
+          '\n  Bell will ring when recipient logs in (onAuthStateChanged backfill will set toUid).');
 
         const inviteDoc = {
           studentId:s.id, studentName:`${s.firstName} ${s.lastName}`,
