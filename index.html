@@ -1218,7 +1218,7 @@ function formatDate(dateStr){
 }
 function upcomingDLForStudent(sid,days){
   const cutoff=new Date();cutoff.setDate(cutoff.getDate()+days);
-  return globalDeadlines.filter(d=>d.studentId===sid&&!d.done&&new Date(d.date)<=cutoff&&new Date(d.date)>=new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date))[0]||null;
+  return globalDeadlines.filter(d=>d.studentId==sid&&!d.done&&new Date(d.date)<=cutoff&&new Date(d.date)>=new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date))[0]||null;
 }
 function essayProgress(s){
   const es=s.essays||[];
@@ -1363,7 +1363,7 @@ function renderDashboard(){
   // Main table
   document.getElementById('dashTableBody').innerHTML=students.map(s=>{
     const u=getUrgency(s),ep=essayProgress(s),ag=agPct(s);
-    const nextDL=globalDeadlines.filter(d=>d.studentId===s.id&&!d.done&&new Date(d.date)>=new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date))[0];
+    const nextDL=globalDeadlines.filter(d=>d.studentId==s.id&&!d.done&&new Date(d.date)>=new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date))[0];
     return`<tr class="clickable" onclick="openProfile(${s.id})">
       <td><div style="display:flex;align-items:center;gap:8px"><div class="av" style="width:28px;height:28px;font-size:11px;background:${s.color}">${s.firstName[0]}${s.lastName[0]}</div><div><div style="font-weight:500">${s.firstName} ${s.lastName}</div><div style="font-size:10px;color:var(--muted)">${s.major}</div></div></div></td>
       <td><span class="gp" style="background:${gradeColor(s.grade)}">${s.grade}th</span></td>
@@ -1470,23 +1470,39 @@ function renderCalendar(){
   }).join('')||'<div style="color:var(--muted);font-size:12px">No deadlines this month</div>';
 }
 function filterDL(type){dlFilter=type;renderCalendar();}
-function toggleDL(id){const d=globalDeadlines.find(x=>x.id===id);if(d)d.done=!d.done;renderCalendar();renderDashboard();}
-function deleteDL(id){globalDeadlines=globalDeadlines.filter(x=>x.id!==id);renderCalendar();renderDashboard();}
+function toggleDL(id){
+  const d=globalDeadlines.find(x=>x.id==id);if(d)d.done=!d.done;
+  // sync back to student._deadlines
+  if(d&&d.studentId){const s=students.find(x=>x.id==d.studentId);if(s&&s._deadlines){const sd=s._deadlines.find(x=>x.id==id);if(sd)sd.done=d.done;saveStudentToFirestore(s);}}
+  renderCalendar();renderDashboard();
+}
+function deleteDL(id){
+  const d=globalDeadlines.find(x=>x.id==id);
+  globalDeadlines=globalDeadlines.filter(x=>x.id!=id);
+  // sync back to student._deadlines
+  if(d&&d.studentId){const s=students.find(x=>x.id==d.studentId);if(s&&s._deadlines){s._deadlines=s._deadlines.filter(x=>x.id!=id);saveStudentToFirestore(s);}}
+  renderCalendar();renderDashboard();
+}
 function addDeadline(){
   const title=document.getElementById('dlTitle').value.trim();const date=document.getElementById('dlDate').value;
   if(!title||!date)return;
-  globalDeadlines.push({id:Date.now(),studentId:parseInt(document.getElementById('dlStudent').value)||null,title,date,type:document.getElementById('dlType').value,notes:document.getElementById('dlNotes').value,done:false});
+  const sidRaw=document.getElementById('dlStudent').value;
+  const dl={id:Date.now(),studentId:sidRaw||null,title,date,type:document.getElementById('dlType').value,notes:document.getElementById('dlNotes').value,done:false};
+  globalDeadlines.push(dl);
+  // embed into student._deadlines so it persists via saveStudentToFirestore
+  if(sidRaw){const s=students.find(x=>x.id==sidRaw);if(s){if(!s._deadlines)s._deadlines=[];s._deadlines.push({...dl});}}
   closeMo('moAddDeadline');['dlTitle','dlNotes'].forEach(id=>document.getElementById(id).value='');
   renderCalendar();renderDashboard();updateUrgBadge();
+  if(currentStudentId==sidRaw)renderOverview(students.find(x=>x.id==sidRaw));
 }
 
 // ══════════════════════════════════════════════════════
 // ESSAY TRACKER
 // ══════════════════════════════════════════════════════
 function renderEssayTracker(){
-  const filterSid=parseInt(document.getElementById('essayStudentFilter').value)||null;
+  const filterSid=document.getElementById('essayStudentFilter').value||null;
   let allEssays=[];
-  students.forEach(s=>{if(!filterSid||s.id===filterSid)(s.essays||[]).forEach(e=>allEssays.push({...e,student:s}));});
+  students.forEach(s=>{if(!filterSid||s.id==filterSid)(s.essays||[]).forEach(e=>allEssays.push({...e,student:s}));});
   // Stats
   const total=allEssays.length,done=allEssays.filter(e=>e.status==='Final').length;
   const byStatus={};ESSAY_STATUS.forEach(st=>{byStatus[st]=allEssays.filter(e=>e.status===st).length;});
@@ -1593,7 +1609,7 @@ function renderOverview(s){
   const c=getConf(s),u=getUrgency(s),gpas=calcGPAs(s.transcript);
   const agSt=getAGStatus(s.transcript,s.grade);const metAG=agSt.filter(r=>r.uc>0&&r.met).length;
   const ep=essayProgress(s);
-  const nextDLs=globalDeadlines.filter(d=>d.studentId===s.id&&!d.done&&new Date(d.date)>=new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,3);
+  const nextDLs=globalDeadlines.filter(d=>d.studentId==s.id&&!d.done&&new Date(d.date)>=new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,3);
   document.getElementById('ovContent').innerHTML=`
     <div class="g2">
       <div>
@@ -2302,7 +2318,7 @@ async function openMeetingBrief(sid){
   const gpas=calcGPAs(s.transcript);
   const agSt=getAGStatus(s.transcript,s.grade);const missing=agSt.filter(r=>r.uc>0&&!r.met).map(r=>r.label.split('—')[0].trim()).join(', ')||'None';
   const notes=s.meetings.slice(0,3).map(m=>`[${m.date}] ${m.content}`).join('\n')||'No previous meetings';
-  const nextDLs=globalDeadlines.filter(d=>d.studentId===s.id&&!d.done&&new Date(d.date)>=new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,3).map(d=>`${d.title} (${formatDate(d.date)})`).join(', ')||'None';
+  const nextDLs=globalDeadlines.filter(d=>d.studentId==s.id&&!d.done&&new Date(d.date)>=new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,3).map(d=>`${d.title} (${formatDate(d.date)})`).join(', ')||'None';
   const essays=(s.essays||[]).map(e=>`${e.title}: ${e.status}`).join(', ')||'None tracked';
   const prompt=`You are an expert college admissions consultant. Generate a CONCISE pre-meeting brief (max 400 words) for a consulting session with this student.
 
@@ -2348,7 +2364,7 @@ async function openParentReport(sid){
   const agSt=getAGStatus(s.transcript,s.grade);
   const metAG=agSt.filter(r=>r.uc>0&&r.met).length,totalAG=agSt.filter(r=>r.uc>0).length;
   const ep=essayProgress(s);
-  const nextDLs=globalDeadlines.filter(d=>d.studentId===s.id&&!d.done&&new Date(d.date)>=new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,3).map(d=>`${d.title} due ${formatDate(d.date)}`).join('; ')||'None currently';
+  const nextDLs=globalDeadlines.filter(d=>d.studentId==s.id&&!d.done&&new Date(d.date)>=new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,3).map(d=>`${d.title} due ${formatDate(d.date)}`).join('; ')||'None currently';
   const prompt=`You are a professional college admissions consultant writing a formal progress report to parents.
 
 STUDENT: ${s.firstName} ${s.lastName}, Grade ${s.grade}
@@ -2513,7 +2529,7 @@ async function generateStrategyPlanAI(sid){
   const gpas=calcGPAs(s.transcript);
   const apCount=(s.transcript||[]).filter(c=>c.level==='AP'||c.level==='IB').length;
   const missing=getAGStatus(s.transcript,s.grade).filter(r=>r.uc>0&&!r.met).map(r=>r.label.split('—')[0].trim()).join(', ')||'None';
-  const nextDLs=globalDeadlines.filter(d=>d.studentId===s.id&&!d.done&&new Date(d.date)>=new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,5).map(d=>`${d.title}(${formatDate(d.date)})`).join(', ')||'None';
+  const nextDLs=globalDeadlines.filter(d=>d.studentId==s.id&&!d.done&&new Date(d.date)>=new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,5).map(d=>`${d.title}(${formatDate(d.date)})`).join(', ')||'None';
   const prompt=`You are a senior college admissions consultant. Create a detailed, personalised academic year strategy plan for this student.
 
 STUDENT: ${s.firstName} ${s.lastName}, Grade ${s.grade}
