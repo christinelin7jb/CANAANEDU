@@ -1298,8 +1298,7 @@ function renderDashboard(){
   const total=students.length,seniors=students.filter(s=>s.grade===12).length;
   const urgent=students.filter(s=>getUrgency(s).level==='red').length;
   const openTodos=students.reduce((a,s)=>(s.todos||[]).filter(t=>!t.done).length+a,0);
-  const now=new Date(),cutoff=new Date();cutoff.setDate(cutoff.getDate()+30);
-  const dlCount=globalDeadlines.filter(d=>!d.done&&new Date(d.date)>=now&&new Date(d.date)<=cutoff).length;
+  const dlCount=(()=>{const n=new Date(),c=new Date();c.setDate(c.getDate()+30);return globalDeadlines.filter(d=>!d.done&&new Date(d.date)>=n&&new Date(d.date)<=c).length;})();
   document.getElementById('statsGrid').innerHTML=`
     <div class="stat"><div class="stat-ico">◎</div><div class="stat-v">${total}</div><div class="stat-l">Total Students</div><div class="stat-s">${seniors} seniors this cycle</div></div>
     <div class="stat"><div class="stat-ico">☑</div><div class="stat-v" style="color:var(--gold)">${openTodos}</div><div class="stat-l">Open To-Dos</div><div class="stat-s">Across all students</div></div>
