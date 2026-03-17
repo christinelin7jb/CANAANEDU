@@ -2464,7 +2464,7 @@ async function callClaude(prompt,outEl,loadMsg){
     const data=await res.json();
     if(data.error)throw new Error(data.error.message);
     const text=data.content?.map(b=>b.text||'').join('\n')||'No response.';
-    const fmt=text.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/^###?\s(.+)/gm,'<h3>$1</h3>');
+    const fmt=mdToHtml(text);
     outEl.innerHTML=`<div class="aibadge">✦ AI Advisor · ${new Date().toLocaleTimeString()}</div><div class="air">${fmt}</div>`;
   }catch(e){outEl.innerHTML=`<div class="air" style="border-color:rgba(224,92,92,.3);color:var(--red)">Error: ${e.message}</div>`;}
 }
@@ -2636,11 +2636,37 @@ async function askStrategy(){
 // ══════════════════════════════════════════════════════
 // SUMMER SCHOOL TAB
 // ══════════════════════════════════════════════════════
+function mdToHtml(md){
+  if(!md)return'';
+  const lines=md.split('\n');
+  let html='';
+  let inUl=false,inOl=false;
+  const closeList=()=>{if(inUl){html+='</ul>';inUl=false;}if(inOl){html+='</ol>';inOl=false;}};
+  const inline=t=>t
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/`(.+?)`/g,'<code style="background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:3px;font-family:monospace;font-size:11px">$1</code>');
+  for(let i=0;i<lines.length;i++){
+    const l=lines[i];
+    const trim=l.trim();
+    if(!trim||trim==='---'||trim==='***'){closeList();if(trim==='---')html+='<hr style="border:none;border-top:1px solid var(--border);margin:12px 0">';continue;}
+    if(/^#{1}\s/.test(trim)){closeList();html+=`<h2 style="color:var(--gold);font-size:15px;font-weight:700;margin:16px 0 6px;font-family:'Cormorant Garamond',serif">${inline(trim.replace(/^#+\s/,''))}</h2>`;continue;}
+    if(/^#{2,3}\s/.test(trim)){closeList();html+=`<h3 style="color:var(--gold);font-size:13px;font-weight:700;margin:14px 0 5px;text-transform:uppercase;letter-spacing:.04em">${inline(trim.replace(/^#+\s/,''))}</h3>`;continue;}
+    const olM=trim.match(/^(\d+)\.\s(.*)/);
+    if(olM){if(!inOl){closeList();html+='<ol style="margin:6px 0 6px 18px;padding:0">';inOl=true;}html+=`<li style="margin-bottom:10px;line-height:1.65;font-size:12.5px">${inline(olM[2])}</li>`;continue;}
+    if(/^[-•]\s/.test(trim)){if(!inUl){closeList();html+='<ul style="margin:6px 0 6px 18px;padding:0">';inUl=true;}html+=`<li style="margin-bottom:6px;line-height:1.65;font-size:12.5px">${inline(trim.replace(/^[-•]\s/,''))}</li>`;continue;}
+    closeList();
+    html+=`<p style="margin:0 0 8px;line-height:1.75;font-size:12.5px">${inline(trim)}</p>`;
+  }
+  closeList();
+  return html;
+}
+
 function renderSummerTab(s){
   const rec=s.summerRec||{};
   const genAt=rec.generatedAt?`<span style="font-size:10px;color:var(--muted)">Generated: ${rec.generatedAt}</span>`:'';
   const recHtml=rec.text
-    ? rec.text.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/^###?\s(.+)/gm,'<h3 style="color:var(--gold);font-size:13px;margin:12px 0 4px">$1</h3>').replace(/^[-•]\s/gm,'• ')
+    ? mdToHtml(rec.text)
     : '<div style="color:var(--muted);font-size:12px;padding:16px 0">No recommendations yet. Click "AI Generate" to create personalised summer programme recommendations.</div>';
   document.getElementById('summerContent').innerHTML=`
   <div class="card">
@@ -2730,11 +2756,7 @@ function exportSummerReport(sid){
   const s=students.find(x=>x.id==sid);if(!s)return;
   const rec=s.summerRec||{};
   if(!rec.text){alert('Please generate AI recommendations first.');return;}
-  const fmt=rec.text
-    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
-    .replace(/^###?\s(.+)/gm,'<h3>$1</h3>')
-    .replace(/^[-•]\s(.+)/gm,'<li>$1</li>')
-    .replace(/\n/g,'<br>');
+  const fmt=mdToHtml(rec.text);
   let printDiv=document.getElementById('printArea');
   if(!printDiv){printDiv=document.createElement('div');printDiv.id='printArea';document.body.appendChild(printDiv);}
   printDiv.innerHTML=`
