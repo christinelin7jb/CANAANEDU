@@ -4215,18 +4215,22 @@ async function sendInvitation(sid){
       console.log('🚀 [DEBUG] UID lookup result:', knownUser ? `✅ knownUser uid=${knownUser.uid} name=${knownUser.name}` : '❌ UNKNOWN USER — will use email-only invite path');
 
       if(knownUser){
-        // ── Step 2: Update student doc (sharedWith + _shareNotifs) ──
-        const sw = [...new Set([...(s.sharedWith||[]), knownUser.uid])];
-        s.sharedWith = sw;
+        // ── Step 2: Owner adds recipient to sharedWith atomically ──
+        // Use arrayUnion so concurrent writes can't clobber each other,
+        // and so a debounced saveStudentToFirestore can never wipe this out.
+        // The owner (sender) has write permission — the recipient does NOT,
+        // so this MUST be done here, not in acceptInvitation.
+        if(!s.sharedWith) s.sharedWith = [];
+        if(!s.sharedWith.includes(knownUser.uid)) s.sharedWith.push(knownUser.uid);
         const newNotif = {toUid:knownUser.uid, toEmail, fromUid:fbCurrentUser.uid, fromName, status:'pending', createdAt:Date.now()};
         const cleanNotifs = (s._shareNotifs||[]).filter(n=>!(n.toUid===knownUser.uid&&n.status==='pending'));
         s._shareNotifs = [...cleanNotifs, newNotif];
-        console.log('🚀 [DEBUG] Step2 updating student doc — sharedWith:', sw, '| _shareNotifs count:', s._shareNotifs.length);
+        console.log('🚀 [DEBUG] Step2 adding', knownUser.uid, 'to sharedWith via arrayUnion | _shareNotifs count:', s._shareNotifs.length);
         await fbDb.collection('students').doc(String(s.id)).update({
-          sharedWith: sw,
+          sharedWith: firebase.firestore.FieldValue.arrayUnion(knownUser.uid),
           _shareNotifs: s._shareNotifs
         });
-        console.log('🚀 [DEBUG] Step2 ✅ student doc updated');
+        console.log('🚀 [DEBUG] Step2 ✅ sharedWith updated — recipient can now read student doc');
 
         // ── Step 3: Write to recipient inbox ──
         const inboxData = {
@@ -4369,26 +4373,32 @@ async function acceptInvitation(inviteId, studentId, fromName){
     return;
   }
   // Notification from /invitations OR /users/{uid}/inbox
+  // IMPORTANT: Do NOT attempt to update the student doc here.
+  // The sender (owner) already added our UID to sharedWith via arrayUnion
+  // when they sent the invite. Attempting update from recipient's side
+  // triggers Permission Denied because we're not yet in sharedWith.
+  // Firestore's onSnapshot will automatically push the student to our list
+  // the moment the owner's arrayUnion write propagates.
   try{
-    const s=students.find(x=>x.id==studentId);
     const uid=fbCurrentUser.uid;
-    // Use arrayUnion — safe atomic add, never overwrites other UIDs in the array
-    if(s){ s.sharedWith=[...new Set([...(s.sharedWith||[]),uid])]; }
-    const updates=[fbDb.collection('students').doc(String(studentId)).update({
-      sharedWith: firebase.firestore.FieldValue.arrayUnion(uid)
-    })];
+    // Mark the notification as accepted
     if(inviteId.startsWith('inbox_')){
-      // From own inbox subcollection
       const realId=inviteId.slice(6);
-      updates.push(fbDb.collection('users').doc(uid).collection('inbox').doc(realId)
-        .update({status:'accepted',acceptedAt:firebase.firestore.FieldValue.serverTimestamp()}));
+      await fbDb.collection('users').doc(uid).collection('inbox').doc(realId)
+        .update({status:'accepted',acceptedAt:firebase.firestore.FieldValue.serverTimestamp()});
     } else {
-      updates.push(fbDb.collection('invitations').doc(inviteId)
-        .update({status:'accepted',acceptedAt:firebase.firestore.FieldValue.serverTimestamp(),toUid:uid}));
+      await fbDb.collection('invitations').doc(inviteId)
+        .update({status:'accepted',acceptedAt:firebase.firestore.FieldValue.serverTimestamp(),toUid:uid});
     }
-    await Promise.all(updates);
+    _pendingInvites=_pendingInvites.filter(i=>i.id!==inviteId);
+    updateNotifBadge(_pendingInvites.length);
+    renderNotifList();
+    const s=students.find(x=>x.id==studentId);
     logActivity(`accepted collaboration invite for <strong>${s?.firstName||''} ${s?.lastName||''}</strong>`);
     document.getElementById('notifPanel').style.display='none';
+    // Student should appear automatically via Firestore onSnapshot since
+    // owner's arrayUnion already wrote our UID to sharedWith.
+    // If not visible within a few seconds, the owner may need to resend.
   }catch(e){ alert('Failed to accept: '+e.message); }
 }
 
