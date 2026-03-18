@@ -2307,11 +2307,13 @@ function renderNotes(s){
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
               <div class="nc-date">${m.date} · <span class="tag tb" style="font-size:9px">${m.tag}</span></div>
               <div style="display:flex;gap:4px">
+                <button class="btn btn-out btn-sm" style="font-size:10px;padding:2px 8px;color:var(--gold);border-color:rgba(201,168,76,0.4)" onclick="generateTodosFromNote(${s.id},${i},this)">✦ AI To-Do</button>
                 <button class="btn btn-out btn-sm" style="font-size:10px;padding:2px 8px" onclick="editNoteStart(${s.id},${i})">✎ Edit</button>
                 <button class="btn btn-red btn-sm" style="font-size:10px;padding:2px 8px" onclick="deleteNote(${s.id},${i})">✕</button>
               </div>
             </div>
             <div class="nc-txt">${escHtml(m.content)}</div>
+            <div id="note-ai-out-${i}" style="display:none;margin-top:8px"></div>
           </div>
           <div id="note-edit-${i}" style="display:none">
             <div class="fr" style="margin-bottom:6px">
@@ -2360,6 +2362,95 @@ function addNote(sid){
   const content=document.getElementById('newNote').value.trim();if(!content)return;
   s.meetings.unshift({date:document.getElementById('noteDate').value,content,tag:document.getElementById('noteTag').value});
   renderNotes(s);renderOverview(s);
+}
+
+async function generateTodosFromNote(sid, noteIdx, btn){
+  const s=students.find(x=>x.id==sid);if(!s)return;
+  const m=s.meetings[noteIdx];if(!m)return;
+  const key=getClaudeKey();
+  const outEl=document.getElementById('note-ai-out-'+noteIdx);
+  if(!key){
+    if(outEl){outEl.style.display='block';outEl.innerHTML=`<div style="font-size:11px;color:var(--orange);padding:6px 10px;background:rgba(201,168,76,0.08);border-radius:6px;border:1px solid rgba(201,168,76,0.2)">请先在 AI Analysis 标签页输入 Claude API Key。</div>`;}
+    return;
+  }
+  const origTxt=btn.innerHTML;
+  btn.disabled=true;btn.innerHTML='✦ 生成中...';
+  if(outEl){outEl.style.display='block';outEl.innerHTML=`<div style="font-size:11px;color:var(--muted);padding:6px 10px">AI 正在分析会议内容 <span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div>`;}
+
+  const prompt=`You are an expert college admissions consultant assistant.
+Analyze the following meeting notes and extract ALL action items, follow-ups, and to-dos mentioned.
+
+Meeting Notes:
+"""
+${m.content}
+"""
+
+Return a JSON array of tasks. Each task must have:
+- "text": clear, actionable task description (concise, start with a verb)
+- "priority": "high" | "med" | "low"  (high = urgent/time-sensitive, med = normal, low = when possible)
+- "category": one of ["Essays","Testing","School Research","Applications","Financial Aid","Visits","Academic","General"]
+- "due": ISO date string (YYYY-MM-DD) if a specific date is mentioned, otherwise null
+
+Examples of good tasks:
+- "Send summer recommendation letter reminder email"
+- "Register for SAT on August 6th"
+- "Follow up on ID/passport transfer issue"
+
+Return ONLY a valid JSON array, no explanation, no markdown fences. Example:
+[{"text":"Task 1","priority":"high","category":"General","due":null}]`;
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1500,messages:[{role:'user',content:prompt}]})
+    });
+    const data=await res.json();
+    if(data.error)throw new Error(data.error.message);
+    const raw=data.content?.map(b=>b.text||'').join('')||'[]';
+    let tasks;
+    try{tasks=JSON.parse(raw);}catch(e){
+      // try extracting JSON from response
+      const match=raw.match(/\[[\s\S]*\]/);
+      if(match)tasks=JSON.parse(match[0]);else throw new Error('无法解析 AI 返回的任务列表');
+    }
+    if(!Array.isArray(tasks)||tasks.length===0){
+      if(outEl)outEl.innerHTML=`<div style="font-size:11px;color:var(--muted);padding:6px 10px;background:rgba(0,0,0,0.1);border-radius:6px">未从本次会议中检测到明确的行动事项。</div>`;
+      btn.disabled=false;btn.innerHTML=origTxt;return;
+    }
+    // Add tasks to student todos
+    if(!s.todos)s.todos=[];
+    const today=new Date().toISOString().split('T')[0];
+    const added=[];
+    tasks.forEach(t=>{
+      const newTodo={
+        id:Date.now()+Math.random(),
+        text:t.text||'',
+        priority:['high','med','low'].includes(t.priority)?t.priority:'med',
+        category:['Essays','Testing','School Research','Applications','Financial Aid','Visits','Academic','General'].includes(t.category)?t.category:'General',
+        due:t.due||null,
+        done:false,
+        createdAt:today,
+        source:'meeting:'+m.date
+      };
+      s.todos.unshift(newTodo);
+      added.push(newTodo);
+    });
+    if(fbDb)saveStudentToFirestore(s);
+    // Show summary in note
+    if(outEl){
+      outEl.innerHTML=`<div style="font-size:11px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.25);border-radius:6px;padding:8px 10px">
+        <div style="color:var(--gold);font-weight:600;margin-bottom:5px">✦ 已生成 ${added.length} 个待办事项 → To-Do 列表</div>
+        ${added.map(t=>`<div style="color:var(--cream);margin-bottom:3px;font-size:11px">· ${escHtml(t.text)} <span style="color:var(--muted)">[${t.priority}·${t.category}]</span></div>`).join('')}
+        <button class="btn btn-gold btn-sm" style="margin-top:7px;font-size:10px" onclick="switchTab('todos')">→ 查看 To-Do 列表</button>
+      </div>`;
+    }
+    // Refresh todos tab badge
+    renderTodos(s);
+  }catch(e){
+    if(outEl)outEl.innerHTML=`<div style="font-size:11px;color:var(--red);padding:6px 10px;border:1px solid rgba(224,92,92,0.3);border-radius:6px">Error: ${escHtml(e.message)}</div>`;
+  }
+  btn.disabled=false;btn.innerHTML=origTxt;
 }
 
 function renderAITab(s){
