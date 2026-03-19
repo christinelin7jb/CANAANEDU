@@ -964,13 +964,13 @@ const GP_IB={'7':4.0,'6':3.7,'5':3.3,'4':3.0,'3':2.0,'2':1.0,'1':0.0};
 const GP_AL={'A*':4.0,'A':4.0,'B':3.0,'C':2.0,'D':1.0,'E':0.0,'U':0.0};
 function chineseToGPA(n){const v=parseFloat(n);if(isNaN(v))return null;if(v>=90)return 4.0;if(v>=85)return 3.7;if(v>=80)return 3.3;if(v>=75)return 3.0;if(v>=70)return 2.7;if(v>=65)return 2.3;if(v>=60)return 2.0;return 0.0;}
 const GRADE_SYSTEMS=[
-  {key:'us',label:'US (A–F)',grades:['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','IP','W']},
+  {key:'us',label:'US (A–F)',grades:['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','IP','W','P','NP','CR','EX']},
   {key:'ib',label:'IB (1–7)',grades:['7','6','5','4','3','2','1','IP']},
   {key:'al',label:'A-Level',grades:['A*','A','B','C','D','E','U']},
   {key:'cn',label:'Chinese (百分制)',grades:[]},
 ];
 function gradeToGPA(grade,system){
-  if(!grade||grade==='IP'||grade==='W'||grade==='—')return null;
+  if(!grade||grade==='IP'||grade==='W'||grade==='—'||grade==='P'||grade==='NP'||grade==='CR'||grade==='EX')return null;
   const sys=system||'us';
   if(sys==='us'){const v=GP[grade];return v!==undefined?v:null;}
   if(sys==='ib'){const v=GP_IB[String(grade)];return v!==undefined?v:null;}
@@ -979,7 +979,7 @@ function gradeToGPA(grade,system){
   return null;
 }
 function gradeDisplay(grade,system){
-  if(!grade||grade==='IP'||grade==='W')return grade||'—';
+  if(!grade||grade==='IP'||grade==='W'||grade==='P'||grade==='NP'||grade==='CR'||grade==='EX')return grade||'—';
   const gp=gradeToGPA(grade,system);
   if(gp===null)return grade;
   const sys=system||'us';
@@ -1777,7 +1777,7 @@ function renderTranscript(s){
               <option value="al">A-Level</option>
               <option value="cn">Chinese (百分制)</option>
             </select>
-            <select class="ms" id="cgr-${yr}" style="min-width:58px"><option value="">Grade</option>${['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','IP','W'].map(g=>`<option>${g}</option>`).join('')}</select>
+            <select class="ms" id="cgr-${yr}" style="min-width:58px"><option value="">Grade</option>${['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','IP','W','P','NP','CR','EX'].map(g=>`<option>${g}</option>`).join('')}</select>
             <input class="mi" id="cgr-cn-${yr}" placeholder="e.g. 92" style="width:62px;display:none">
             <input class="mi" id="ccr-${yr}" value="10" style="width:38px">
             <select class="ms" id="csm-${yr}"><option value="Full">Full Yr</option><option value="Sem1">Sem 1</option><option value="Sem2">Sem 2</option></select>
@@ -1830,7 +1830,7 @@ function updateGradeOpts(yr){
   if(sys==='cn'){sel.style.display='none';cn.style.display='';cn.placeholder='e.g. 92';}
   else{sel.style.display='';cn.style.display='none';}
   sel.innerHTML='<option value="">Grade</option>';
-  const opts={us:['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','IP','W'],ib:['7','6','5','4','3','2','1','IP'],al:['A*','A','B','C','D','E','U']};
+  const opts={us:['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','IP','W','P','NP','CR','EX'],ib:['7','6','5','4','3','2','1','IP'],al:['A*','A','B','C','D','E','U']};
   if(opts[sys])opts[sys].forEach(g=>{const o=document.createElement('option');o.value=g;o.textContent=g;sel.appendChild(o);});
 }
 function addCourse(sid,year){
@@ -1851,7 +1851,7 @@ function delCourse(sid,cid){
   renderTranscript(s);
 }
 function editGradeOptions(sys,selected){
-  const opts={us:['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','IP','W'],ib:['7','6','5','4','3','2','1','IP'],al:['A*','A','B','C','D','E','U']};
+  const opts={us:['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','IP','W','P','NP','CR','EX'],ib:['7','6','5','4','3','2','1','IP'],al:['A*','A','B','C','D','E','U']};
   return(opts[sys]||opts.us).map(g=>`<option${g===selected?' selected':''}>${g}</option>`).join('');
 }
 function editUpdateSys(cid){
@@ -2025,7 +2025,7 @@ function showTranscriptImportPreview(sid, courses) {
   const rows = courses.map((c, i) => {
     const sys = c.gradeSystem || 'us';
     const gradeOpts = {
-      us: ['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','IP'],
+      us: ['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','IP','W','P','NP','CR','EX'],
       ib: ['7','6','5','4','3','2','1'],
       al: ['A*','A','B','C','D','E','U'],
       cn: []
