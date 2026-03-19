@@ -762,6 +762,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   </div>
   <div class="fr"><div class="fg"><label class="fl">SAT</label><input class="fi" id="nSAT" type="number" placeholder="1480"></div><div class="fg"><label class="fl">ACT</label><input class="fi" id="nACT" type="number" placeholder="33"></div></div>
   <div class="fg"><label class="fl">Major</label><input class="fi" id="nMajor" placeholder="Computer Science"></div>
+  <div class="fg"><label class="fl">High School</label><input class="fi" id="nHighSchool" placeholder="e.g. Arcadia High School"></div>
   <div class="fg"><label class="fl">Activities & Awards</label><textarea class="fta" id="nECs" style="min-height:70px" placeholder="List ECs, awards, leadership..."></textarea></div>
   <div class="fr">
     <div class="fg"><label class="fl">Target Tier</label><select class="fse" id="nTier"><option value="t10">Top 10</option><option value="t25">Top 25</option><option value="t50">Top 50</option><option value="t100">Top 100</option><option value="la">Liberal Arts</option></select></div>
@@ -782,6 +783,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   </div>
   <div class="fr"><div class="fg"><label class="fl">SAT</label><input class="fi" id="eSAT" type="number" placeholder="1480"></div><div class="fg"><label class="fl">ACT</label><input class="fi" id="eACT" type="number" placeholder="33"></div></div>
   <div class="fg"><label class="fl">Major</label><input class="fi" id="eMajor" placeholder="Computer Science"></div>
+  <div class="fg"><label class="fl">High School</label><input class="fi" id="eHighSchool" placeholder="e.g. Arcadia High School"></div>
   <div class="fr">
     <div class="fg"><label class="fl">Target Tier</label><select class="fse" id="eTier"><option value="t10">Top 10</option><option value="t25">Top 25</option><option value="t50">Top 50</option><option value="t100">Top 100</option><option value="la">Liberal Arts</option></select></div>
     <div class="fg"><label class="fl">Hook</label><select class="fse" id="eHook"><option value="">None</option><option value="legacy">Legacy</option><option value="athlete">Athlete</option><option value="firstgen">First-Gen</option><option value="urm">URM</option><option value="intl">International</option></select></div>
@@ -1593,7 +1595,7 @@ function openProfile(id){
   currentStudentId=id;
   const s=students.find(x=>x.id==id);if(!s)return;
   renderSidebar();
-  goPage('profile',`${s.firstName} ${s.lastName}`,`Grade ${s.grade} · ${s.major}`);
+  goPage('profile',`${s.firstName} ${s.lastName}`,`Grade ${s.grade}${s.highSchool?' · '+s.highSchool:''} · ${s.major}`);
   const c=getConf(s),u=getUrgency(s);
   document.getElementById('profileHeader').innerHTML=`
     <div class="av" style="width:56px;height:56px;font-size:20px;font-weight:700;background:${s.color};flex-shrink:0">${s.firstName[0]}${s.lastName[0]}</div>
@@ -1605,6 +1607,7 @@ function openProfile(id){
       </div>
       <div class="ph-meta">
         <div class="pm">📚 Grade <strong>${s.grade}</strong></div>
+        ${s.highSchool?`<div class="pm">🏫 <strong>${s.highSchool}</strong></div>`:''}
         <div class="pm">⭐ GPA <strong>${s.gpa||'—'}</strong></div>
         ${s.sat?`<div class="pm">📊 SAT <strong>${s.sat}</strong></div>`:''}
         ${s.act?`<div class="pm">📋 ACT <strong>${s.act}</strong></div>`:''}
@@ -1648,6 +1651,7 @@ function renderOverview(s){
       <div>
         <div class="card">
           <div class="card-hd"><span class="ico">📊</span>Academic Profile<button class="btn btn-out btn-sm" style="margin-left:auto;font-size:10px;padding:3px 10px" onclick="openEditStudent(${s.id})">✏ Edit</button></div>
+          ${s.highSchool?pstat('High School',s.highSchool,''):''}
           ${pstat('GPA (Unweighted)',s.gpa||'—',s.gpa?'/4.0':'')}
           ${pstat('Weighted GPA',gpas.w,'/5.0')}
           ${pstat('SAT',s.sat||'<span style="color:var(--muted)">Not taken</span>',s.sat?'/1600':'')}
@@ -3523,6 +3527,7 @@ async function addStudent(){
     sat:parseInt(document.getElementById('nSAT').value)||null,
     act:parseInt(document.getElementById('nACT').value)||null,
     major:document.getElementById('nMajor').value||'Undecided',
+    highSchool:document.getElementById('nHighSchool').value.trim()||'',
     tier:document.getElementById('nTier').value||'t50',
     hook:document.getElementById('nHook').value||'None',
     activities:document.getElementById('nECs').value||'',
@@ -3538,7 +3543,7 @@ async function addStudent(){
   // Optimistically update UI immediately; Firestore syncs in background
   students.push({...data,id:docId,todos:[],essays:[],transcript:[],activitiesList:[],meetings:data.meetings||[],sharedWith:[]});
   closeMo('moAddStudent');
-  ['nFN','nLN','nGPA','nSAT','nACT','nMajor','nECs','nNotes'].forEach(id=>document.getElementById(id).value='');
+  ['nFN','nLN','nGPA','nSAT','nACT','nMajor','nHighSchool','nECs','nNotes'].forEach(id=>document.getElementById(id).value='');
   renderSidebar(); renderDashboard(); populateDropdowns(); updateUrgBadge();
   openProfile(docId);
   try{
@@ -3561,6 +3566,7 @@ function openEditStudent(id){
   document.getElementById('eSAT').value=s.sat||'';
   document.getElementById('eACT').value=s.act||'';
   document.getElementById('eMajor').value=s.major||'';
+  document.getElementById('eHighSchool').value=s.highSchool||'';
   document.getElementById('eTier').value=s.tier||'t50';
   document.getElementById('eHook').value=s.hook||'';
   openMo('moEditStudent');
@@ -3576,6 +3582,7 @@ function saveEditStudent(){
   s.sat=parseInt(document.getElementById('eSAT').value)||null;
   s.act=parseInt(document.getElementById('eACT').value)||null;
   s.major=document.getElementById('eMajor').value||'Undecided';
+  s.highSchool=document.getElementById('eHighSchool').value.trim()||'';
   s.tier=document.getElementById('eTier').value;
   s.hook=document.getElementById('eHook').value;
   closeMo('moEditStudent');
