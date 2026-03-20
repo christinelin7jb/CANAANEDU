@@ -3110,7 +3110,7 @@ async function runOutcomeAnalysis(){
     `${sc.name} [${sc.round}] → ${sc.result.toUpperCase()}${sc.note ? ' (note: ' + sc.note + ')' : ''}`
   ).join('\n');
 
-  const prompt = `You are an expert college admissions consultant with 15+ years of experience. Analyze the following student's application outcomes in detail.
+  const prompt = `You are an expert college admissions consultant with 15+ years of experience. Your job is to give a BRUTALLY HONEST, no-sugarcoating analysis of this student's application outcomes. Do not soften the truth to spare feelings — this analysis is for internal consultant use only. If the profile was weak, say so clearly. If the strategy was poor, name it. If the student reached too high or aimed too low, be direct. Consultants need the unvarnished truth to improve future students' outcomes.
 
 ## STUDENT PROFILE
 Name: ${name}${highSchool ? '\nHigh School: ' + highSchool : ''}
@@ -3134,28 +3134,28 @@ Full detail:
 ${schoolList}
 
 ## YOUR TASK
-Provide a deep, honest, and actionable analysis covering ALL of the following sections. Be specific — use the student's actual data. Do not be vague or generic.
+Be brutally honest throughout. Use the student's actual numbers. Call out weaknesses plainly. Do not hedge with phrases like "may have" or "could possibly" — state what you believe happened and why.
 
 **1. OVERALL OUTCOME ASSESSMENT**
-Brief honest summary of the results — was this expected, better, or worse than the profile warrants?
+Was this outcome expected, a surprise, or a disappointment given the profile? Be direct — did this student over-apply to reaches? Under-perform relative to stats? Get lucky or unlucky?
 
 **2. PATTERN ANALYSIS: What Separated Admits from Denials**
-What do the admitted schools have in common vs the denied schools? Consider: selectivity, major fit, school culture, geography, application round (ED/EA/RD), essay fit.
+What do the admitted schools have in common vs the denied schools? Consider: selectivity, major fit, school culture, geography, application round (ED/EA/RD), essay fit. Be specific — not generic observations.
 
 **3. PROFILE STRENGTH & GAPS**
-Where is this student genuinely strong? Where are the gaps that likely hurt at denied schools? Be candid — include academics, testing, activities, hook/intangibles.
+Identify the real weaknesses that hurt this student. Don't just list strengths — be honest about where this profile fell short academically, in testing, in activities depth, or in differentiation. Name the specific gaps.
 
 **4. ESSAY & NARRATIVE ASSESSMENT**
-Based on the essay theme and activities, how well does the narrative likely fit the admitted vs denied schools? What signals might the essay have sent?
+Was the Common App essay theme strong or generic? If UC PIQs were submitted, did the chosen prompts play to this student's strengths? What did the essays likely signal to admissions — positively or negatively?
 
 **5. ROUND STRATEGY ANALYSIS**
-Was the ED/EA/RD strategy optimal? What impact did round choices have on outcomes?
+Was the ED/EA/RD strategy smart or a mistake? Were safeties genuinely safe? Were reaches realistic? Be blunt if the school list was poorly constructed.
 
 **6. LESSONS FOR FUTURE STUDENTS**
-3–5 concrete, specific lessons a future student with a similar profile should apply to maximize admissions outcomes. Make these actionable — not generic.
+3–5 hard-hitting, specific lessons. Not generic advice — lessons directly rooted in what went wrong (or right) in this specific cycle.
 
 **7. IF YOU COULD CHANGE ONE THING**
-What single change to this application cycle would have most improved the outcome? Be direct and specific.`;
+The single most impactful change that would have improved this outcome. Be direct and specific — no vague answers.`;
 
   const out = document.getElementById('oaResults');
   out.innerHTML = '';
