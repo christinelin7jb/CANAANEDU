@@ -793,16 +793,21 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
           </div>
         </div>
 
-        <div class="fr3">
+        <div class="fr">
           <div class="fg"><label class="fl">Student Name</label><input class="fi" id="oaName" placeholder="e.g. Amy Chen"></div>
+          <div class="fg"><label class="fl">High School</label><input class="fi" id="oaHighSchool" placeholder="e.g. Arcadia High School"></div>
+        </div>
+
+        <div class="fr3">
           <div class="fg"><label class="fl">GPA (Unweighted)</label><input class="fi" id="oaGpa" type="number" step="0.01" placeholder="3.85"></div>
           <div class="fg"><label class="fl">Weighted GPA</label><input class="fi" id="oaGpaW" type="number" step="0.01" placeholder="4.30"></div>
+          <div class="fg"><label class="fl">AP / IB Courses</label><input class="fi" id="oaAps" type="number" placeholder="6"></div>
         </div>
 
         <div class="fr3">
           <div class="fg"><label class="fl">SAT</label><input class="fi" id="oaSat" type="number" placeholder="1480"></div>
           <div class="fg"><label class="fl">ACT</label><input class="fi" id="oaAct" type="number" placeholder="33"></div>
-          <div class="fg"><label class="fl">AP / IB Courses</label><input class="fi" id="oaAps" type="number" placeholder="6"></div>
+          <div class="fg"></div>
         </div>
 
         <div class="fr">
@@ -3016,6 +3021,7 @@ function oaLoadStudent(sid){
   const s = students.find(x => x.id === parseInt(sid));
   if(!s) return;
   document.getElementById('oaName').value = `${s.firstName} ${s.lastName}`;
+  document.getElementById('oaHighSchool').value = s.highSchool || '';
   document.getElementById('oaGpa').value = s.gpa || '';
   document.getElementById('oaGpaW').value = calcGPAs(s.transcript||[]).w || '';
   document.getElementById('oaSat').value = s.sat || '';
@@ -3074,6 +3080,7 @@ async function runOutcomeAnalysis(){
     return;
   }
   const name = document.getElementById('oaName').value.trim() || 'This student';
+  const highSchool = document.getElementById('oaHighSchool').value.trim() || '';
   const gpa = document.getElementById('oaGpa').value || '—';
   const gpaW = document.getElementById('oaGpaW').value || '—';
   const sat = document.getElementById('oaSat').value || 'not submitted';
@@ -3099,7 +3106,7 @@ async function runOutcomeAnalysis(){
   const prompt = `You are an expert college admissions consultant with 15+ years of experience. Analyze the following student's application outcomes in detail.
 
 ## STUDENT PROFILE
-Name: ${name}
+Name: ${name}${highSchool ? '\nHigh School: ' + highSchool : ''}
 GPA (Unweighted): ${gpa} | GPA (Weighted): ${gpaW}
 SAT: ${sat} | ACT: ${act}
 AP/IB Courses: ${aps}
