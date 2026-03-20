@@ -825,6 +825,17 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
           </div>
         </div>
 
+        <div class="fg">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+            <label class="fl" style="margin-bottom:0">完整成绩单（四年课程）</label>
+            <span style="font-size:10px;color:var(--muted)">选择学生后自动填入，也可手动粘贴</span>
+          </div>
+          <textarea class="fta" id="oaTranscript" style="min-height:130px;font-family:'DM Mono',monospace;font-size:11px;line-height:1.6" placeholder="9年级：
+  AP/Honors Biology — A | AP US History — A- | Honors English 9 — B+
+10年级：
+  AP Chemistry — B+ | AP World History — A | ..."></textarea>
+        </div>
+
         <div class="fg"><label class="fl">Activities & Leadership (brief summary)</label>
           <textarea class="fta" id="oaActivities" style="min-height:70px" placeholder="e.g. Varsity tennis captain (4yr), DECA state finalist, robotics club founder, 200hrs volunteering at hospital..."></textarea>
         </div>
@@ -3035,6 +3046,17 @@ function oaLoadStudent(sid){
   document.getElementById('oaHook').value = s.hook || '';
   document.getElementById('oaActivities').value = s.activities || '';
   document.getElementById('oaEssayTheme').value = '';
+  // Format transcript by grade year
+  const tr = s.transcript || [];
+  const yearLabels = {9:'9年级',10:'10年级',11:'11年级',12:'12年级'};
+  const byYear = {};
+  tr.forEach(c => { if(!byYear[c.year]) byYear[c.year] = []; byYear[c.year].push(c); });
+  const trText = [9,10,11,12].filter(y=>byYear[y]&&byYear[y].length).map(y =>
+    yearLabels[y] + '：\n' + byYear[y].map(c =>
+      `  ${c.level&&c.level!=='Regular'?c.level+' ':''}${c.subject} — ${c.grade||'?'}${c.ag?' ['+c.ag+']':''}`
+    ).join('\n')
+  ).join('\n');
+  document.getElementById('oaTranscript').value = trText;
   const ucPiqs = (s.essays||[]).filter(e=>e.type==='UC PIQ').sort((a,b)=>(a.piqNum||0)-(b.piqNum||0));
   document.getElementById('oaUcEssay').value = ucPiqs.length ? ucPiqs.map(e=>`PIQ ${e.piqNum||''}: ${e.title.replace(/^PIQ \d+:\s*/,'')}`).join('\n') : '';
   document.getElementById('oaContext').value = '';
@@ -3096,6 +3118,7 @@ async function runOutcomeAnalysis(){
   const hookRaw = document.getElementById('oaHook').value;
   const hookMap = {legacy:'Legacy student',recruited_athlete:'Recruited Athlete',first_gen:'First-Generation college student',urm:'Underrepresented Minority',international:'International student',development:'Development/Donor-related'};
   const hook = hookMap[hookRaw] || 'No special hook';
+  const transcript = document.getElementById('oaTranscript').value.trim() || '';
   const activities = document.getElementById('oaActivities').value.trim() || 'not provided';
   const essayTheme = document.getElementById('oaEssayTheme').value.trim() || 'not provided';
   const ucEssay = document.getElementById('oaUcEssay').value.trim() || '';
@@ -3119,10 +3142,15 @@ SAT: ${sat} | ACT: ${act}
 AP/IB Courses: ${aps}
 Intended Major: ${major}
 Special Factor / Hook: ${hook}
-Activities & Leadership: ${activities}
-Common App Essay Theme: ${essayTheme}
-${ucEssay ? 'UC PIQ Essays: ' + ucEssay : ''}
-${context ? 'Additional Context: ' + context : ''}
+${transcript ? '\n## 完整四年成绩单\n' + transcript : ''}
+
+## 课外活动 & 领导力
+${activities}
+
+## 文书
+Common App文书主题：${essayTheme}
+${ucEssay ? 'UC PIQ文书：\n' + ucEssay : ''}
+${context ? '\n备注：' + context : ''}
 
 ## APPLICATION RESULTS (${oaSchools.length} schools)
 Admitted (${admitted.length}): ${admitted.map(s=>s.name+' ['+s.round+']').join(', ') || 'none'}
@@ -3142,8 +3170,8 @@ ${schoolList}
 **2. 录取与拒绝的规律分析**
 录取的学校和被拒的学校有什么共同点？考虑：选择性、专业匹配度、学校文化、地理位置、申请轮次（ED/EA/RD）、文书契合度。要具体，不要泛泛而谈。
 
-**3. Profile优势与真实短板**
-直接指出这名学生的真正弱点。不要只列优点——诚实分析这份Profile在学术成绩、标化考试、活动深度或差异化方面哪里不足。点名具体的短板。
+**3. 成绩单深度解读 & Profile短板**
+基于完整成绩单，分析课程选择是否有力：AP/Honors课程是否足够？课程难度趋势如何（逐年递增还是原地踏步）？哪些科目成绩偏弱？与目标专业的相关课程是否充足？直接指出这名学生的真正弱点——在学术深度、标化考试、活动或差异化方面哪里真正不足。
 
 **4. 文书与叙事评估**
 Common App文书主题是有力还是平庸？如果提交了UC PIQ，选择的题目是否发挥了学生的优势？文书整体向招生官传递了什么信号——正面还是负面？
