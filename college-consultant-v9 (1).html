@@ -2121,7 +2121,7 @@ Write in first-person as the consultant. Use ${s.firstName}'s name throughout. K
   setTimeout(()=>{
     const printBtn=document.createElement('div');
     printBtn.style.cssText='margin-top:14px;display:flex;gap:8px;';
-    printBtn.innerHTML=`<button class="btn btn-gold btn-sm" onclick="window.print()">🖨 Print / Save PDF</button>`;
+    printBtn.innerHTML=`<button class="btn btn-gold btn-sm" onclick="printContent(document.getElementById('reportTitle')?.textContent||'Parent Report',document.getElementById('reportContent')?.querySelector('.air')?.innerHTML||document.getElementById('reportContent')?.innerHTML||'')">🖨 Print / Save PDF</button>`;
     out.appendChild(printBtn);
   },100);
 }
@@ -2485,7 +2485,7 @@ async function callClaudeOutcome(prompt, outEl){
       <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
           <div class="aibadge">✦ AI Outcome Analysis · ${new Date().toLocaleTimeString()}</div>
-          <button class="btn btn-out btn-sm" onclick="window.print()" style="font-size:10.5px">Print / Save</button>
+          <button class="btn btn-out btn-sm" onclick="printContent('AI Outcome Analysis',document.getElementById('oaResults')?.querySelector('.air')?.innerHTML||'')" style="font-size:10.5px">Print / Save</button>
         </div>
         <div class="air oa-insight-section">${fmt}</div>
       </div>`;
@@ -2585,6 +2585,15 @@ function saveSummerNotes(sid){
   s.summerRec={...(s.summerRec||{}),notes};
   if(fbDb)saveStudentToFirestore(s);
   const btn=event.target;btn.textContent='Saved ✓';setTimeout(()=>btn.textContent='Save Notes',1800);
+}
+
+function printContent(title, contentHtml){
+  let d=document.getElementById('printArea');
+  if(!d){d=document.createElement('div');d.id='printArea';document.body.appendChild(d);}
+  d.innerHTML=`<h1>${title}</h1><hr style="border:none;border-top:1px solid #ddd;margin:16px 0"><div>${contentHtml}</div><div class="print-footer">Prepared by Canaan Education Consulting · ${new Date().toLocaleDateString()} · Confidential</div>`;
+  d.style.display='block';
+  window.print();
+  setTimeout(()=>d.style.display='none',1000);
 }
 
 function exportSummerReport(sid){
