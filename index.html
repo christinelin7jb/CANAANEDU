@@ -833,6 +833,10 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
           <textarea class="fta" id="oaEssayTheme" style="min-height:55px" placeholder="e.g. Growing up between two cultures — explored identity through competitive chess and language teaching"></textarea>
         </div>
 
+        <div class="fg"><label class="fl">UC PIQ Essays (optional)</label>
+          <textarea class="fta" id="oaUcEssay" style="min-height:70px" placeholder="e.g. PIQ 1: Leadership role as founder of school's first Asian Culture Club... PIQ 5: Overcame financial hardship while maintaining academic excellence..."></textarea>
+        </div>
+
         <div class="fg"><label class="fl">Additional Context (optional)</label>
           <textarea class="fta" id="oaContext" style="min-height:55px" placeholder="e.g. Attended a competitive private school in California; GPA trend was upward junior year; applied to CS at all schools..."></textarea>
         </div>
@@ -3031,6 +3035,8 @@ function oaLoadStudent(sid){
   document.getElementById('oaHook').value = s.hook || '';
   document.getElementById('oaActivities').value = s.activities || '';
   document.getElementById('oaEssayTheme').value = '';
+  const ucPiqs = (s.essays||[]).filter(e=>e.type==='UC PIQ').sort((a,b)=>(a.piqNum||0)-(b.piqNum||0));
+  document.getElementById('oaUcEssay').value = ucPiqs.length ? ucPiqs.map(e=>`PIQ ${e.piqNum||''}: ${e.title.replace(/^PIQ \d+:\s*/,'')}`).join('\n') : '';
   document.getElementById('oaContext').value = '';
   oaSchools = [];
   oaRenderSchools();
@@ -3092,6 +3098,7 @@ async function runOutcomeAnalysis(){
   const hook = hookMap[hookRaw] || 'No special hook';
   const activities = document.getElementById('oaActivities').value.trim() || 'not provided';
   const essayTheme = document.getElementById('oaEssayTheme').value.trim() || 'not provided';
+  const ucEssay = document.getElementById('oaUcEssay').value.trim() || '';
   const context = document.getElementById('oaContext').value.trim() || '';
 
   const admitted = oaSchools.filter(s => s.result === 'admitted');
@@ -3114,6 +3121,7 @@ Intended Major: ${major}
 Special Factor / Hook: ${hook}
 Activities & Leadership: ${activities}
 Common App Essay Theme: ${essayTheme}
+${ucEssay ? 'UC PIQ Essays: ' + ucEssay : ''}
 ${context ? 'Additional Context: ' + context : ''}
 
 ## APPLICATION RESULTS (${oaSchools.length} schools)
