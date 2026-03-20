@@ -828,7 +828,17 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         <div class="fg">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
             <label class="fl" style="margin-bottom:0">完整成绩单（四年课程）</label>
-            <span style="font-size:10px;color:var(--muted)">选择学生后自动填入，也可手动粘贴</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:10px;color:var(--muted)">选择学生后自动填入，也可手动粘贴</span>
+              <button class="btn btn-out btn-sm" onclick="document.getElementById('oaTranscriptFile').click()" style="font-size:10px;padding:3px 10px;display:flex;align-items:center;gap:4px">
+                📄 上传 PDF / 图片
+              </button>
+              <input type="file" id="oaTranscriptFile" accept="image/*,.pdf" style="display:none" onchange="oaParseTranscriptFile(this)">
+            </div>
+          </div>
+          <div id="oaTranscriptStatus" style="display:none;font-size:11px;color:var(--gold);margin-bottom:6px;display:flex;align-items:center;gap:6px">
+            <span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>
+            AI 正在识别成绩单…
           </div>
           <textarea class="fta" id="oaTranscript" style="min-height:130px;font-family:'DM Mono',monospace;font-size:11px;line-height:1.6" placeholder="9年级：
   AP/Honors Biology — A | AP US History — A- | Honors English 9 — B+
@@ -3063,6 +3073,68 @@ function oaLoadStudent(sid){
   oaSchools = [];
   oaRenderSchools();
   document.getElementById('oaResults').innerHTML = '';
+}
+
+async function oaParseTranscriptFile(input){
+  const file = input.files[0];
+  if(!file) return;
+  input.value = '';
+
+  const key = getClaudeKey();
+  if(!key){ alert('请先在 AI Analysis 标签页输入 Claude API Key。'); return; }
+
+  const statusEl = document.getElementById('oaTranscriptStatus');
+  statusEl.style.display = 'flex';
+  document.getElementById('oaTranscript').value = '';
+
+  try{
+    const base64 = await new Promise((res,rej)=>{
+      const reader = new FileReader();
+      reader.onload = e => res(e.target.result.split(',')[1]);
+      reader.onerror = rej;
+      reader.readAsDataURL(file);
+    });
+
+    const mediaType = file.type || (file.name.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg');
+    const isPDF = mediaType === 'application/pdf';
+    const contentBlock = isPDF
+      ? {type:'document', source:{type:'base64', media_type:'application/pdf', data:base64}}
+      : {type:'image', source:{type:'base64', media_type:mediaType, data:base64}};
+
+    const prompt = `你是一位专业的美国大学申请顾问，正在解析一份高中成绩单。请从这份成绩单中提取所有课程信息，按年级分组，输出为简洁的纯文本格式，供顾问阅读和分析。
+
+输出格式要求：
+9年级：
+  AP/Honors/Regular 课程名 — 成绩
+  （每行一门课）
+10年级：
+  ...
+11年级：
+  ...
+12年级：
+  ...（如有）
+
+规则：
+- 课程名前标注课程等级（AP / IB / Honors / Regular），Regular可省略
+- 成绩保留原始格式（如 A、A-、B+、92、7等）
+- 如果同一门课有两个学期成绩，写成"成绩1 / 成绩2"
+- 如果无法判断年级，归入最可能的年级
+- 只输出纯文本，不要任何解释或额外内容`;
+
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:3000,messages:[{role:'user',content:[contentBlock,{type:'text',text:prompt}]}]})
+    });
+    const data = await res.json();
+    if(data.error) throw new Error(data.error.message);
+    const text = (data.content||[]).map(b=>b.text||'').join('').trim();
+    document.getElementById('oaTranscript').value = text;
+  } catch(e){
+    alert('识别失败：' + e.message);
+  } finally{
+    statusEl.style.display = 'none';
+  }
 }
 
 function oaAddSchool(){
