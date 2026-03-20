@@ -956,7 +956,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   <div class="fg"><label class="fl">Student</label><select class="fse" id="essStudent"></select></div>
   <div class="fg"><label class="fl">Essay Title / Prompt</label><input class="fi" id="essTitle" placeholder="e.g. Common App Personal Statement, Why MIT?"></div>
   <div class="fr">
-    <div class="fg"><label class="fl">Type</label><select class="fse" id="essType"><option>Common App</option><option>Supplement</option><option>Scholarship</option><option>Short Answer</option></select></div>
+    <div class="fg"><label class="fl">Type</label><select class="fse" id="essType"><option>Common App</option><option>Supplement</option><option>UC PIQ</option><option>Scholarship</option><option>Short Answer</option></select></div>
     <div class="fg"><label class="fl">School (if supplement)</label><input class="fi" id="essSchool" placeholder="e.g. MIT"></div>
   </div>
   <div class="fr">
@@ -1139,6 +1139,16 @@ function gradeOptions(sys){
 }
 const HB={'AP':1,'IB':1,'Honors':0.5,'College':0.5,'Regular':0};
 const ESSAY_STATUS=['Not Started','Brainstorm','Drafting','Revising','Consultant Review','Final'];
+const UC_PIQS=[
+  {piq:1,prompt:'Describe an example of your leadership experience in which you have positively influenced others, helped resolve disputes, or contributed to group efforts over time.'},
+  {piq:2,prompt:'Every person has a creative side, and it can be expressed in many ways: problem solving, original and innovative thinking, and artistic expressions. Describe how you express your creative side.'},
+  {piq:3,prompt:'What would you say is your greatest talent or skill? How have you developed and demonstrated that talent over time?'},
+  {piq:4,prompt:'Describe how you have taken advantage of a significant educational opportunity or worked to overcome an educational barrier you have faced.'},
+  {piq:5,prompt:'Describe the most significant challenge you have faced and the steps you have taken to overcome this challenge. How has this challenge affected your academic achievement?'},
+  {piq:6,prompt:'Think about an academic subject that inspires you. Describe how you have furthered your interest outside the classroom.'},
+  {piq:7,prompt:'What have you done to make your school or your community a better place?'},
+  {piq:8,prompt:'Beyond what has already been shared in your application, what do you believe makes you stand out as a strong candidate for admission to the University of California?'}
+];
 const STATUS_COLOR={'Not Started':'var(--muted)','Brainstorm':'var(--blue)','Drafting':'var(--orange)','Revising':'var(--purple)','Consultant Review':'var(--gold)','Final':'var(--green)'};
 
 // ══════════════════════════════════════════════════════
@@ -1686,6 +1696,9 @@ function renderEssayTracker(){
   // Stats
   const total=allEssays.length,done=allEssays.filter(e=>e.status==='Final').length;
   const byStatus={};ESSAY_STATUS.forEach(st=>{byStatus[st]=allEssays.filter(e=>e.status===st).length;});
+  const ucCount=allEssays.filter(e=>e.type==='UC PIQ').length;
+  const ucDone=allEssays.filter(e=>e.type==='UC PIQ'&&e.status==='Final').length;
+  const ucActive=allEssays.filter(e=>e.type==='UC PIQ'&&e.status!=='Not Started').length;
   document.getElementById('essayStats').innerHTML=`<div style="display:flex;gap:10px;flex-wrap:wrap">
     ${ESSAY_STATUS.map(st=>`<div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:7px;padding:8px 12px;text-align:center;flex:1;min-width:80px">
       <div style="font-size:16px;font-weight:700;color:var(--cream);font-family:'Cormorant Garamond',serif">${byStatus[st]||0}</div>
@@ -1695,12 +1708,19 @@ function renderEssayTracker(){
       <div style="font-size:16px;font-weight:700;color:var(--green);font-family:'Cormorant Garamond',serif">${total>0?Math.round(done/total*100):0}%</div>
       <div style="font-size:9.5px;color:var(--green);font-weight:600;margin-top:2px">Complete</div>
     </div>
+    ${ucCount?`<div style="background:rgba(30,144,255,0.08);border:1px solid rgba(30,144,255,0.25);border-radius:7px;padding:8px 12px;text-align:center;flex:1;min-width:80px">
+      <div style="font-size:16px;font-weight:700;color:#4a90d9;font-family:'Cormorant Garamond',serif">${ucActive}</div>
+      <div style="font-size:9.5px;color:#4a90d9;font-weight:600;margin-top:2px">🎓 UC PIQs Active</div>
+    </div>`:''}
   </div>`;
   document.getElementById('essayTable').innerHTML=`
     <div class="essay-row hdr"><div class="ec hdr">Essay / Prompt</div><div class="ec hdr">Student</div><div class="ec hdr">Status</div><div class="ec hdr">Drafts</div><div class="ec hdr">Due Date</div><div class="ec hdr">Word Limit</div><div class="ec hdr"></div></div>
     ${allEssays.length?allEssays.map(e=>`
       <div class="essay-row">
-        <div class="ec"><div style="font-weight:500;font-size:12.5px">${e.title}</div><div style="font-size:10px;color:var(--muted);margin-top:2px">${e.type}${e.school?' · '+e.school:''}</div></div>
+        <div class="ec">
+          <div style="font-weight:500;font-size:12.5px">${e.type==='UC PIQ'?`<span style="font-size:9px;background:rgba(30,144,255,0.15);color:#4a90d9;border:1px solid rgba(30,144,255,0.3);border-radius:3px;padding:1px 5px;margin-right:5px">PIQ ${e.piqNum||''}</span>`:''}${e.title}</div>
+          <div style="font-size:10px;color:${e.type==='UC PIQ'?'#4a90d9':'var(--muted)'};margin-top:2px">${e.type}${e.school&&e.type!=='UC PIQ'?' · '+e.school:''}</div>
+        </div>
         <div class="ec"><div style="display:flex;align-items:center;gap:6px"><div class="av" style="width:20px;height:20px;font-size:8px;background:${e.student.color}">${e.student.firstName[0]}${e.student.lastName[0]}</div><span style="font-size:11.5px">${e.student.firstName}</span></div></div>
         <div class="ec">
           <select class="status-sel" style="color:${STATUS_COLOR[e.status]}" onchange="updateEssayStatus(${e.student.id},${e.id},this.value)">
@@ -1731,6 +1751,20 @@ function addEssay(){
   s.essays.push({id:Date.now(),title,type:document.getElementById('essType').value,school:document.getElementById('essSchool').value,wordLimit:parseInt(document.getElementById('essWords').value)||650,due:document.getElementById('essDue').value,status:'Not Started',drafts:0,lastEdit:'',notes:''});
   closeMo('moAddEssay');['essTitle','essSchool','essWords','essDue'].forEach(id=>document.getElementById(id).value='');
   renderEssayTracker();if(currentStudentId==sid)renderEssayProfile(s);
+}
+function setupUCPIQs(sid){
+  const s=students.find(x=>x.id==sid);if(!s)return;
+  if(!s.essays)s.essays=[];
+  // Only add PIQs that haven't been added yet (check by piq number in notes)
+  const existingPiqs=new Set((s.essays||[]).filter(e=>e.type==='UC PIQ').map(e=>e.piqNum));
+  let added=0;
+  UC_PIQS.forEach(p=>{
+    if(!existingPiqs.has(p.piq)){
+      s.essays.push({id:Date.now()+p.piq,title:`PIQ ${p.piq}: ${p.prompt.substring(0,60)}…`,type:'UC PIQ',school:'UC System',wordLimit:350,due:'2025-11-30',status:'Not Started',drafts:0,lastEdit:'',notes:'',piqNum:p.piq,piqPrompt:p.prompt});
+      added++;
+    }
+  });
+  if(added>0){renderEssayTracker();renderEssayProfile(s);}
 }
 
 // ══════════════════════════════════════════════════════
@@ -2424,23 +2458,75 @@ function getMatchSchools(s){
 
 function renderEssayProfile(s){
   const es=s.essays||[];
+  const ucPIQs=es.filter(e=>e.type==='UC PIQ');
+  const otherEssays=es.filter(e=>e.type!=='UC PIQ');
+  const ucDone=ucPIQs.filter(e=>e.status==='Final').length;
+  const ucFocused=ucPIQs.filter(e=>e.status!=='Not Started').length;
+  const essayRowHtml=arr=>arr.map(e=>`<div class="essay-row">
+    <div class="ec"><div style="font-weight:500;font-size:12.5px">${e.title}</div><div style="font-size:10px;color:var(--muted)">${e.type}</div></div>
+    <div class="ec" style="font-size:11.5px">${e.school||'—'}</div>
+    <div class="ec"><select class="status-sel" style="color:${STATUS_COLOR[e.status]}" onchange="updateEssayStatus(${s.id},${e.id},this.value)">${ESSAY_STATUS.map(st=>`<option value="${st}" ${e.status===st?'selected':''} style="color:${STATUS_COLOR[st]}">${st}</option>`).join('')}</select></div>
+    <div class="ec" style="font-family:'DM Mono',monospace;font-size:12px">${e.drafts}</div>
+    <div class="ec" style="font-size:11.5px;color:${e.due&&daysUntil(e.due)<=14?'var(--orange)':'var(--muted)'}">${e.due?formatDate(e.due):'—'}</div>
+    <div class="ec" style="font-family:'DM Mono',monospace;font-size:12px">${e.wordLimit||'—'}</div>
+    <div class="ec"><button class="del-btn" onclick="deleteEssay(${s.id},${e.id})">✕</button></div>
+  </div>${e.notes?`<div class="nc" style="margin-top:4px;margin-bottom:6px"><div class="nc-date">Notes</div><div class="nc-txt">${escHtml(e.notes)}</div></div>`:''}`).join('');
+  const essayHdr=`<div class="essay-row hdr"><div class="ec hdr">Essay</div><div class="ec hdr">School</div><div class="ec hdr">Status</div><div class="ec hdr">Drafts</div><div class="ec hdr">Due</div><div class="ec hdr">Words</div><div class="ec hdr"></div></div>`;
+
+  // Build UC PIQ full-prompt rows
+  const ucPIQDetailRows=()=>{
+    if(!ucPIQs.length)return'';
+    return ucPIQs.map(e=>{
+      const piqDef=UC_PIQS.find(p=>p.piq===e.piqNum);
+      const fullPrompt=piqDef?piqDef.prompt:e.piqPrompt||e.title;
+      return`<div class="essay-row" style="grid-template-columns:2fr 1fr 90px 80px 90px 80px 32px">
+        <div class="ec">
+          <div style="font-size:10px;color:var(--gold);font-weight:600;margin-bottom:3px">PIQ ${e.piqNum||'—'}</div>
+          <div style="font-size:11.5px;color:var(--cream);line-height:1.4">${fullPrompt}</div>
+        </div>
+        <div class="ec" style="font-size:11.5px">UC System</div>
+        <div class="ec"><select class="status-sel" style="color:${STATUS_COLOR[e.status]}" onchange="updateEssayStatus(${s.id},${e.id},this.value)">${ESSAY_STATUS.map(st=>`<option value="${st}" ${e.status===st?'selected':''} style="color:${STATUS_COLOR[st]}">${st}</option>`).join('')}</select></div>
+        <div class="ec" style="font-family:'DM Mono',monospace;font-size:12px">${e.drafts}</div>
+        <div class="ec" style="font-size:11.5px;color:${e.due&&daysUntil(e.due)<=14?'var(--orange)':'var(--muted)'}">${e.due?formatDate(e.due):'—'}</div>
+        <div class="ec" style="font-family:'DM Mono',monospace;font-size:12px">350</div>
+        <div class="ec"><button class="del-btn" onclick="deleteEssay(${s.id},${e.id})">✕</button></div>
+      </div>${e.notes?`<div class="nc" style="margin-top:4px;margin-bottom:6px"><div class="nc-date">Notes</div><div class="nc-txt">${escHtml(e.notes)}</div></div>`:''}`}).join('');
+  };
+
   document.getElementById('essayProfileContent').innerHTML=`
+    <!-- UC Application PIQs Section -->
+    <div class="card" style="margin-bottom:14px;border-color:rgba(30,144,255,0.25);background:rgba(30,144,255,0.04)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="card-hd" style="margin-bottom:0"><span class="ico">🎓</span>UC Application — Personal Insight Questions</div>
+          ${ucPIQs.length?`<span style="font-size:10px;color:var(--muted);background:rgba(255,255,255,0.06);padding:2px 8px;border-radius:4px">${ucFocused} in progress · ${ucDone} final · 4 required</span>`:''}
+        </div>
+        <div style="display:flex;gap:7px">
+          ${ucPIQs.length<8?`<button class="btn btn-sm" style="background:rgba(30,144,255,0.15);border:1px solid rgba(30,144,255,0.4);color:#4a90d9;font-size:11px" onclick="setupUCPIQs(${s.id})">${ucPIQs.length?'+ Add Missing PIQs':'⚡ Load All 8 UC PIQs'}</button>`:''}
+          <button class="btn btn-out btn-sm" onclick="document.getElementById('essStudent').value=${s.id};document.getElementById('essType').value='UC PIQ';openMo('moAddEssay')">+ Custom</button>
+        </div>
+      </div>
+      ${ucPIQs.length?`
+        <div style="font-size:11px;color:var(--muted);margin-bottom:10px;padding:8px 10px;background:rgba(255,255,255,0.03);border-radius:6px;border-left:2px solid rgba(30,144,255,0.4)">
+          <strong style="color:#4a90d9">UC PIQs:</strong> Students answer <strong>4 of 8</strong> prompts, max 350 words each. Deadline: <strong>Nov 30</strong>. Mark the 4 you're focusing on as "Brainstorm" or higher to identify them.
+        </div>
+        ${essayHdr}
+        ${ucPIQDetailRows()}
+      `:`<div style="padding:20px;text-align:center">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:10px">No UC PIQs set up yet.</div>
+        <div style="font-size:11.5px;color:var(--muted);margin-bottom:14px">UC applicants answer 4 of 8 Personal Insight Questions (350 words each, due Nov 30).</div>
+        <button class="btn btn-sm" style="background:rgba(30,144,255,0.15);border:1px solid rgba(30,144,255,0.4);color:#4a90d9" onclick="setupUCPIQs(${s.id})">⚡ Load All 8 UC PIQ Prompts</button>
+      </div>`}
+    </div>
+    <!-- Common App & Supplements Section -->
     <div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-        <div class="card-hd" style="margin-bottom:0"><span class="ico">✍</span>Essays for ${s.firstName}</div>
-        <button class="btn btn-gold btn-sm" onclick="document.getElementById('essStudent').value=${s.id};openMo('moAddEssay')">+ Add Essay</button>
+        <div class="card-hd" style="margin-bottom:0"><span class="ico">✍</span>Common App & Supplements</div>
+        <button class="btn btn-gold btn-sm" onclick="document.getElementById('essStudent').value=${s.id};document.getElementById('essType').value='Common App';openMo('moAddEssay')">+ Add Essay</button>
       </div>
-      ${es.length?`
-        <div class="essay-row hdr"><div class="ec hdr">Essay</div><div class="ec hdr">School</div><div class="ec hdr">Status</div><div class="ec hdr">Drafts</div><div class="ec hdr">Due</div><div class="ec hdr">Words</div><div class="ec hdr"></div></div>
-        ${es.map(e=>`<div class="essay-row">
-          <div class="ec"><div style="font-weight:500;font-size:12.5px">${e.title}</div><div style="font-size:10px;color:var(--muted)">${e.type}</div></div>
-          <div class="ec" style="font-size:11.5px">${e.school||'—'}</div>
-          <div class="ec"><select class="status-sel" style="color:${STATUS_COLOR[e.status]}" onchange="updateEssayStatus(${s.id},${e.id},this.value)">${ESSAY_STATUS.map(st=>`<option value="${st}" ${e.status===st?'selected':''} style="color:${STATUS_COLOR[st]}">${st}</option>`).join('')}</select></div>
-          <div class="ec" style="font-family:'DM Mono',monospace;font-size:12px">${e.drafts}</div>
-          <div class="ec" style="font-size:11.5px;color:${e.due&&daysUntil(e.due)<=14?'var(--orange)':'var(--muted)'}">${e.due?formatDate(e.due):'—'}</div>
-          <div class="ec" style="font-family:'DM Mono',monospace;font-size:12px">${e.wordLimit||'—'}</div>
-          <div class="ec"><button class="del-btn" onclick="deleteEssay(${s.id},${e.id})">✕</button></div>
-        </div>${e.notes?`<div class="nc" style="margin-top:4px;margin-bottom:6px"><div class="nc-date">Notes</div><div class="nc-txt">${escHtml(e.notes)}</div></div>`:''}`).join('')}
+      ${otherEssays.length?`
+        ${essayHdr}
+        ${essayRowHtml(otherEssays)}
       `:'<p style="color:var(--muted);font-size:12.5px">No essays tracked yet. Click + Add Essay to start.</p>'}
     </div>`;
 }
@@ -2636,7 +2722,9 @@ async function openMeetingBrief(sid){
   const agSt=getAGStatus(s.transcript,s.grade);const missing=agSt.filter(r=>r.uc>0&&!r.met).map(r=>r.label.split('—')[0].trim()).join(', ')||'None';
   const notes=s.meetings.slice(0,3).map(m=>`[${m.date}] ${m.content}`).join('\n')||'No previous meetings';
   const nextDLs=globalDeadlines.filter(d=>d.studentId==s.id&&!d.done&&new Date(d.date)>=new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,3).map(d=>`${d.title} (${formatDate(d.date)})`).join(', ')||'None';
-  const essays=(s.essays||[]).map(e=>`${e.title}: ${e.status}`).join(', ')||'None tracked';
+  const essOther=(s.essays||[]).filter(e=>e.type!=='UC PIQ').map(e=>`${e.title}: ${e.status}`).join(', ')||'None tracked';
+  const ucPIQsAct=(s.essays||[]).filter(e=>e.type==='UC PIQ'&&e.status!=='Not Started').map(e=>`PIQ ${e.piqNum}: ${e.status}`).join(', ')||'Not started';
+  const essays=`Common App/Supps: ${essOther} | UC PIQs in progress: ${ucPIQsAct}`;
   const prompt=`You are an expert college admissions consultant. Generate a CONCISE pre-meeting brief (max 400 words) for a consulting session with this student.
 
 STUDENT: ${s.firstName} ${s.lastName}, Grade ${s.grade}
