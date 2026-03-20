@@ -415,6 +415,31 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 
 @media(max-width:900px){.g4{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr}}
 @media(max-width:700px){.sidebar{display:none}.g2,.fr,.fr3{grid-template-columns:1fr}.page{padding:16px}}
+
+/* ── OUTCOME ANALYSIS ── */
+.oa-schools-table{width:100%;border-collapse:collapse;margin-top:10px;}
+.oa-schools-table th{text-align:left;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding:7px 10px;border-bottom:1px solid var(--border);}
+.oa-schools-table td{padding:8px 10px;font-size:12.5px;border-bottom:1px solid rgba(0,0,0,0.05);vertical-align:middle;}
+.oa-schools-table tr:last-child td{border-bottom:none;}
+.oa-result-tag{display:inline-block;font-size:10px;font-weight:600;padding:3px 10px;border-radius:12px;letter-spacing:.02em;}
+.oa-result-tag.admitted{background:rgba(5,150,105,0.12);color:#059669;border:1px solid rgba(5,150,105,0.3);}
+.oa-result-tag.denied{background:rgba(220,38,38,0.1);color:#dc2626;border:1px solid rgba(220,38,38,0.25);}
+.oa-result-tag.waitlisted{background:rgba(217,119,6,0.1);color:#d97706;border:1px solid rgba(217,119,6,0.3);}
+.oa-result-tag.deferred{background:rgba(124,58,237,0.1);color:#7c3aed;border:1px solid rgba(124,58,237,0.3);}
+.oa-add-row{display:flex;gap:7px;align-items:center;margin-top:10px;flex-wrap:wrap;}
+.oa-add-row .fi{flex:1;min-width:120px;}
+.oa-insight-section{margin-top:8px;}
+.oa-insight-section h3{font-size:13px;font-weight:600;color:var(--darkblue);margin:14px 0 5px;}
+.oa-insight-section strong{font-weight:600;}
+.oa-pattern-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0;}
+.oa-pattern-box{border-radius:9px;padding:13px 15px;border:1px solid;}
+.oa-pattern-box.green{background:rgba(5,150,105,0.05);border-color:rgba(5,150,105,0.2);}
+.oa-pattern-box.red{background:rgba(220,38,38,0.04);border-color:rgba(220,38,38,0.15);}
+.oa-pattern-box .oa-pb-hd{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:7px;}
+.oa-pattern-box.green .oa-pb-hd{color:#059669;}
+.oa-pattern-box.red .oa-pb-hd{color:#dc2626;}
+.oa-pattern-box li{font-size:12px;margin-bottom:4px;list-style:none;padding-left:14px;position:relative;}
+.oa-pattern-box li::before{content:'•';position:absolute;left:3px;}
 </style>
 </head>
 <body>
@@ -498,6 +523,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
     <div class="ni" data-page="essays" onclick="goPage('essays')"><span class="ico">✍</span>Essay Tracker</div>
     <div class="ni" data-page="schooldb" onclick="goPage('schooldb')"><span class="ico">◉</span>School Database</div>
     <div class="ni" data-page="strategy" onclick="goPage('strategy')"><span class="ico">◆</span>AI Strategy</div>
+    <div class="ni" data-page="outcomes" onclick="goPage('outcomes')"><span class="ico">📊</span>Outcome Analysis</div>
   </div>
   <div class="sl-wrap">
     <div class="sl-lbl">Students</div>
@@ -744,6 +770,124 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       <div class="fg"><label class="fl">Question</label><textarea class="fta" id="stratQ" style="min-height:100px" placeholder="e.g. Which students need the most attention right now? Who should apply ED?"></textarea></div>
       <button class="btn btn-gold btn-sm" onclick="askStrategy()">Ask AI Advisor</button>
       <div style="margin-top:16px" id="stratOut"></div>
+    </div>
+  </div>
+
+  <!-- ══ OUTCOME ANALYSIS ══ -->
+  <div class="page" id="page-outcomes">
+    <div style="max-width:860px">
+
+      <!-- Student selector / profile input -->
+      <div class="card">
+        <div class="card-hd"><span class="ico">📊</span>Application Outcome Analysis</div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:16px">
+          Input a student's profile and their admission results to get an AI-powered analysis of what drove each decision — and actionable lessons for future students.
+        </p>
+
+        <div class="fr">
+          <div class="fg">
+            <label class="fl">Load Existing Student (optional)</label>
+            <select class="fse" id="oaStudentSel" onchange="oaLoadStudent(this.value)">
+              <option value="">— Enter manually —</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="fr3">
+          <div class="fg"><label class="fl">Student Name</label><input class="fi" id="oaName" placeholder="e.g. Amy Chen"></div>
+          <div class="fg"><label class="fl">GPA (Unweighted)</label><input class="fi" id="oaGpa" type="number" step="0.01" placeholder="3.85"></div>
+          <div class="fg"><label class="fl">Weighted GPA</label><input class="fi" id="oaGpaW" type="number" step="0.01" placeholder="4.30"></div>
+        </div>
+
+        <div class="fr3">
+          <div class="fg"><label class="fl">SAT</label><input class="fi" id="oaSat" type="number" placeholder="1480"></div>
+          <div class="fg"><label class="fl">ACT</label><input class="fi" id="oaAct" type="number" placeholder="33"></div>
+          <div class="fg"><label class="fl">AP / IB Courses</label><input class="fi" id="oaAps" type="number" placeholder="6"></div>
+        </div>
+
+        <div class="fr">
+          <div class="fg"><label class="fl">Intended Major</label><input class="fi" id="oaMajor" placeholder="e.g. Computer Science"></div>
+          <div class="fg"><label class="fl">Hook / Special Factor</label>
+            <select class="fse" id="oaHook">
+              <option value="">None</option>
+              <option value="legacy">Legacy</option>
+              <option value="recruited_athlete">Recruited Athlete</option>
+              <option value="first_gen">First-Generation</option>
+              <option value="urm">Underrepresented Minority</option>
+              <option value="international">International</option>
+              <option value="development">Development / Donor</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="fg"><label class="fl">Activities & Leadership (brief summary)</label>
+          <textarea class="fta" id="oaActivities" style="min-height:70px" placeholder="e.g. Varsity tennis captain (4yr), DECA state finalist, robotics club founder, 200hrs volunteering at hospital..."></textarea>
+        </div>
+
+        <div class="fg"><label class="fl">Common App Essay Theme / Narrative</label>
+          <textarea class="fta" id="oaEssayTheme" style="min-height:55px" placeholder="e.g. Growing up between two cultures — explored identity through competitive chess and language teaching"></textarea>
+        </div>
+
+        <div class="fg"><label class="fl">Additional Context (optional)</label>
+          <textarea class="fta" id="oaContext" style="min-height:55px" placeholder="e.g. Attended a competitive private school in California; GPA trend was upward junior year; applied to CS at all schools..."></textarea>
+        </div>
+      </div>
+
+      <!-- School results table -->
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div class="card-hd" style="margin-bottom:0"><span class="ico">🏫</span>Admission Results</div>
+          <span style="font-size:11px;color:var(--muted)" id="oaSchoolCount">0 schools added</span>
+        </div>
+
+        <table class="oa-schools-table" id="oaSchoolsTable">
+          <thead>
+            <tr>
+              <th>School</th>
+              <th>Round</th>
+              <th>Result</th>
+              <th>Your Notes (optional)</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="oaSchoolsBody">
+            <tr id="oaEmptyRow"><td colspan="5" style="text-align:center;color:var(--muted);font-size:12px;padding:20px">No schools added yet. Use the form below to add results.</td></tr>
+          </tbody>
+        </table>
+
+        <!-- Add school row -->
+        <div class="oa-add-row" style="margin-top:14px">
+          <input class="fi" id="oaSchoolName" placeholder="School name (e.g. MIT)" style="flex:2;min-width:160px">
+          <select class="fse" id="oaRound" style="flex:1;min-width:90px">
+            <option value="ED">ED</option>
+            <option value="EA">EA</option>
+            <option value="REA">REA</option>
+            <option value="RD" selected>RD</option>
+          </select>
+          <select class="fse" id="oaResult" style="flex:1;min-width:110px">
+            <option value="admitted">Admitted</option>
+            <option value="denied">Denied</option>
+            <option value="waitlisted">Waitlisted</option>
+            <option value="deferred">Deferred</option>
+          </select>
+          <input class="fi" id="oaSchoolNote" placeholder="Notes (optional)" style="flex:2;min-width:140px">
+          <button class="btn btn-gold btn-sm" onclick="oaAddSchool()">+ Add</button>
+        </div>
+      </div>
+
+      <!-- Run analysis -->
+      <div class="card" style="text-align:center;padding:20px 24px">
+        <button class="btn btn-gold" onclick="runOutcomeAnalysis()" style="font-size:13.5px;padding:11px 30px">
+          ✦ Run AI Outcome Analysis
+        </button>
+        <div style="font-size:11px;color:var(--muted);margin-top:8px">
+          Analyzes acceptance/denial patterns, profile fit, and generates lessons for future students
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div id="oaResults"></div>
+
     </div>
   </div>
 
@@ -1237,13 +1381,14 @@ function goPage(name,title,sub){
   document.querySelectorAll('.ni').forEach(n=>n.classList.toggle('active',n.dataset.page===name));
   const el=document.getElementById('page-'+name);
   if(el)el.classList.add('active');
-  document.getElementById('pageTitle').textContent=title||{dashboard:'Command Center',compare:'Cohort Compare',calendar:'Deadline Calendar',essays:'Essay Tracker',schooldb:'School Database',strategy:'AI Strategy',profile:'Student Profile'}[name]||name;
-  document.getElementById('pageSubtitle').textContent=sub||{dashboard:'Your students at a glance',compare:'Side-by-side analysis of all students',calendar:'Track every deadline across your cohort',essays:'Monitor essay progress for all students',schooldb:'Editable university database & match calculator',strategy:'AI-powered college advising',profile:''}[name]||'';
+  document.getElementById('pageTitle').textContent=title||{dashboard:'Command Center',compare:'Cohort Compare',calendar:'Deadline Calendar',essays:'Essay Tracker',schooldb:'School Database',strategy:'AI Strategy',outcomes:'Outcome Analysis',profile:'Student Profile'}[name]||name;
+  document.getElementById('pageSubtitle').textContent=sub||{dashboard:'Your students at a glance',compare:'Side-by-side analysis of all students',calendar:'Track every deadline across your cohort',essays:'Monitor essay progress for all students',schooldb:'Editable university database & match calculator',strategy:'AI-powered college advising',outcomes:'Analyze admission results & extract lessons for future students',profile:''}[name]||'';
   if(name==='dashboard'){renderSidebar();renderDashboard();}
   if(name==='compare')renderCompare();
   if(name==='calendar')renderCalendar();
   if(name==='essays')renderEssayTracker();
   if(name==='schooldb')renderSchoolDB();
+  if(name==='outcomes')initOutcomesPage();
 }
 function switchTab(tab){
   document.querySelectorAll('#profileTabs .tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab));
@@ -2759,6 +2904,193 @@ async function askStrategy(){
   const sid=parseInt(document.getElementById('stratStu').value);
   let ctx=sid?`Student context: ${(()=>{const s=students.find(x=>x.id==sid);return`${s.firstName} ${s.lastName}, Gr${s.grade}, GPA${s.gpa}, ${s.major}, ${tierLabel(s.tier)}, activities: ${s.activities}`;})()}\n\n`:`Cohort: ${students.map(s=>`${s.firstName}(Gr${s.grade},GPA${s.gpa})`).join('; ')}\n\n`;
   await callClaude(`You are an expert college admissions consultant. ${ctx}Question: ${q}\n\nProvide expert, actionable advice.`,out,'Consulting AI...');
+}
+
+// ══════════════════════════════════════════════════════
+// OUTCOME ANALYSIS
+// ══════════════════════════════════════════════════════
+let oaSchools = []; // [{name, round, result, note}]
+
+function initOutcomesPage(){
+  const sel = document.getElementById('oaStudentSel');
+  if(!sel) return;
+  while(sel.options.length > 1) sel.remove(1);
+  students.forEach(s => {
+    const o = document.createElement('option');
+    o.value = s.id;
+    o.textContent = `${s.firstName} ${s.lastName} (Gr.${s.grade})`;
+    sel.appendChild(o);
+  });
+}
+
+function oaLoadStudent(sid){
+  if(!sid){ return; }
+  const s = students.find(x => x.id === parseInt(sid));
+  if(!s) return;
+  document.getElementById('oaName').value = `${s.firstName} ${s.lastName}`;
+  document.getElementById('oaGpa').value = s.gpa || '';
+  document.getElementById('oaGpaW').value = calcGPAs(s.transcript||[]).w || '';
+  document.getElementById('oaSat').value = s.sat || '';
+  document.getElementById('oaAct').value = s.act || '';
+  document.getElementById('oaAps').value = (s.transcript||[]).filter(c=>c.level==='AP'||c.level==='IB').length || '';
+  document.getElementById('oaMajor').value = s.major || '';
+  document.getElementById('oaHook').value = s.hook || '';
+  document.getElementById('oaActivities').value = s.activities || '';
+  document.getElementById('oaEssayTheme').value = '';
+  document.getElementById('oaContext').value = '';
+  oaSchools = [];
+  oaRenderSchools();
+  document.getElementById('oaResults').innerHTML = '';
+}
+
+function oaAddSchool(){
+  const name = document.getElementById('oaSchoolName').value.trim();
+  if(!name){ alert('Please enter a school name.'); return; }
+  const round = document.getElementById('oaRound').value;
+  const result = document.getElementById('oaResult').value;
+  const note = document.getElementById('oaSchoolNote').value.trim();
+  oaSchools.push({ name, round, result, note });
+  document.getElementById('oaSchoolName').value = '';
+  document.getElementById('oaSchoolNote').value = '';
+  oaRenderSchools();
+}
+
+function oaRemoveSchool(idx){
+  oaSchools.splice(idx, 1);
+  oaRenderSchools();
+}
+
+function oaRenderSchools(){
+  const tbody = document.getElementById('oaSchoolsBody');
+  const countEl = document.getElementById('oaSchoolCount');
+  countEl.textContent = `${oaSchools.length} school${oaSchools.length !== 1 ? 's' : ''} added`;
+  if(oaSchools.length === 0){
+    tbody.innerHTML = `<tr id="oaEmptyRow"><td colspan="5" style="text-align:center;color:var(--muted);font-size:12px;padding:20px">No schools added yet. Use the form below to add results.</td></tr>`;
+    return;
+  }
+  const resultLabels = { admitted:'Admitted', denied:'Denied', waitlisted:'Waitlisted', deferred:'Deferred' };
+  tbody.innerHTML = oaSchools.map((sc, i) => `
+    <tr>
+      <td style="font-weight:500">${sc.name}</td>
+      <td><span style="font-size:11px;font-family:'DM Mono',monospace;background:rgba(0,0,0,0.06);padding:2px 8px;border-radius:8px">${sc.round}</span></td>
+      <td><span class="oa-result-tag ${sc.result}">${resultLabels[sc.result]}</span></td>
+      <td style="color:var(--muted);font-size:11.5px">${sc.note || '—'}</td>
+      <td><button onclick="oaRemoveSchool(${i})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:2px 6px;border-radius:4px" title="Remove">✕</button></td>
+    </tr>
+  `).join('');
+}
+
+async function runOutcomeAnalysis(){
+  if(oaSchools.length < 2){
+    alert('Please add at least 2 schools to enable pattern analysis.');
+    return;
+  }
+  const name = document.getElementById('oaName').value.trim() || 'This student';
+  const gpa = document.getElementById('oaGpa').value || '—';
+  const gpaW = document.getElementById('oaGpaW').value || '—';
+  const sat = document.getElementById('oaSat').value || 'not submitted';
+  const act = document.getElementById('oaAct').value || 'not submitted';
+  const aps = document.getElementById('oaAps').value || '0';
+  const major = document.getElementById('oaMajor').value.trim() || 'undecided';
+  const hookRaw = document.getElementById('oaHook').value;
+  const hookMap = {legacy:'Legacy student',recruited_athlete:'Recruited Athlete',first_gen:'First-Generation college student',urm:'Underrepresented Minority',international:'International student',development:'Development/Donor-related'};
+  const hook = hookMap[hookRaw] || 'No special hook';
+  const activities = document.getElementById('oaActivities').value.trim() || 'not provided';
+  const essayTheme = document.getElementById('oaEssayTheme').value.trim() || 'not provided';
+  const context = document.getElementById('oaContext').value.trim() || '';
+
+  const admitted = oaSchools.filter(s => s.result === 'admitted');
+  const denied = oaSchools.filter(s => s.result === 'denied');
+  const waitlisted = oaSchools.filter(s => s.result === 'waitlisted');
+  const deferred = oaSchools.filter(s => s.result === 'deferred');
+
+  const schoolList = oaSchools.map(sc =>
+    `${sc.name} [${sc.round}] → ${sc.result.toUpperCase()}${sc.note ? ' (note: ' + sc.note + ')' : ''}`
+  ).join('\n');
+
+  const prompt = `You are an expert college admissions consultant with 15+ years of experience. Analyze the following student's application outcomes in detail.
+
+## STUDENT PROFILE
+Name: ${name}
+GPA (Unweighted): ${gpa} | GPA (Weighted): ${gpaW}
+SAT: ${sat} | ACT: ${act}
+AP/IB Courses: ${aps}
+Intended Major: ${major}
+Special Factor / Hook: ${hook}
+Activities & Leadership: ${activities}
+Common App Essay Theme: ${essayTheme}
+${context ? 'Additional Context: ' + context : ''}
+
+## APPLICATION RESULTS (${oaSchools.length} schools)
+Admitted (${admitted.length}): ${admitted.map(s=>s.name+' ['+s.round+']').join(', ') || 'none'}
+Denied (${denied.length}): ${denied.map(s=>s.name+' ['+s.round+']').join(', ') || 'none'}
+Waitlisted (${waitlisted.length}): ${waitlisted.map(s=>s.name).join(', ') || 'none'}
+Deferred (${deferred.length}): ${deferred.map(s=>s.name).join(', ') || 'none'}
+
+Full detail:
+${schoolList}
+
+## YOUR TASK
+Provide a deep, honest, and actionable analysis covering ALL of the following sections. Be specific — use the student's actual data. Do not be vague or generic.
+
+**1. OVERALL OUTCOME ASSESSMENT**
+Brief honest summary of the results — was this expected, better, or worse than the profile warrants?
+
+**2. PATTERN ANALYSIS: What Separated Admits from Denials**
+What do the admitted schools have in common vs the denied schools? Consider: selectivity, major fit, school culture, geography, application round (ED/EA/RD), essay fit.
+
+**3. PROFILE STRENGTH & GAPS**
+Where is this student genuinely strong? Where are the gaps that likely hurt at denied schools? Be candid — include academics, testing, activities, hook/intangibles.
+
+**4. ESSAY & NARRATIVE ASSESSMENT**
+Based on the essay theme and activities, how well does the narrative likely fit the admitted vs denied schools? What signals might the essay have sent?
+
+**5. ROUND STRATEGY ANALYSIS**
+Was the ED/EA/RD strategy optimal? What impact did round choices have on outcomes?
+
+**6. LESSONS FOR FUTURE STUDENTS**
+3–5 concrete, specific lessons a future student with a similar profile should apply to maximize admissions outcomes. Make these actionable — not generic.
+
+**7. IF YOU COULD CHANGE ONE THING**
+What single change to this application cycle would have most improved the outcome? Be direct and specific.`;
+
+  const out = document.getElementById('oaResults');
+  out.innerHTML = '';
+  await callClaudeOutcome(prompt, out);
+}
+
+async function callClaudeOutcome(prompt, outEl){
+  outEl.innerHTML = `<div class="card"><div class="aibadge">✦ AI Outcome Analysis</div><div style="color:var(--muted);font-size:12px;margin-top:8px">Analyzing admission patterns <span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div></div>`;
+  try{
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:2000,
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+    const data = await res.json();
+    if(data.error){ outEl.innerHTML=`<div class="card"><div class="air" style="border-color:rgba(224,92,92,.3);color:var(--red)">API Error: ${data.error.message}</div></div>`; return; }
+    const text = data.content?.map(b=>b.text||'').join('\n') || 'No response.';
+    const fmt = text
+      .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+      .replace(/^#{1,3}\s+(.+)/gm,'<h3 style="color:var(--darkblue);font-size:13.5px;font-weight:600;margin:16px 0 5px">$1</h3>')
+      .replace(/^[-•]\s(.+)/gm,'<li>$1</li>')
+      .replace(/(<li>.*<\/li>\n?)+/g, m => `<ul style="margin:6px 0 6px 18px;list-style:disc">${m}</ul>`)
+      .replace(/\n\n/g,'<br><br>').replace(/\n/g,'<br>');
+    outEl.innerHTML = `
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <div class="aibadge">✦ AI Outcome Analysis · ${new Date().toLocaleTimeString()}</div>
+          <button class="btn btn-out btn-sm" onclick="window.print()" style="font-size:10.5px">Print / Save</button>
+        </div>
+        <div class="air oa-insight-section">${fmt}</div>
+      </div>`;
+  } catch(e){
+    outEl.innerHTML=`<div class="card"><div class="air" style="border-color:rgba(224,92,92,.3);color:var(--red)">Error: ${e.message}</div></div>`;
+  }
 }
 
 // ══════════════════════════════════════════════════════
