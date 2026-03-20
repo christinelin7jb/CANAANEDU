@@ -3110,7 +3110,7 @@ async function runOutcomeAnalysis(){
     `${sc.name} [${sc.round}] → ${sc.result.toUpperCase()}${sc.note ? ' (note: ' + sc.note + ')' : ''}`
   ).join('\n');
 
-  const prompt = `You are an expert college admissions consultant with 15+ years of experience. Your job is to give a BRUTALLY HONEST, no-sugarcoating analysis of this student's application outcomes. Do not soften the truth to spare feelings — this analysis is for internal consultant use only. If the profile was weak, say so clearly. If the strategy was poor, name it. If the student reached too high or aimed too low, be direct. Consultants need the unvarnished truth to improve future students' outcomes.
+  const prompt = `你是一位拥有15年以上经验的顶尖美国大学申请顾问。请用中文输出完整分析。你的任务是对这名学生的申请结果给出极度诚实、不加粉饰的分析。不要为了保护感情而软化措辞——这份分析仅供顾问内部使用。如果Profile存在明显弱点，直说；如果申请策略有误，点名道姓；如果学生的目标院校明显超出实力，要直接指出。顾问需要最真实的判断来帮助未来的学生。
 
 ## STUDENT PROFILE
 Name: ${name}${highSchool ? '\nHigh School: ' + highSchool : ''}
@@ -3133,29 +3133,29 @@ Deferred (${deferred.length}): ${deferred.map(s=>s.name).join(', ') || 'none'}
 Full detail:
 ${schoolList}
 
-## YOUR TASK
-Be brutally honest throughout. Use the student's actual numbers. Call out weaknesses plainly. Do not hedge with phrases like "may have" or "could possibly" — state what you believe happened and why.
+## 分析任务
+全程保持极度诚实。使用学生的真实数据。直接点出弱点。不要用"可能""也许"等模糊表达——直接陈述你的判断和理由。
 
-**1. OVERALL OUTCOME ASSESSMENT**
-Was this outcome expected, a surprise, or a disappointment given the profile? Be direct — did this student over-apply to reaches? Under-perform relative to stats? Get lucky or unlucky?
+**1. 整体结果评估**
+这个结果是意料之中、令人惊喜还是令人失望？直接说——这名学生是冲得太高了？成绩表现不匹配？运气好还是运气差？
 
-**2. PATTERN ANALYSIS: What Separated Admits from Denials**
-What do the admitted schools have in common vs the denied schools? Consider: selectivity, major fit, school culture, geography, application round (ED/EA/RD), essay fit. Be specific — not generic observations.
+**2. 录取与拒绝的规律分析**
+录取的学校和被拒的学校有什么共同点？考虑：选择性、专业匹配度、学校文化、地理位置、申请轮次（ED/EA/RD）、文书契合度。要具体，不要泛泛而谈。
 
-**3. PROFILE STRENGTH & GAPS**
-Identify the real weaknesses that hurt this student. Don't just list strengths — be honest about where this profile fell short academically, in testing, in activities depth, or in differentiation. Name the specific gaps.
+**3. Profile优势与真实短板**
+直接指出这名学生的真正弱点。不要只列优点——诚实分析这份Profile在学术成绩、标化考试、活动深度或差异化方面哪里不足。点名具体的短板。
 
-**4. ESSAY & NARRATIVE ASSESSMENT**
-Was the Common App essay theme strong or generic? If UC PIQs were submitted, did the chosen prompts play to this student's strengths? What did the essays likely signal to admissions — positively or negatively?
+**4. 文书与叙事评估**
+Common App文书主题是有力还是平庸？如果提交了UC PIQ，选择的题目是否发挥了学生的优势？文书整体向招生官传递了什么信号——正面还是负面？
 
-**5. ROUND STRATEGY ANALYSIS**
-Was the ED/EA/RD strategy smart or a mistake? Were safeties genuinely safe? Were reaches realistic? Be blunt if the school list was poorly constructed.
+**5. 申请轮次策略分析**
+ED/EA/RD的策略是明智之举还是失误？Safety校是否真的稳？Reach校是否切实际？如果学校列表构建有问题，直接说出来。
 
-**6. LESSONS FOR FUTURE STUDENTS**
-3–5 hard-hitting, specific lessons. Not generic advice — lessons directly rooted in what went wrong (or right) in this specific cycle.
+**6. 对未来学生的经验教训**
+3-5条有力、具体的教训。不要给通用建议——要直接基于这次申请周期中真正出了问题（或做对了）的地方。
 
-**7. IF YOU COULD CHANGE ONE THING**
-The single most impactful change that would have improved this outcome. Be direct and specific — no vague answers.`;
+**7. 如果可以改变一件事**
+能最大程度改善这次结果的那一个改变。直接说，不要模糊。`;
 
   const out = document.getElementById('oaResults');
   out.innerHTML = '';
