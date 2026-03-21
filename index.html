@@ -3832,6 +3832,9 @@ function serializeStudent(s){
 function deserializeStudent(r){
   const s={...r};
   delete s._docId;
+  // Normalize id: old Firebase code stored id as String(Date.now()), new code uses number.
+  // Convert string numeric IDs to numbers so strict === comparisons work.
+  if(typeof s.id==='string'&&/^\d+$/.test(s.id))s.id=parseInt(s.id);
   if(!s.todos)s.todos=[];
   if(!s.essays)s.essays=[];
   if(!s.transcript)s.transcript=[];
