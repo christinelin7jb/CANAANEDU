@@ -547,17 +547,21 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
     <div class="g4" id="statsGrid" style="margin-bottom:16px"></div>
     <div class="g2">
       <div>
-        <div class="card">
+        <div class="card" style="margin-bottom:14px">
           <div class="card-hd"><span class="ico">🚨</span>Urgent Attention Board</div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px" id="urgBoard"></div>
         </div>
-      </div>
-      <div>
         <div class="card">
           <div class="card-hd"><span class="ico">◷</span>Next 30 Days — Deadlines</div>
           <div id="upcomingDeadlines"></div>
         </div>
+      </div>
+      <div>
         <div class="card">
+          <div class="card-hd"><span class="ico">☑</span>All Students — Open To-Dos</div>
+          <div id="dashTodoBoard"></div>
+        </div>
+        <div class="card" style="margin-top:14px">
           <div class="card-hd"><span class="ico">📊</span>Cohort Grade Distribution</div>
           <div id="gradeChart"></div>
         </div>
@@ -1492,6 +1496,44 @@ function renderDashboard(){
       <span class="dl-urg ${days<=7?'red':days<=14?'orange':'green'}">${days}d</span>
     </div>`;
   }).join(''):'<div style="color:var(--muted);font-size:12px;padding:8px">No deadlines in next 30 days</div>';
+
+  // All To-Dos board — grouped by student
+  const PRI_COLOR={high:'var(--red)',med:'var(--orange)',low:'var(--muted)'};
+  const todoBoardHtml=students.map(s=>{
+    const open=(s.todos||[]).filter(t=>!t.done).sort((a,b)=>{
+      const po={high:0,med:1,low:2};
+      const pd=(po[a.priority]||1)-(po[b.priority]||1);
+      if(pd!==0)return pd;
+      if(a.due&&b.due)return new Date(a.due)-new Date(b.due);
+      return a.due?-1:1;
+    });
+    if(!open.length)return`<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:rgba(0,0,0,0.03);border:1px solid var(--border);border-radius:8px;margin-bottom:7px">
+      <div style="display:flex;align-items:center;gap:8px"><div class="av" style="width:24px;height:24px;font-size:9px;background:${s.color}">${s.firstName[0]}${s.lastName[0]}</div><span style="font-size:12px;font-weight:500">${s.firstName} ${s.lastName}</span></div>
+      <span style="font-size:11px;color:var(--green)">✓ All done</span></div>`;
+    return`<div style="border:1px solid var(--border);border-radius:8px;margin-bottom:10px;overflow:hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(0,0,0,0.04);border-bottom:1px solid var(--border);cursor:pointer" onclick="openProfile(${s.id});switchTab('todos')">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="av" style="width:24px;height:24px;font-size:9px;background:${s.color}">${s.firstName[0]}${s.lastName[0]}</div>
+          <span style="font-size:12.5px;font-weight:600">${s.firstName} ${s.lastName}</span>
+          <span style="font-size:10px;color:var(--muted)">Gr.${s.grade}</span>
+        </div>
+        <span style="font-size:11px;background:rgba(201,168,76,0.15);color:var(--gold);padding:2px 8px;border-radius:20px;font-weight:600">${open.length} open</span>
+      </div>
+      ${open.slice(0,4).map(t=>{
+        const days=t.due?daysUntil(t.due):null;
+        const overdue=days!==null&&days<0;
+        const soon2=days!==null&&days>=0&&days<=3;
+        return`<div style="display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:1px solid rgba(0,0,0,0.04)">
+          <span style="width:6px;height:6px;border-radius:50%;background:${PRI_COLOR[t.priority]||'var(--muted)'};flex-shrink:0"></span>
+          <span style="flex:1;font-size:12px;color:var(--text)">${escHtml(t.text)}</span>
+          ${t.category?`<span style="font-size:9px;color:var(--muted);background:rgba(0,0,0,0.06);padding:1px 6px;border-radius:10px">${t.category}</span>`:''}
+          ${days!==null?`<span style="font-size:10px;font-weight:600;color:${overdue?'var(--red)':soon2?'var(--orange)':'var(--muted)'}">${overdue?Math.abs(days)+'d late':days===0?'Today':days+'d'}</span>`:''}
+        </div>`;
+      }).join('')}
+      ${open.length>4?`<div style="padding:6px 12px;font-size:11px;color:var(--muted);cursor:pointer" onclick="openProfile(${s.id});switchTab('todos')">+${open.length-4} more tasks →</div>`:''}
+    </div>`;
+  }).join('');
+  document.getElementById('dashTodoBoard').innerHTML=todoBoardHtml||'<div style="color:var(--muted);font-size:12px;padding:8px">No students yet.</div>';
 
   // Grade chart
   const gc={9:0,10:0,11:0,12:0};students.forEach(s=>gc[s.grade]++);
