@@ -1664,6 +1664,12 @@ function addDeadline(){
   globalDeadlines.push({id:Date.now(),studentId:parseInt(document.getElementById('dlStudent').value)||null,title,date,type:document.getElementById('dlType').value,notes:document.getElementById('dlNotes').value,done:false});
   closeMo('moAddDeadline');['dlTitle','dlNotes'].forEach(id=>document.getElementById(id).value='');
   renderCalendar();renderDashboard();updateUrgBadge();
+  if(fbDb&&fbCurrentUser){
+    const sid=parseInt(document.getElementById('dlStudent')?.value);
+    const s=sid?students.find(x=>x.id===sid):null;
+    if(s)saveStudentToFirestore(s);else saveAllStudentsToFirestore();
+    logActivity(`added a deadline`);
+  }
 }
 
 // ══════════════════════════════════════════════════════
@@ -1707,6 +1713,7 @@ function updateEssayStatus(sid,eid,status){
   const s=students.find(x=>x.id===sid);if(!s)return;
   const e=(s.essays||[]).find(x=>x.id===eid);if(!e)return;
   e.status=status;renderEssayTracker();
+  if(fbDb&&fbCurrentUser)saveStudentToFirestore(s);
 }
 function deleteEssay(sid,eid){
   const s=students.find(x=>x.id===sid);if(!s)return;
@@ -1977,12 +1984,14 @@ function addCourse(sid,year){
   s.transcript.push({id:Date.now(),year,subject:name,ag:document.getElementById('cag-'+year).value,level:document.getElementById('clv-'+year).value,gradeSystem:sys,grade,credits:parseInt(document.getElementById('ccr-'+year).value)||10,sem:document.getElementById('csm-'+year).value});
   const gpas=calcGPAs(s.transcript);if(gpas.uw!=='—')s.gpa=gpas.uw;
   renderTranscript(s);renderSidebar();
+  if(fbDb&&fbCurrentUser)saveStudentToFirestore(s);
 }
 function delCourse(sid,cid){
   const s=students.find(x=>x.id===sid);if(!s||!confirm('Remove course?'))return;
   s.transcript=s.transcript.filter(c=>c.id!==cid);
   const gpas=calcGPAs(s.transcript);if(gpas.uw!=='—')s.gpa=gpas.uw;
   renderTranscript(s);
+  if(fbDb&&fbCurrentUser)saveStudentToFirestore(s);
 }
 
 function renderSchoolList(s){
@@ -2048,6 +2057,7 @@ function addNote(sid){
   const content=document.getElementById('newNote').value.trim();if(!content)return;
   s.meetings.unshift({date:document.getElementById('noteDate').value,content,tag:document.getElementById('noteTag').value});
   renderNotes(s);renderOverview(s);
+  if(fbDb&&fbCurrentUser){saveStudentToFirestore(s);logActivity(`added a note for <strong>${s.firstName}</strong>`);}
 }
 
 function renderAITab(s){
@@ -2993,12 +3003,14 @@ function toggleTodo(sid, tid) {
   t.done = !t.done;
   t.completedAt = t.done ? new Date().toISOString().split('T')[0] : null;
   renderTodos(s);
+  if(fbDb&&fbCurrentUser)saveStudentToFirestore(s);
 }
 
 function deleteTodo(sid, tid) {
   const s = students.find(x => x.id === sid); if (!s) return;
   s.todos = (s.todos||[]).filter(x => x.id !== tid);
   renderTodos(s);
+  if(fbDb&&fbCurrentUser)saveStudentToFirestore(s);
 }
 
 function clearCompleted(sid) {
@@ -3065,6 +3077,7 @@ function saveTodo() {
   }
   closeMo('moTodo');
   renderTodos(s);
+  if(fbDb&&fbCurrentUser){saveStudentToFirestore(s);logActivity(`updated to-do for <strong>${s.firstName} ${s.lastName}</strong>`);}
 }
 
 // ══════════════════════════════════════════════════════
@@ -3140,6 +3153,7 @@ function saveActivities() {
   s.activities = s.activitiesList.map(a => `${a.name}${a.role?' ('+a.role+')':''}${a.hours?' '+a.hours+'h/yr':''}`).join(', ');
   closeMo('moActivityEditor');
   renderOverview(s);
+  if(fbDb&&fbCurrentUser){saveStudentToFirestore(s);logActivity(`updated activities for <strong>${s.firstName} ${s.lastName}</strong>`);}
 }
 
 function escHtml(s) {
@@ -3259,9 +3273,11 @@ function addStudent(){
   const fn=document.getElementById('nFN').value.trim(),ln=document.getElementById('nLN').value.trim();
   if(!fn||!ln)return;
   const s={id:Date.now(),firstName:fn,lastName:ln,grade:parseInt(document.getElementById('nGrade').value),gpa:parseFloat(document.getElementById('nGPA').value)||null,sat:parseInt(document.getElementById('nSAT').value)||null,act:parseInt(document.getElementById('nACT').value)||null,major:document.getElementById('nMajor').value||'Undecided',tier:document.getElementById('nTier').value,hook:document.getElementById('nHook').value,activities:document.getElementById('nECs').value||'',meetings:document.getElementById('nNotes').value?[{date:new Date().toISOString().split('T')[0],content:document.getElementById('nNotes').value,tag:'General'}]:[],color:COLORS[students.length%COLORS.length],transcript:[],essays:[],deadlines:[]};
+  if(fbDb&&fbCurrentUser){s.ownerId=fbCurrentUser.uid;s.sharedWith=[];}
   students.push(s);closeMo('moAddStudent');
   ['nFN','nLN','nGPA','nSAT','nACT','nMajor','nECs','nNotes'].forEach(id=>document.getElementById(id).value='');
   renderSidebar();renderDashboard();populateDropdowns();updateUrgBadge();openProfile(s.id);
+  if(fbDb&&fbCurrentUser){fbDb.collection('students').doc(String(s.id)).set(serializeStudent(s));logActivity(`added new student <strong>${s.firstName} ${s.lastName}</strong>`);}
 }
 
 function deleteStudent(id){
@@ -3898,79 +3914,7 @@ async function seedToFirestore(){
   renderSidebar(); renderDashboard(); renderEssayTracker(); populateDropdowns(); updateUrgBadge();
 }
 
-// ── Patch save calls into existing mutating functions ──
-// Wrap addNote, addCourse, delCourse, saveTodo, toggleTodo, deleteTodo,
-// saveActivities, addStudent, updateEssayStatus, deleteEssay, addEssay
-// by hooking after each function calls renderX we call saveStudentToFirestore
-
-const _origAddNote = addNote;
-function addNote(sid){
-  _origAddNote(sid);
-  const s=students.find(x=>x.id===sid); if(s)saveStudentToFirestore(s);
-  logActivity(`added a note for <strong>${students.find(x=>x.id===sid)?.firstName}</strong>`);
-}
-
-const _origAddCourse = addCourse;
-function addCourse(sid,year){
-  _origAddCourse(sid,year);
-  const s=students.find(x=>x.id===sid); if(s)saveStudentToFirestore(s);
-}
-
-const _origDelCourse = delCourse;
-function delCourse(sid,cid){
-  _origDelCourse(sid,cid);
-  const s=students.find(x=>x.id===sid); if(s)saveStudentToFirestore(s);
-}
-
-const _origSaveTodo = saveTodo;
-function saveTodo(){
-  _origSaveTodo();
-  const s=students.find(x=>x.id===_todoSid); if(s){saveStudentToFirestore(s);logActivity(`updated to-do for <strong>${s.firstName} ${s.lastName}</strong>`);}
-}
-
-const _origToggleTodo = toggleTodo;
-function toggleTodo(sid,tid){
-  _origToggleTodo(sid,tid);
-  const s=students.find(x=>x.id===sid); if(s)saveStudentToFirestore(s);
-}
-
-const _origSaveActivities = saveActivities;
-function saveActivities(){
-  _origSaveActivities();
-  const s=students.find(x=>x.id===_actEditorStudentId);
-  if(s){saveStudentToFirestore(s);logActivity(`updated activities for <strong>${s.firstName} ${s.lastName}</strong>`);}
-}
-
-const _origUpdateEssayStatus = updateEssayStatus;
-function updateEssayStatus(sid,eid,status){
-  _origUpdateEssayStatus(sid,eid,status);
-  const s=students.find(x=>x.id===sid); if(s)saveStudentToFirestore(s);
-}
-
-const _origAddStudent = addStudent;
-function addStudent(){
-  _origAddStudent();
-  // The new student was pushed to students[] — save it
-  const s=students[students.length-1];
-  if(s&&fbDb){
-    // Tag the creator so sharing works correctly
-    s.ownerId = fbCurrentUser?.uid || null;
-    s.sharedWith = [];
-    fbDb.collection('students').doc(String(s.id)).set(serializeStudent(s));
-    logActivity(`added new student <strong>${s.firstName} ${s.lastName}</strong>`);
-  }
-}
-
-const _origAddDeadline = addDeadline;
-function addDeadline(){
-  _origAddDeadline();
-  // Deadlines are saved per-student embedded — find affected student
-  const sid=parseInt(document.getElementById('dlStudent')?.value);
-  const s=sid?students.find(x=>x.id===sid):null;
-  if(s)saveStudentToFirestore(s);
-  else saveAllStudentsToFirestore();
-  logActivity(`added a deadline`);
-}
+// Firestore save calls are now inlined directly into each mutating function above.
 
 // ── Offline fallback: if Firebase not configured, run local mode ──
 function initLocalMode(){
