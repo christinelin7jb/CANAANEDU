@@ -317,7 +317,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .gb-v{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:var(--cream);}
 .gb-l{font-size:10px;color:var(--muted);margin-top:2px;}
 
-/* ── SCHOOL LIST ITEMS ── */
+/* ── SCHOOL LIST ITEMS (legacy) ── */
 .si{display:flex;align-items:center;gap:11px;padding:11px;background:rgba(8,15,30,0.5);border:1px solid rgba(201,168,76,0.08);border-radius:8px;margin-bottom:6px;transition:border-color .18s;}
 .si:hover{border-color:rgba(201,168,76,0.25);}
 .si-info{flex:1;}
@@ -325,6 +325,16 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .si-det{font-size:10.5px;color:var(--muted);margin-top:2px;}
 .chance-n{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:700;}
 .chance-l{font-size:9.5px;color:var(--muted);margin-top:1px;}
+
+/* ── SCHOOL LIST CARDS (new) ── */
+.sl-card{background:rgba(8,15,30,0.55);border:1px solid rgba(201,168,76,0.1);border-radius:10px;padding:13px 14px;margin-bottom:8px;transition:border-color .18s;}
+.sl-card:hover{border-color:rgba(201,168,76,0.3);}
+.sl-card-main{display:flex;align-items:flex-start;gap:11px;}
+.sl-type-sel{background:rgba(8,15,30,0.7);border:1px solid rgba(201,168,76,0.2);border-radius:4px;font-size:10px;padding:2px 6px;cursor:pointer;outline:none;}
+.sl-type-sel:focus{border-color:var(--gold);}
+.sl-add-row{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:8px;cursor:pointer;transition:background .15s;border-bottom:1px solid rgba(201,168,76,0.06);}
+.sl-add-row:hover{background:rgba(201,168,76,0.08);}
+.sl-add-row:last-child{border-bottom:none;}
 
 /* ── NOTE ── */
 .nc{background:rgba(8,15,30,0.5);border:1px solid rgba(201,168,76,0.08);border-radius:8px;padding:11px 13px;margin-bottom:8px;}
@@ -674,7 +684,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
     </div>
     <div class="tc active" id="tab-overview"><div id="ovContent"></div></div>
     <div class="tc" id="tab-transcript"><div id="trContent"></div></div>
-    <div class="tc" id="tab-schools"><div class="card" id="slContent"></div></div>
+    <div class="tc" id="tab-schools"><div class="card" id="slContent" style="padding-bottom:8px"></div></div>
     <div class="tc" id="tab-essays_p"><div id="essayProfileContent"></div></div>
     <div class="tc" id="tab-todos"><div id="todoContent"></div></div>
     <div class="tc" id="tab-notes"><div id="notesContent"></div></div>
@@ -959,6 +969,13 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   <div style="display:flex;gap:8px"><button class="btn btn-gold" onclick="addSchool()">Add</button><button class="btn btn-out" onclick="closeMo('moAddSchool')">Cancel</button></div>
 </div></div>
 
+<!-- Add School to Student List Modal -->
+<div class="mo" id="moAddSchoolToList"><div class="md" style="max-width:560px">
+  <button class="md-close" onclick="closeMo('moAddSchoolToList')">✕</button>
+  <div class="md-title" id="addSchoolModalTitle">Add School to List</div>
+  <div id="addSchoolModalBody"></div>
+</div></div>
+
 <!-- To-Do Modal -->
 <div class="mo" id="moTodo"><div class="md" style="width:440px">
   <button class="md-close" onclick="closeMo('moTodo')">✕</button>
@@ -1123,7 +1140,7 @@ let students=[
      {name:'Coding Club',role:'Founder & President',description:'Founded school&#39;s first coding club; grew to 60 members. Organized 3 hackathons with 200+ participants from local schools.',hours:120,years:'10th–12th'},
    ],
    meetings:[{date:'2024-11-15',content:'Discussed MIT vs Penn ED. Essay on coding club founding is compelling. Strengthen "why CS" narrative.',tag:'Essays'},{date:'2024-10-20',content:'SAT 1540 (up from 1490). No further testing. Finalized school list.',tag:'Testing'}],
-   color:COLORS[0],transcript:[],essays:[],deadlines:[],todos:[
+   color:COLORS[0],transcript:[],essays:[],deadlines:[],schoolList:[],todos:[
     {id:1001,text:'Finalize MIT supplemental essays (Why MIT? + Activity)',priority:'high',category:'Essays',due:'2025-10-25',done:false,createdAt:'2024-11-01'},
     {id:1002,text:'Request teacher recommendation from Mr. Davidson (AP Calc)',priority:'high',category:'Applications',due:'2025-10-01',done:true,createdAt:'2024-10-01'},
     {id:1003,text:'Research MIT EECS vs Course 6-3 program differences',priority:'med',category:'School Research',due:null,done:false,createdAt:'2024-11-10'},
@@ -1133,7 +1150,7 @@ let students=[
   {id:2,firstName:'Marcus',lastName:'Johnson',grade:11,gpa:3.7,sat:1380,act:null,major:'Business / Economics',tier:'t25',hook:'',
    activities:'JV Basketball, Student Gov VP, Entrepreneurship club founder, Family business part-time, Model UN',
    meetings:[{date:'2024-11-01',content:'Summer plan: Wharton Leadership Academy. SAT prep targeting 1450+. Strong entrepreneur narrative.',tag:'Academic'}],
-   color:COLORS[1],transcript:[],essays:[],deadlines:[],todos:[
+   color:COLORS[1],transcript:[],essays:[],deadlines:[],schoolList:[],todos:[
     {id:2001,text:'Register for December SAT — target 1450+',priority:'high',category:'Testing',due:'2025-11-01',done:false,createdAt:'2024-11-01'},
     {id:2002,text:'Apply to Wharton Leadership Academy summer program',priority:'med',category:'Applications',due:'2025-02-01',done:false,createdAt:'2024-11-05'},
     {id:2003,text:'Get Khan Academy SAT prep schedule set up',priority:'med',category:'Testing',due:null,done:true,createdAt:'2024-10-15'},
@@ -1141,14 +1158,14 @@ let students=[
   {id:3,firstName:'Sofia',lastName:'Martinez',grade:10,gpa:3.6,sat:null,act:null,major:'Biology / Pre-Med',tier:'t50',hook:'urm',
    activities:'Hospital volunteer 200+ hrs, Spanish Club President, Track & Field, Science Olympiad',
    meetings:[{date:'2024-10-10',content:'GPA on track. Pursue summer research. PSAT prep for sophomore year.',tag:'Academic'}],
-   color:COLORS[2],transcript:[],essays:[],deadlines:[],todos:[
+   color:COLORS[2],transcript:[],essays:[],deadlines:[],schoolList:[],todos:[
     {id:3001,text:'Research summer hospital research program applications',priority:'med',category:'Applications',due:'2025-01-15',done:false,createdAt:'2024-11-01'},
     {id:3002,text:'PSAT score review — identify weak areas',priority:'med',category:'Testing',due:null,done:false,createdAt:'2024-11-05'},
   ]},
   {id:4,firstName:'James',lastName:'Park',grade:12,gpa:3.85,sat:1510,act:34,major:'Film & Media Studies',tier:'t25',hook:'',
    activities:'Film club director, 2 viral short films (50k+ views), News station intern, Photography',
    meetings:[{date:'2024-11-10',content:'Portfolio review — excellent. USC video and NYU Tisch ED top priorities.',tag:'Essays'}],
-   color:COLORS[3],transcript:[],essays:[],deadlines:[],todos:[
+   color:COLORS[3],transcript:[],essays:[],deadlines:[],schoolList:[],todos:[
     {id:4001,text:'Complete NYU Tisch portfolio video — final cut',priority:'high',category:'Applications',due:'2025-10-28',done:true,createdAt:'2024-10-01'},
     {id:4002,text:'USC Cinematic Arts essay — second draft',priority:'high',category:'Essays',due:'2025-11-20',done:false,createdAt:'2024-11-10'},
     {id:4003,text:'Book campus visit to NYU Tisch',priority:'low',category:'Visits',due:null,done:false,createdAt:'2024-11-05'},
@@ -1156,7 +1173,7 @@ let students=[
   {id:5,firstName:'Aisha',lastName:'Williams',grade:9,gpa:3.5,sat:null,act:null,major:'Undecided',tier:'t50',hook:'firstgen',
    activities:'Debate team, Art club, Choir, Community garden',
    meetings:[{date:'2024-09-15',content:'Intro meeting. Gifted writer. Explore broadly in 9th. First-gen hook is meaningful.',tag:'General'}],
-   color:COLORS[4],transcript:[],essays:[],deadlines:[],todos:[
+   color:COLORS[4],transcript:[],essays:[],deadlines:[],schoolList:[],todos:[
     {id:5001,text:'Explore summer enrichment programs — debate, writing, STEM',priority:'low',category:'Academic',due:'2025-02-01',done:false,createdAt:'2024-11-01'},
   ]},
 ];
@@ -1971,23 +1988,345 @@ function triggerRetake(sid,yr,courseId){
   setTimeout(()=>{if(nameEl)nameEl.style.outline='';},2000);
 }
 
-function renderSchoolList(s){
-  const matches=getMatchSchools(s);
-  document.getElementById('slContent').innerHTML=`<div class="card-hd"><span class="ico">🏫</span>Recommended School List</div>
-    <div style="display:flex;gap:6px;margin-bottom:12px"><span class="tag tr">● Reach</span><span class="tag to">● Match</span><span class="tag tg">● Safety</span></div>
-    ${matches.map((m,i)=>`<div class="si"><div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);width:18px">${i+1}</div><div style="width:7px;height:7px;border-radius:50%;background:${m.type==='safety'?'var(--green)':m.type==='match'?'var(--orange)':'var(--red)'};flex-shrink:0"></div><div class="si-info"><div class="si-name">${m.name}</div><div class="si-det">${m.detail}</div></div><div style="text-align:right"><div class="chance-n" style="color:${m.chance>40?'var(--green)':m.chance>15?'var(--orange)':'var(--red)'}">${m.chance}%</div><div class="chance-l">Est. chance</div></div></div>`).join('')}
-    <p style="font-size:10px;color:var(--muted);margin-top:8px">* Estimates based on school database. Verify data in School Database for accuracy.</p>`;
+// ══════════════════════════════════════════════════════
+// SCHOOL LIST — per-student editable list with gap analysis
+// ══════════════════════════════════════════════════════
+
+function calcSchoolChance(s, sc){
+  const sat = s.sat || (s.act ? s.act * 46 : 1200);
+  const gpa = parseFloat(s.gpa) || 0;
+  const hb = {legacy:1.6, athlete:2.4, firstgen:1.3, urm:1.4, '':1}[s.hook||''] || 1;
+  const apCount = (s.transcript||[]).filter(c=>c.level==='AP'||c.level==='IB').length;
+  const activityScore = (s.activitiesList||[]).length >= 4 ? 1.15 : (s.activitiesList||[]).length >= 2 ? 1.05 : 1.0;
+  const satRange = sc.sat75 - sc.sat25 + 1;
+  const satFit = Math.max(0, Math.min(1.5, (sat - sc.sat25 + 80) / satRange));
+  const gpaFit = gpa >= sc.gpaMin ? 1 : Math.max(0.1, gpa / sc.gpaMin);
+  const apBoost = apCount >= 8 ? 1.2 : apCount >= 5 ? 1.1 : apCount >= 2 ? 1.05 : 1.0;
+  let ch = sc.acceptance * satFit * gpaFit * hb * activityScore * apBoost;
+  return Math.max(1, Math.min(90, Math.round(ch)));
 }
-function getMatchSchools(s){
-  const sat=s.sat||(s.act?s.act*46:1200);
-  const hb={legacy:1.5,athlete:2.2,firstgen:1.2,urm:1.3,'':1}[s.hook||'']||1;
+
+function calcGapAnalysis(s, sc){
+  const gaps = [];
+  const sat = s.sat || (s.act ? s.act * 46 : 0);
+  const gpa = parseFloat(s.gpa) || 0;
+  const apCount = (s.transcript||[]).filter(c=>c.level==='AP'||c.level==='IB').length;
+
+  // GPA gap
+  if(gpa < sc.gpaMin){
+    const diff = (sc.gpaMin - gpa).toFixed(2);
+    gaps.push({icon:'📚', label:'GPA gap', text:`Your GPA is ${gpa.toFixed(2)} — school average is ~${sc.gpaMin.toFixed(2)}. Gap of +${diff} needed.`, severity:'high'});
+  } else if(gpa < sc.gpaMin + 0.05){
+    gaps.push({icon:'📚', label:'GPA borderline', text:`GPA ${gpa.toFixed(2)} is right at the minimum (${sc.gpaMin.toFixed(2)}). Upward grade trend helps.`, severity:'med'});
+  }
+
+  // SAT gap
+  if(sat > 0){
+    if(sat < sc.sat25){
+      gaps.push({icon:'📝', label:'SAT below range', text:`SAT ${sat} is below 25th percentile (${sc.sat25}). Aim for ${sc.sat75}+ to be competitive.`, severity:'high'});
+    } else if(sat < sc.sat75){
+      gaps.push({icon:'📝', label:'SAT in range', text:`SAT ${sat} is within range (${sc.sat25}–${sc.sat75}). Scoring ${sc.sat75}+ would strengthen your application.`, severity:'low'});
+    }
+  } else {
+    gaps.push({icon:'📝', label:'No SAT on file', text:`No SAT/ACT score recorded. Target ${sc.sat75}+ for strong candidacy at this school.`, severity:'high'});
+  }
+
+  // AP/rigor
+  const recAPs = sc.gpaMin >= 3.9 ? 8 : sc.gpaMin >= 3.7 ? 5 : 3;
+  if(apCount < recAPs){
+    gaps.push({icon:'🎓', label:'Course rigor', text:`${apCount} AP/IB courses on record. Competitive applicants to this school typically have ${recAPs}+.`, severity: apCount < recAPs - 3 ? 'high' : 'med'});
+  }
+
+  // Activities depth
+  const actLen = (s.activitiesList||[]).length;
+  if(actLen < 3){
+    gaps.push({icon:'🏆', label:'Activity depth', text:`Only ${actLen} structured activities recorded. Most admits show 4–8 with leadership roles and meaningful impact.`, severity:'high'});
+  }
+
+  // Hook / differentiation
+  if(!s.hook || s.hook === ''){
+    if(sc.acceptance < 10){
+      gaps.push({icon:'✨', label:'Differentiator', text:`No special hook noted. Sub-10% acceptance schools rely heavily on unique narrative — identify your spike or compelling story.`, severity:'med'});
+    }
+  }
+
+  // ED boost
+  if(sc.edBoost === 'yes' && !gaps.find(g=>g.label==='ED strategy')){
+    gaps.push({icon:'📅', label:'ED opportunity', text:`This school offers a significant Early Decision advantage (~${Math.round(sc.acceptance*1.6)}% ED vs ${sc.acceptance}% overall). Consider applying ED if it's your top choice.`, severity:'info'});
+  }
+
+  if(gaps.length === 0){
+    gaps.push({icon:'✅', label:'Strong candidate', text:`Your profile meets or exceeds the benchmarks for this school. Focus on a compelling personal narrative and strong supplemental essays.`, severity:'good'});
+  }
+
+  return gaps;
+}
+
+function renderSchoolList(s){
+  if(!s.schoolList) s.schoolList = [];
+  // Auto-populate if empty on first render
+  if(s.schoolList.length === 0){
+    const auto = getAutoSchoolList(s);
+    s.schoolList = auto;
+  }
+
+  const list = s.schoolList;
+  const reachCount = list.filter(x=>x.type==='reach').length;
+  const matchCount = list.filter(x=>x.type==='match').length;
+  const safetyCount = list.filter(x=>x.type==='safety').length;
+
+  document.getElementById('slContent').innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div class="card-hd" style="margin-bottom:0"><span class="ico">🏫</span>Recommended School List</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-out btn-sm" onclick="analyzeSchoolListAI('${s.id}')">◆ AI Gap Analysis</button>
+        <button class="btn btn-gold btn-sm" onclick="openAddSchoolToList('${s.id}')">+ Add School</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center">
+      <span class="tag tr">● Reach <span style="opacity:.7">${reachCount}</span></span>
+      <span class="tag to">● Match <span style="opacity:.7">${matchCount}</span></span>
+      <span class="tag tg">● Safety <span style="opacity:.7">${safetyCount}</span></span>
+      <span style="font-size:11px;color:var(--muted);margin-left:4px">${list.length} schools total</span>
+    </div>
+    ${list.length === 0 ? '<p style="color:var(--muted);font-size:12.5px">No schools added yet. Click "+ Add School" to build this student\'s college list.</p>' : ''}
+    ${list.map((item,i) => {
+      const sc = schoolDB.find(x=>x.id===item.schoolId) || {name:item.name,acceptance:item.acceptance||10,sat25:item.sat25||1300,sat75:item.sat75||1500,gpaMin:item.gpaMin||3.7,edBoost:'no',notes:item.notes||''};
+      const chance = calcSchoolChance(s, sc);
+      const gaps = calcGapAnalysis(s, sc);
+      const typeColors = {reach:'var(--red)',match:'var(--orange)',safety:'var(--green)'};
+      const chanceColor = chance >= 40 ? 'var(--green)' : chance >= 15 ? 'var(--orange)' : 'var(--red)';
+      return `<div class="sl-card" id="slcard-${s.id}-${i}">
+        <div class="sl-card-main">
+          <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);width:20px;flex-shrink:0">${i+1}</div>
+          <div style="width:9px;height:9px;border-radius:50%;background:${typeColors[item.type]||'var(--muted)'};flex-shrink:0;margin-top:2px"></div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <span style="font-weight:600;font-size:13.5px;color:var(--cream)">${item.name}</span>
+              <select class="sl-type-sel" onchange="updateSchoolListType('${s.id}',${i},this.value)" style="background:transparent;border:1px solid var(--border);color:${typeColors[item.type]||'var(--muted)'};font-size:10px;padding:1px 4px;border-radius:4px;cursor:pointer">
+                <option value="reach" ${item.type==='reach'?'selected':''}>Reach</option>
+                <option value="match" ${item.type==='match'?'selected':''}>Match</option>
+                <option value="safety" ${item.type==='safety'?'selected':''}>Safety</option>
+              </select>
+            </div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">${sc.notes||''}</div>
+            ${item.consultant_note ? `<div style="font-size:11px;color:var(--gold);margin-top:3px">💬 ${item.consultant_note}</div>` : ''}
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+            <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:700;color:${chanceColor}">${chance}%</div>
+            <div style="font-size:9px;color:var(--muted)">Est. chance</div>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-out btn-sm" style="font-size:9px;padding:2px 7px" onclick="toggleGapPanel('${s.id}',${i})">▾ Gap Analysis</button>
+              <button class="del-btn" onclick="removeSchoolFromList('${s.id}',${i})">✕</button>
+            </div>
+          </div>
+        </div>
+        <div class="sl-gap-panel" id="gap-${s.id}-${i}" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Gap Analysis & Recommendations</div>
+          ${gaps.map(g=>`<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:7px">
+            <span style="font-size:13px;flex-shrink:0">${g.icon}</span>
+            <div>
+              <span style="font-size:10px;font-weight:700;color:${g.severity==='high'?'var(--red)':g.severity==='med'?'var(--orange)':g.severity==='good'?'var(--green)':'var(--muted)'};">${g.label}</span>
+              <div style="font-size:11.5px;color:var(--cream);opacity:.85;margin-top:1px">${g.text}</div>
+            </div>
+          </div>`).join('')}
+          <div style="margin-top:8px;display:flex;align-items:center;gap:6px">
+            <input type="text" class="fi" placeholder="Consultant note for this school…" style="font-size:11px;padding:5px 8px;flex:1" id="cnote-${s.id}-${i}" value="${item.consultant_note||''}">
+            <button class="btn btn-out btn-sm" style="font-size:10px" onclick="saveConsultantNote('${s.id}',${i})">Save</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('')}
+    <div id="aiSchoolListOut-${s.id}" style="margin-top:12px"></div>
+    <p style="font-size:10px;color:var(--muted);margin-top:12px">* Admission chances are estimates based on GPA, SAT, activities, and school data. Use AI Gap Analysis for detailed personalized insights.</p>
+  `;
+}
+
+function getAutoSchoolList(s){
+  const sat = s.sat || (s.act ? s.act * 46 : 1200);
+  const hb = {legacy:1.6,athlete:2.4,firstgen:1.3,urm:1.4,'':1}[s.hook||'']||1;
+  const apCount = (s.transcript||[]).filter(c=>c.level==='AP'||c.level==='IB').length;
+  const activityScore = (s.activitiesList||[]).length >= 4 ? 1.15 : 1.0;
   return schoolDB.map(sc=>{
-    const fit=(sat-sc.sat25)/(sc.sat75-sc.sat25+1);
-    const gfit=s.gpa>=sc.gpaMin?1:(parseFloat(s.gpa)||0)/sc.gpaMin;
-    let ch=sc.acceptance*fit*gfit*hb*1.5;ch=Math.max(1,Math.min(88,Math.round(ch)));
-    const type=ch>=40?'safety':ch>=15?'match':'reach';
-    return{name:sc.name,detail:sc.notes,chance:ch,type};
-  }).sort((a,b)=>b.chance-a.chance).slice(0,10);
+    const satRange = sc.sat75 - sc.sat25 + 1;
+    const satFit = Math.max(0, Math.min(1.5, (sat - sc.sat25 + 80) / satRange));
+    const gpaFit = (parseFloat(s.gpa)||0) >= sc.gpaMin ? 1 : Math.max(0.1, (parseFloat(s.gpa)||0) / sc.gpaMin);
+    const apBoost = apCount >= 8 ? 1.2 : apCount >= 5 ? 1.1 : 1.0;
+    let ch = sc.acceptance * satFit * gpaFit * hb * activityScore * apBoost;
+    ch = Math.max(1, Math.min(90, Math.round(ch)));
+    const type = ch >= 40 ? 'safety' : ch >= 15 ? 'match' : 'reach';
+    return {schoolId: sc.id, name: sc.name, type, acceptance: sc.acceptance, sat25: sc.sat25, sat75: sc.sat75, gpaMin: sc.gpaMin, notes: sc.notes, consultant_note: ''};
+  }).sort((a,b)=>{
+    const ca = calcSchoolChance(s, schoolDB.find(x=>x.id===a.schoolId)||{});
+    const cb = calcSchoolChance(s, schoolDB.find(x=>x.id===b.schoolId)||{});
+    return cb - ca;
+  }).slice(0, 10);
+}
+
+function toggleGapPanel(sid, idx){
+  const el = document.getElementById(`gap-${sid}-${idx}`);
+  if(!el) return;
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  const btn = el.previousElementSibling.querySelector('button');
+  if(btn) btn.textContent = el.style.display === 'none' ? '▾ Gap Analysis' : '▴ Hide Analysis';
+}
+
+function updateSchoolListType(sid, idx, newType){
+  const s = students.find(x=>String(x.id)===String(sid)); if(!s) return;
+  if(!s.schoolList) return;
+  s.schoolList[idx].type = newType;
+  renderSchoolList(s);
+  if(fbDb){saveStudentToFirestore(s);}
+}
+
+function removeSchoolFromList(sid, idx){
+  const s = students.find(x=>String(x.id)===String(sid)); if(!s) return;
+  s.schoolList.splice(idx, 1);
+  renderSchoolList(s);
+  if(fbDb){saveStudentToFirestore(s);}
+}
+
+function saveConsultantNote(sid, idx){
+  const s = students.find(x=>String(x.id)===String(sid)); if(!s) return;
+  const input = document.getElementById(`cnote-${sid}-${idx}`);
+  if(!input) return;
+  s.schoolList[idx].consultant_note = input.value.trim();
+  if(fbDb){saveStudentToFirestore(s);}
+}
+
+function openAddSchoolToList(sid){
+  const s = students.find(x=>String(x.id)===String(sid)); if(!s) return;
+  // Build modal content with schoolDB list + search
+  const existingIds = new Set((s.schoolList||[]).map(x=>x.schoolId));
+  const available = schoolDB.filter(sc=>!existingIds.has(sc.id));
+
+  let html = `<div style="margin-bottom:12px">
+    <input type="text" class="fi" id="addSchoolSearch" placeholder="Search school name…" oninput="filterAddSchoolList('${sid}')" style="width:100%;margin-bottom:8px">
+  </div>
+  <div id="addSchoolList" style="max-height:320px;overflow-y:auto">
+    ${available.map(sc=>`<div class="sl-add-row" id="asr-${sc.id}" onclick="addSchoolToList('${sid}',${sc.id})">
+      <div>
+        <div style="font-weight:600;font-size:13px;color:var(--cream)">${sc.name}</div>
+        <div style="font-size:11px;color:var(--muted)">${sc.notes} · Accept ${sc.acceptance}% · SAT ${sc.sat25}–${sc.sat75}</div>
+      </div>
+      <span style="font-size:11px;color:var(--gold);flex-shrink:0">+ Add</span>
+    </div>`).join('')}
+    ${available.length === 0 ? '<p style="color:var(--muted);font-size:12px">All schools from database are already on this list.</p>' : ''}
+  </div>
+  <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
+    <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px">OR ADD CUSTOM SCHOOL</div>
+    <div class="fr" style="gap:8px">
+      <div class="fg" style="flex:2"><label class="fl">School Name</label><input class="fi" id="customSchoolName" placeholder="e.g. Boston University"></div>
+      <div class="fg"><label class="fl">Accept %</label><input class="fi" type="number" id="customAccept" placeholder="18" min="1" max="100"></div>
+    </div>
+    <div class="fr" style="gap:8px;margin-top:6px">
+      <div class="fg"><label class="fl">SAT 25th</label><input class="fi" type="number" id="customSAT25" placeholder="1300"></div>
+      <div class="fg"><label class="fl">SAT 75th</label><input class="fi" type="number" id="customSAT75" placeholder="1480"></div>
+      <div class="fg"><label class="fl">Min GPA</label><input class="fi" type="number" id="customGPA" step="0.01" placeholder="3.6"></div>
+    </div>
+    <div class="fg" style="margin-top:6px"><label class="fl">Notes</label><input class="fi" id="customNotes" placeholder="e.g. Strong engineering program"></div>
+    <button class="btn btn-gold btn-sm" style="margin-top:8px" onclick="addCustomSchoolToList('${sid}')">Add Custom School</button>
+  </div>`;
+
+  // Use a simple inline modal
+  document.getElementById('addSchoolModalTitle').textContent = `Add School — ${s.firstName} ${s.lastName}`;
+  document.getElementById('addSchoolModalBody').innerHTML = html;
+  openMo('moAddSchoolToList');
+}
+
+function filterAddSchoolList(sid){
+  const q = (document.getElementById('addSchoolSearch').value||'').toLowerCase();
+  const existingIds = new Set((students.find(x=>String(x.id)===String(sid))?.schoolList||[]).map(x=>x.schoolId));
+  document.querySelectorAll('#addSchoolList .sl-add-row').forEach(row=>{
+    const name = row.querySelector('div>div').textContent.toLowerCase();
+    row.style.display = (!q || name.includes(q)) ? '' : 'none';
+  });
+}
+
+function addSchoolToList(sid, schoolId){
+  const s = students.find(x=>String(x.id)===String(sid)); if(!s) return;
+  const sc = schoolDB.find(x=>x.id===schoolId); if(!sc) return;
+  if(!s.schoolList) s.schoolList = [];
+  const chance = calcSchoolChance(s, sc);
+  const type = chance >= 40 ? 'safety' : chance >= 15 ? 'match' : 'reach';
+  s.schoolList.push({schoolId: sc.id, name: sc.name, type, acceptance: sc.acceptance, sat25: sc.sat25, sat75: sc.sat75, gpaMin: sc.gpaMin, notes: sc.notes, consultant_note: ''});
+  closeMo('moAddSchoolToList');
+  renderSchoolList(s);
+  if(fbDb){saveStudentToFirestore(s);}
+}
+
+function addCustomSchoolToList(sid){
+  const s = students.find(x=>String(x.id)===String(sid)); if(!s) return;
+  const name = document.getElementById('customSchoolName').value.trim();
+  if(!name) return alert('School name is required.');
+  if(!s.schoolList) s.schoolList = [];
+  const acceptance = parseFloat(document.getElementById('customAccept').value)||15;
+  const sat25 = parseInt(document.getElementById('customSAT25').value)||1300;
+  const sat75 = parseInt(document.getElementById('customSAT75').value)||1480;
+  const gpaMin = parseFloat(document.getElementById('customGPA').value)||3.7;
+  const notes = document.getElementById('customNotes').value.trim();
+  const tempSC = {id: null, name, acceptance, sat25, sat75, gpaMin, edBoost:'no', notes};
+  const chance = calcSchoolChance(s, tempSC);
+  const type = chance >= 40 ? 'safety' : chance >= 15 ? 'match' : 'reach';
+  s.schoolList.push({schoolId: null, name, type, acceptance, sat25, sat75, gpaMin, notes, consultant_note: ''});
+  closeMo('moAddSchoolToList');
+  renderSchoolList(s);
+  if(fbDb){saveStudentToFirestore(s);}
+}
+
+async function analyzeSchoolListAI(sid){
+  const s = students.find(x=>String(x.id)===String(sid)); if(!s) return;
+  const out = document.getElementById(`aiSchoolListOut-${sid}`);
+  if(!out) return;
+  const apiKey = getApiKey();
+  if(!apiKey){out.innerHTML=`<div class="card" style="border-color:var(--orange)"><p style="color:var(--orange);font-size:12px">⚠ Add your Claude API key in Settings to use AI analysis.</p></div>`;return;}
+  out.innerHTML=`<div class="card"><div class="aibadge">◆ Analyzing school list <span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div></div>`;
+  const gpas = calcGPAs(s.transcript);
+  const sat = s.sat || (s.act ? s.act * 46 : 'N/A');
+  const apCount = (s.transcript||[]).filter(c=>c.level==='AP'||c.level==='IB').length;
+  const schoolLines = (s.schoolList||[]).map((item,i)=>{
+    const sc = schoolDB.find(x=>x.id===item.schoolId)||{acceptance:item.acceptance||10,sat25:item.sat25||1300,sat75:item.sat75||1500,gpaMin:item.gpaMin||3.7};
+    const chance = calcSchoolChance(s, sc);
+    return `${i+1}. ${item.name} [${item.type.toUpperCase()}] — Est. ${chance}% chance — Accept rate: ${sc.acceptance}%, SAT range: ${sc.sat25}–${sc.sat75}, Min GPA: ${sc.gpaMin}`;
+  }).join('\n');
+  const prompt = `You are a top college admissions consultant. Analyze this student's school list and provide detailed personalized feedback.
+
+STUDENT: ${s.firstName} ${s.lastName}, Grade ${s.grade}
+GPA (Unweighted): ${s.gpa} | GPA (Weighted): ${gpas.w} | SAT: ${sat} | Major: ${s.major}
+Hook: ${hookLabel(s.hook)||'None'} | AP/IB Count: ${apCount}
+Activities: ${s.activities}
+
+SCHOOL LIST:
+${schoolLines}
+
+Provide a comprehensive analysis with these sections:
+
+### 📊 List Balance Assessment
+Is the reach/match/safety balance appropriate? What's missing?
+
+### 🎯 Top 3 Priority Schools
+Which 3 schools should this student focus on most, and why? Include specific strategy (ED timing, essay angle, etc.)
+
+### ⚠️ Schools to Reconsider
+Are any schools on the list a poor fit given the profile? Explain honestly.
+
+### 📈 What Would Increase Chances Across All Schools
+Top 3 specific, actionable improvements this student should make in the next 6–12 months to boost admission odds.
+
+### 🏫 Missing School Suggestions
+2–3 schools NOT on this list that would be a strong fit for this student's profile and goals.
+
+Be specific, honest, and use the student's actual data. Total: ~400 words.`;
+
+  try{
+    const resp = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'x-api-key':apiKey,'anthropic-version':'2023-06-01','content-type':'application/json','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1200,messages:[{role:'user',content:prompt}]})});
+    const data = await resp.json();
+    const txt = data.content?.[0]?.text || 'No response.';
+    const fmtTxt = txt.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/^#{1,3}\s(.+)/gm,'<h3 style="color:var(--gold);font-size:13px;margin:12px 0 4px">$1</h3>').replace(/\n/g,'<br>');
+    out.innerHTML = `<div class="card" style="border-color:var(--gold)"><div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:10px">◆ AI SCHOOL LIST ANALYSIS</div><div style="font-size:12.5px;line-height:1.7;color:var(--text)">${fmtTxt}</div></div>`;
+  }catch(e){
+    out.innerHTML=`<div class="card" style="border-color:var(--red)"><p style="color:var(--red);font-size:12px">Error: ${e.message}</p></div>`;
+  }
 }
 
 function renderEssayProfile(s){
@@ -3868,6 +4207,7 @@ function deserializeStudent(r){
   if(!s.strategyPlan)s.strategyPlan={};
   if(!s.summerRec)s.summerRec={};
   if(!s.sharedWith)s.sharedWith=[];
+  if(!s.schoolList)s.schoolList=[];
   return s;
 }
 
