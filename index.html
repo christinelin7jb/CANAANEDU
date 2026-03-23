@@ -527,6 +527,11 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
     <div id="studentList"></div>
   </div>
   <button class="add-s" onclick="openMo('moAddStudent')">+ Add Student</button>
+  <div style="padding:10px 12px;border-top:1px solid rgba(255,255,255,0.08);flex-shrink:0">
+    <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:6px">Claude AI Key</div>
+    <input id="claudeApiKeyInput" type="password" placeholder="sk-ant-..." style="width:100%;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);border-radius:5px;padding:5px 8px;font-size:10px;font-family:'DM Mono',monospace;color:#ffffff;outline:none" oninput="saveClaudeKey(this.value)">
+    <div id="claudeKeyStatus" style="font-size:9px;margin-top:4px;color:rgba(255,255,255,0.35)">Paste your Anthropic API key to enable AI features</div>
+  </div>
 </aside>
 
 <!-- MAIN -->
@@ -2041,7 +2046,9 @@ If year/grade level is unclear, infer from context. Include EVERY course row vis
       ? {type:'document', source:{type:'base64',media_type:'application/pdf',data:b64}}
       : {type:'image', source:{type:'base64',media_type:mime,data:b64}};
 
-    const headers = {'Content-Type':'application/json'};
+    const claudeKey = getClaudeKey();
+    if(!claudeKey) throw new Error('Please enter your Claude API key in the sidebar first.');
+    const headers = {'Content-Type':'application/json','x-api-key':claudeKey,'anthropic-dangerous-direct-browser-access':'true'};
     if(isPdf) headers['anthropic-beta']='pdfs-2024-09-25';
 
     const res = await fetch('https://api.anthropic.com/v1/messages',{
@@ -2283,10 +2290,15 @@ Write in first-person as the consultant. Use ${s.firstName}'s name throughout. K
 // ══════════════════════════════════════════════════════
 // AI ENGINE
 // ══════════════════════════════════════════════════════
+function claudeHeaders(extra){
+  const k=getClaudeKey();
+  if(!k) throw new Error('Please enter your Claude API key in the sidebar first.');
+  return Object.assign({'Content-Type':'application/json','x-api-key':k,'anthropic-dangerous-direct-browser-access':'true'},extra||{});
+}
 async function callClaude(prompt,outEl,loadMsg){
   outEl.innerHTML=`<div class="aibadge">✦ AI Advisor</div><div style="color:var(--muted);font-size:12px;margin-top:8px">${loadMsg} <span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div>`;
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:claudeHeaders(),body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
     const data=await res.json();
     const text=data.content?.map(b=>b.text||'').join('\n')||'No response.';
     const fmt=text.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/^###?\s(.+)/gm,'<h3>$1</h3>');
@@ -2431,7 +2443,7 @@ Be direct, specific, and actionable. Tailor everything to this exact student's p
 
   out.innerHTML=`<div class="aibadge">✦ AI Advisor</div><div style="color:var(--muted);font-size:12px;margin-top:8px">Generating personalised strategy plan… <span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div>`;
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1600,messages:[{role:'user',content:prompt}]})});
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:claudeHeaders(),body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1600,messages:[{role:'user',content:prompt}]})});
     const data=await res.json();
     const text=data.content?.map(b=>b.text||'').join('\n')||'No response.';
     // Parse sections and auto-fill textareas
@@ -2619,7 +2631,7 @@ async function callClaudeOutcome(prompt, outEl){
   try{
     const res = await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:claudeHeaders(),
       body:JSON.stringify({
         model:'claude-sonnet-4-20250514',
         max_tokens:2000,
@@ -2722,7 +2734,7 @@ Write in a warm, professional tone suitable for parents. Be specific — do not 
 
   out.innerHTML=`<div class="aibadge">✦ AI Advisor</div><div style="color:var(--muted);font-size:12px;margin-top:8px">Generating summer recommendations… <span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div>`;
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:prompt}]})});
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:claudeHeaders(),body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:prompt}]})});
     const data=await res.json();
     const text=data.content?.map(b=>b.text||'').join('\n')||'No response.';
     const ts=new Date().toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
@@ -2780,6 +2792,28 @@ const SC_BASE = 'https://api.data.gov/ed/collegescorecard/v1/schools';
 const SC_FIELDS = 'school.name,id,admissions.admission_rate.overall,admissions.sat_scores.25th_percentile.overall,admissions.sat_scores.75th_percentile.overall,admissions.act_scores.25th_percentile.cumulative,admissions.act_scores.75th_percentile.cumulative,school.city,school.state,school.school_url,latest.student.size';
 
 let _apiKey = '';
+
+// ── CLAUDE API KEY ──
+let _claudeKey = localStorage.getItem('claudeApiKey') || '';
+function saveClaudeKey(val) {
+  _claudeKey = val.trim();
+  localStorage.setItem('claudeApiKey', _claudeKey);
+  const status = document.getElementById('claudeKeyStatus');
+  if (status) {
+    if (_claudeKey.length > 10) {
+      status.textContent = '✓ Key saved — AI features enabled';
+      status.style.color = 'rgba(46,201,138,0.8)';
+    } else {
+      status.textContent = 'Paste your Anthropic API key to enable AI features';
+      status.style.color = 'rgba(255,255,255,0.35)';
+    }
+  }
+}
+function getClaudeKey() {
+  const inp = document.getElementById('claudeApiKeyInput');
+  if (inp && inp.value.trim()) _claudeKey = inp.value.trim();
+  return _claudeKey;
+}
 
 function saveApiKey(val) {
   _apiKey = val.trim();
@@ -3329,7 +3363,7 @@ Rules:
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
+      headers: claudeHeaders(),
       body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,messages:[{role:'user',content:prompt}]})
     });
     const data = await res.json();
@@ -4036,6 +4070,11 @@ function initLocalMode(){
 // ══════════════════════════════════════════════════════
 function init(){
   document.getElementById('dlDate').value=new Date().toISOString().split('T')[0];
+  // Restore saved Claude API key
+  if(_claudeKey){
+    const inp=document.getElementById('claudeApiKeyInput');
+    if(inp){inp.value=_claudeKey;saveClaudeKey(_claudeKey);}
+  }
   startApp();
 }
 
