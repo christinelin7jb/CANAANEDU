@@ -1071,6 +1071,23 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   <div id="shareContent"></div>
 </div></div>
 
+<!-- Transcript Import Review Modal -->
+<div class="mo" id="moImportReview"><div class="md md-xl" style="max-height:90vh;display:flex;flex-direction:column;width:900px;max-width:98vw">
+  <button class="md-close" onclick="closeMo('moImportReview')">✕</button>
+  <div class="md-title">📄 Review Imported Courses</div>
+  <div id="importReviewNote" style="font-size:11.5px;color:var(--muted);margin-bottom:10px;line-height:1.6"></div>
+  <div style="flex:1;overflow-y:auto;min-height:0">
+    <div id="importReviewTable"></div>
+  </div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.07);flex-wrap:wrap;gap:8px">
+    <div id="importReviewCount" style="font-size:11px;color:var(--muted)"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-out btn-sm" onclick="closeMo('moImportReview')">Cancel</button>
+      <button class="btn btn-gold btn-sm" id="importConfirmBtn" onclick="confirmImportTranscript()">✓ Import All Courses</button>
+    </div>
+  </div>
+</div></div>
+
 <script>
 'use strict';
 // ══════════════════════════════════════════════════════
@@ -1831,8 +1848,10 @@ function renderTranscript(s){
   document.getElementById('trContent').innerHTML=`
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
       <div style="font-size:11px;color:var(--muted)">GPA shown in US 4.0 scale. Original grades preserved per course.</div>
-      <div style="display:flex;align-items:center;gap:7px">
-        <span style="font-size:11px;color:var(--muted)">Default grade system for new courses:</span>
+      <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+        <button class="btn btn-out btn-sm" style="font-size:11px;gap:5px;display:flex;align-items:center" onclick="document.getElementById('transcriptFileInput-${s.id}').click()">📄 Import Transcript</button>
+        <input type="file" id="transcriptFileInput-${s.id}" accept=".md,.txt,.pdf,.csv" style="display:none" onchange="handleTranscriptFile(event,${s.id})">
+        <span style="font-size:11px;color:var(--muted)">Default grade system:</span>
         <select class="ms" id="defaultGradeSys-${s.id}" style="font-size:11px;color:var(--blue)" onchange="setDefaultGradeSys(${s.id},this.value)">
           <option value="us">US (A–F)</option>
           <option value="ib">IB (1–7)</option>
@@ -1902,6 +1921,195 @@ function renderTranscript(s){
   // Pre-set all year grade-system selectors to student default
   if(s.defaultGradeSys){document.querySelectorAll('[id^="csys-"]').forEach(sel=>sel.value=s.defaultGradeSys);document.querySelectorAll('[id^="csys-"]').forEach(sel=>{const yr=sel.id.replace('csys-','');if(!isNaN(yr))updateGradeOpts(parseInt(yr));});}
 }
+// ── Transcript File Import ─────────────────────────────
+// Keywords that indicate a course is NOT A-G eligible.
+// These will be auto-set to 'elec' regardless of context.
+const NON_AG_KEYWORDS = [
+  'theology','bible','biblical','scripture','seminary','catechism','chapel',
+  'religion','religious','faith','christian','church','apologetics','worldview',
+  'devotion','liturgy','divinity','spiritual','prayer','ministry',
+  'health','drug','nutrition','life skills','career','college planning',
+  'study hall','advisory','homeroom','tutorial','intervention',
+  'driver','ase','leadership skills'
+];
+function isNonAG(name){
+  const n=name.toLowerCase();
+  return NON_AG_KEYWORDS.some(k=>n.includes(k));
+}
+
+let _importSid=null, _importCourses=[];
+
+async function handleTranscriptFile(evt,sid){
+  const file=evt.target.files[0];
+  if(!file)return;
+  evt.target.value=''; // reset so same file can be re-uploaded
+  const apiKey=getApiKey();
+  if(!apiKey){alert('Please add your Claude API key in Settings first.');return;}
+  const text=await file.text();
+  const s=students.find(x=>x.id===sid);
+  if(!s)return;
+  // Show loading state
+  const btn=document.querySelector(`#trContent button[onclick*="transcriptFileInput"]`);
+  const origTxt=btn?btn.innerHTML:'';
+  if(btn){btn.innerHTML='⏳ Parsing…';btn.disabled=true;}
+
+  const prompt=`You are a college admissions data specialist. Parse this high school transcript and extract every course.
+
+TRANSCRIPT TEXT:
+---
+${text.slice(0,12000)}
+---
+
+Return ONLY a valid JSON array. Each element:
+{
+  "year": <9|10|11|12>,
+  "subject": "<exact course name from transcript>",
+  "ag": "<category — see rules below>",
+  "level": "<Regular|Honors|AP|IB|College>",
+  "gradeSystem": "<us|ib|al|cn>",
+  "grade": "<grade as shown on transcript>",
+  "credits": <10>,
+  "sem": "<Full|Sem1|Sem2>",
+  "flagged": <true if uncertain about ag category>
+}
+
+A-G CATEGORY RULES (UC system):
+- "a" = History/Social Science (World History, US History, Gov, Economics, Psychology, Sociology, Geography)
+- "b" = English (English, Literature, Writing, Composition, Language Arts)
+- "c" = Mathematics (Algebra, Geometry, Pre-Calculus, Calculus, Statistics, Trigonometry)
+- "d" = Lab Science (Biology, Chemistry, Physics, Environmental Science, Anatomy — must be lab-based)
+- "e" = World Language (Spanish, French, Mandarin, Chinese, Japanese, etc. — same language consecutive)
+- "f" = Visual/Performing Arts (Art, Music, Drama, Dance, Film, Photography)
+- "g" = College-Prep Elective (Computer Science, Economics if extra, additional academic courses)
+- "pe" = Physical Education (PE, Gym, Health/PE combined, Sports classes)
+- "elec" = Elective/Non-A-G (see mandatory list below)
+
+MANDATORY "elec" — these NEVER count for A-G, always set ag:"elec":
+Theology, Bible, Biblical Studies, Scripture, Seminary, Catechism, Chapel, Religion, Religious Studies,
+Christian Living, Church History, Apologetics, Worldview, Devotion, Divinity, Faith, Spiritual,
+Health (standalone — not combined with PE), Drug Education, Nutrition, Life Skills, Career Education,
+College Planning, Study Hall, Advisory, Homeroom, Tutorial, Driver's Education.
+
+GRADE SYSTEM:
+- Use "us" for standard A/B/C/D/F letter grades
+- Use "ib" for IB 1-7 numeric scale
+- Use "al" for A-Level (A*, A, B, C, D, E)
+- Use "cn" for Chinese 百分制 (numeric 0-100)
+
+GRADE FORMAT: Preserve the exact grade string from the transcript (e.g., "A", "A-", "B+", "92", "7", "A*").
+For "credits": use 10 as default unless clearly a semester course (use 5).
+Set "flagged":true only when you are genuinely unsure about the A-G category.
+Return ONLY the JSON array, no markdown, no explanation.`;
+
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'x-api-key':apiKey,'anthropic-version':'2023-06-01','content-type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4000,messages:[{role:'user',content:prompt}]})
+    });
+    const data=await resp.json();
+    let raw=data.content?.[0]?.text||'[]';
+    // Strip markdown code fences if present
+    raw=raw.replace(/^```[a-z]*\n?/,'').replace(/\n?```$/,'').trim();
+    let courses=[];
+    try{courses=JSON.parse(raw);}catch(e){alert('Could not parse AI response. Try again or check if the file format is readable.');if(btn){btn.innerHTML=origTxt;btn.disabled=false;}return;}
+    // Post-process: enforce NON_AG_KEYWORDS
+    courses=courses.map(c=>{
+      if(isNonAG(c.subject)&&c.ag!=='elec'){
+        return {...c,ag:'elec',flagged:true,_nonAgForced:true};
+      }
+      return c;
+    });
+    _importSid=sid;
+    _importCourses=courses;
+    showImportReview(courses,s);
+  }catch(e){
+    alert('Error parsing transcript: '+e.message);
+  }finally{
+    if(btn){btn.innerHTML=origTxt;btn.disabled=false;}
+  }
+}
+
+function showImportReview(courses,s){
+  const flaggedCount=courses.filter(c=>c.flagged||c._nonAgForced).length;
+  const nonAgCount=courses.filter(c=>c._nonAgForced).length;
+  let noteHtml=`<strong>${courses.length} courses</strong> parsed from transcript.`;
+  if(nonAgCount>0)noteHtml+=` <span style="color:var(--orange)">⚠ ${nonAgCount} course(s) auto-set to <strong>Elective</strong> — non-A-G subjects (e.g. Theology, Bible).</span>`;
+  if(flaggedCount-nonAgCount>0)noteHtml+=` <span style="color:var(--blue)">${flaggedCount-nonAgCount} course(s) flagged as uncertain — please review.</span>`;
+  noteHtml+=`<br><span style="color:var(--muted)">Review each course below. Edit any row before importing. Courses will be added to ${s.firstName}'s existing transcript.</span>`;
+  document.getElementById('importReviewNote').innerHTML=noteHtml;
+
+  const agOpts=AG_REQS.map(r=>`<option value="${r.key}">${r.key.toUpperCase()} — ${r.label.split('—')[0].trim()}</option>`).join('');
+  const lvlOpts=['Regular','Honors','AP','IB','College'].map(l=>`<option>${l}</option>`).join('');
+  const sysOpts=[['us','US (A–F)'],['ib','IB (1–7)'],['al','A-Level'],['cn','Chinese (百分制)']].map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
+
+  let tableHtml=`<div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:11.5px">
+      <thead><tr style="border-bottom:1px solid rgba(255,255,255,0.1)">
+        <th style="text-align:left;padding:6px 8px;color:var(--muted);font-weight:600;white-space:nowrap">Course Name</th>
+        <th style="text-align:left;padding:6px 4px;color:var(--muted);font-weight:600">Yr</th>
+        <th style="text-align:left;padding:6px 4px;color:var(--muted);font-weight:600">A-G</th>
+        <th style="text-align:left;padding:6px 4px;color:var(--muted);font-weight:600">Level</th>
+        <th style="text-align:left;padding:6px 4px;color:var(--muted);font-weight:600">Sys</th>
+        <th style="text-align:left;padding:6px 4px;color:var(--muted);font-weight:600">Grade</th>
+        <th style="text-align:left;padding:6px 4px;color:var(--muted);font-weight:600">Cr</th>
+        <th style="text-align:left;padding:6px 4px;color:var(--muted);font-weight:600">Term</th>
+      </tr></thead>
+      <tbody>`;
+  courses.forEach((c,i)=>{
+    const isForced=c._nonAgForced;
+    const isFlag=c.flagged&&!isForced;
+    const rowBg=isForced?'rgba(255,165,0,0.07)':isFlag?'rgba(74,144,217,0.06)':'';
+    const rowBorder=isForced?'border-left:3px solid var(--orange)':isFlag?'border-left:3px solid var(--blue)':'border-left:3px solid transparent';
+    const badge=isForced?`<span title="Non-A-G subject — auto-set to Elective" style="font-size:9px;background:rgba(255,165,0,0.15);color:var(--orange);padding:1px 5px;border-radius:6px;margin-left:4px">⚠ Non-A-G</span>`:
+                isFlag?`<span title="AI uncertain about category" style="font-size:9px;background:rgba(74,144,217,0.15);color:var(--blue);padding:1px 5px;border-radius:6px;margin-left:4px">? Check</span>`:'';
+    const semOpts=['Full','Sem1','Sem2'].map(v=>`<option${c.sem===v?' selected':''}>${v}</option>`).join('');
+    const agSel=agOpts.replace(`value="${c.ag||'elec'}"`,`value="${c.ag||'elec'}" selected`);
+    const lvlSel=lvlOpts.replace(`>${c.level||'Regular'}<`,` selected>${c.level||'Regular'}<`);
+    const sysSel=sysOpts.replace(`value="${c.gradeSystem||'us'}"`,`value="${c.gradeSystem||'us'}" selected`);
+    tableHtml+=`<tr style="border-bottom:1px solid rgba(255,255,255,0.04);background:${rowBg};${rowBorder}" data-idx="${i}">
+      <td style="padding:5px 8px"><input class="mi" style="width:100%;min-width:140px;font-size:11px" value="${(c.subject||'').replace(/"/g,'&quot;')}" onchange="_importCourses[${i}].subject=this.value">${badge}</td>
+      <td style="padding:5px 4px"><select class="ms" style="width:52px;font-size:11px" onchange="_importCourses[${i}].year=parseInt(this.value)"><option${c.year===9?' selected':''}>9</option><option${c.year===10?' selected':''}>10</option><option${c.year===11?' selected':''}>11</option><option${c.year===12?' selected':''}>12</option></select></td>
+      <td style="padding:5px 4px"><select class="ms" style="font-size:11px" onchange="_importCourses[${i}].ag=this.value">${agSel}</select></td>
+      <td style="padding:5px 4px"><select class="ms" style="font-size:11px" onchange="_importCourses[${i}].level=this.value">${lvlSel}</select></td>
+      <td style="padding:5px 4px"><select class="ms" style="font-size:11px" onchange="_importCourses[${i}].gradeSystem=this.value">${sysSel}</select></td>
+      <td style="padding:5px 4px"><input class="mi" style="width:56px;font-size:11px;font-family:'DM Mono',monospace" value="${(c.grade||'').replace(/"/g,'&quot;')}" onchange="_importCourses[${i}].grade=this.value"></td>
+      <td style="padding:5px 4px"><input class="mi" style="width:38px;font-size:11px" type="number" value="${c.credits||10}" onchange="_importCourses[${i}].credits=parseInt(this.value)||10"></td>
+      <td style="padding:5px 4px"><select class="ms" style="font-size:11px" onchange="_importCourses[${i}].sem=this.value">${semOpts}</select></td>
+    </tr>`;
+  });
+  tableHtml+=`</tbody></table></div>`;
+  document.getElementById('importReviewTable').innerHTML=tableHtml;
+  document.getElementById('importReviewCount').textContent=`${courses.length} courses ready to import`;
+  openMo('moImportReview');
+}
+
+function confirmImportTranscript(){
+  const s=students.find(x=>x.id===_importSid);
+  if(!s)return;
+  if(!s.transcript)s.transcript=[];
+  _importCourses.forEach((c,i)=>{
+    s.transcript.push({
+      id:Date.now()+i,
+      year:parseInt(c.year)||9,
+      subject:c.subject||'',
+      ag:c.ag||'elec',
+      level:c.level||'Regular',
+      gradeSystem:c.gradeSystem||'us',
+      grade:c.grade||'IP',
+      credits:parseInt(c.credits)||10,
+      sem:c.sem||'Full'
+    });
+  });
+  const gpas=calcGPAs(s.transcript);if(gpas.uw!=='—')s.gpa=gpas.uw;
+  if(typeof fbDb!=='undefined'&&fbDb){saveStudentToFirestore(s);logActivity(`imported ${_importCourses.length} courses to <strong>${s.firstName} ${s.lastName}</strong>'s transcript`);}
+  closeMo('moImportReview');
+  renderTranscript(s);
+  renderSidebar();
+  _importSid=null;_importCourses=[];
+}
+// ── End Transcript Import ──────────────────────────────
+
 function renderRigor(tr,s){
   const ap=tr.filter(c=>c.level==='AP').length,ib=tr.filter(c=>c.level==='IB').length,hon=tr.filter(c=>c.level==='Honors').length,reg=tr.filter(c=>c.level==='Regular'&&c.ag!=='pe'&&c.ag!=='elec').length;
   const tot=ap+ib+hon+reg,rigorPct=tot>0?Math.round((ap+ib+hon)/tot*100):0;
