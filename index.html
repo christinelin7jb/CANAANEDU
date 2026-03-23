@@ -2048,7 +2048,7 @@ If year/grade level is unclear, infer from context. Include EVERY course row vis
 
     const claudeKey = getClaudeKey();
     if(!claudeKey) throw new Error('Please enter your Claude API key in the sidebar first.');
-    const headers = {'Content-Type':'application/json','x-api-key':claudeKey,'anthropic-dangerous-direct-browser-access':'true'};
+    const headers = {'Content-Type':'application/json','x-api-key':claudeKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'};
     if(isPdf) headers['anthropic-beta']='pdfs-2024-09-25';
 
     const res = await fetch('https://api.anthropic.com/v1/messages',{
@@ -2293,7 +2293,7 @@ Write in first-person as the consultant. Use ${s.firstName}'s name throughout. K
 function claudeHeaders(extra){
   const k=getClaudeKey();
   if(!k) throw new Error('Please enter your Claude API key in the sidebar first.');
-  return Object.assign({'Content-Type':'application/json','x-api-key':k,'anthropic-dangerous-direct-browser-access':'true'},extra||{});
+  return Object.assign({'Content-Type':'application/json','x-api-key':k,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},extra||{});
 }
 async function callClaude(prompt,outEl,loadMsg){
   outEl.innerHTML=`<div class="aibadge">✦ AI Advisor</div><div style="color:var(--muted);font-size:12px;margin-top:8px">${loadMsg} <span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div>`;
