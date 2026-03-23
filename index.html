@@ -1898,8 +1898,15 @@ function renderTranscript(s){
       </div>
     </div>
     <div class="card">
-      <div class="card-hd"><span class="ico">📋</span>Course History</div>
-      <p style="font-size:11px;color:var(--muted);margin-bottom:14px">Click year to expand. Use + Add row to log courses.</p>
+      <div class="card-hd" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <div><span class="ico">📋</span>Course History</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <label for="txUpload-${s.id}" class="btn btn-out btn-sm" style="cursor:pointer;font-size:11px;padding:5px 10px">📄 Upload PDF / Photo</label>
+          <input type="file" id="txUpload-${s.id}" accept=".pdf,image/*" style="display:none" onchange="handleTranscriptUpload(${s.id},this)">
+          <span id="txUploadStatus-${s.id}" style="font-size:11px;color:var(--muted)"></span>
+        </div>
+      </div>
+      <p style="font-size:11px;color:var(--muted);margin-bottom:14px">Click year to expand. Use + Add row to log courses, or upload a PDF/photo for AI auto-import.</p>
       ${years.map(yr=>{const cs=tr.filter(c=>c.year===yr),ygpa=calcYearGPA(cs);return`<div class="tr-year">
         <div class="tr-yh" onclick="toggleYr(${yr})">
           <div class="tr-yh-l"><span class="gp" style="background:${gradeColor(yr)}">${yr}th</span>Grade ${yr} — ${['','','','','','','','','','Freshman','Sophomore','Junior','Senior'][yr]}${yr===s.grade?' <span style="font-size:9px;background:rgba(201,168,76,.18);color:var(--gold);padding:2px 6px;border-radius:8px">Current</span>':''}</div>
@@ -1992,6 +1999,101 @@ function delCourse(sid,cid){
   const gpas=calcGPAs(s.transcript);if(gpas.uw!=='—')s.gpa=gpas.uw;
   renderTranscript(s);
   if(fbDb&&fbCurrentUser)saveStudentToFirestore(s);
+}
+
+async function handleTranscriptUpload(sid, input){
+  const file = input.files[0]; if(!file) return;
+  const s = students.find(x=>x.id===sid); if(!s) return;
+  const statusEl = document.getElementById('txUploadStatus-'+sid);
+  statusEl.style.color='var(--muted)';
+  statusEl.textContent='Reading file…';
+
+  const toBase64 = f => new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=e=>res(e.target.result.split(',')[1]);
+    r.onerror=rej;
+    r.readAsDataURL(f);
+  });
+
+  try{
+    const b64 = await toBase64(file);
+    const mime = file.type || (file.name.endsWith('.pdf')?'application/pdf':'image/jpeg');
+    statusEl.textContent='🤖 AI analyzing transcript…';
+
+    const PROMPT=`You are a college admissions expert. Extract ALL courses from this transcript.
+Return ONLY a valid JSON array (no markdown, no prose). Each element:
+{
+  "subject": "course name",
+  "year": 9|10|11|12,
+  "level": "Regular"|"Honors"|"AP"|"IB"|"College",
+  "grade": "A"|"A+"|"B+"|"7"|"95" (original grade as shown),
+  "gradeSystem": "us"|"ib"|"al"|"cn",
+  "ag": "a"|"b"|"c"|"d"|"e"|"f"|"g",
+  "sem": "Sem1"|"Sem2"|"Full Yr",
+  "credits": 10
+}
+ag mapping: a=History/Social Sci, b=English, c=Math, d=Lab Science, e=World Language, f=Visual/Performing Arts, g=Elective/Other.
+gradeSystem: us=US letter A-F, ib=IB 1-7, al=A-Level A*-E, cn=Chinese 0-100.
+If year/grade level is unclear, infer from context. Include EVERY course row visible.`;
+
+    const isPdf = mime==='application/pdf';
+    const contentBlock = isPdf
+      ? {type:'document', source:{type:'base64',media_type:'application/pdf',data:b64}}
+      : {type:'image', source:{type:'base64',media_type:mime,data:b64}};
+
+    const headers = {'Content-Type':'application/json'};
+    if(isPdf) headers['anthropic-beta']='pdfs-2024-09-25';
+
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers,
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:4000,
+        messages:[{role:'user',content:[contentBlock,{type:'text',text:PROMPT}]}]
+      })
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error?.message||'API error '+res.status);
+
+    const raw = (data.content||[]).map(b=>b.text||'').join('').trim();
+    // Strip any accidental markdown fences
+    const clean = raw.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'');
+    let courses;
+    try{ courses=JSON.parse(clean); }
+    catch(e){ throw new Error('Could not parse AI response. Please try again.'); }
+
+    if(!Array.isArray(courses)||courses.length===0) throw new Error('No courses found in document.');
+
+    if(!s.transcript)s.transcript=[];
+    let added=0;
+    courses.forEach(c=>{
+      if(!c.subject)return;
+      s.transcript.push({
+        id: Date.now()+Math.floor(Math.random()*100000),
+        year: parseInt(c.year)||s.grade||11,
+        subject: String(c.subject),
+        ag: (c.ag||'g').toLowerCase(),
+        level: ['Regular','Honors','AP','IB','College'].includes(c.level)?c.level:'Regular',
+        gradeSystem: ['us','ib','al','cn'].includes(c.gradeSystem)?c.gradeSystem:'us',
+        grade: String(c.grade||'IP'),
+        credits: parseInt(c.credits)||10,
+        sem: ['Sem1','Sem2','Full Yr'].includes(c.sem)?c.sem:'Full Yr'
+      });
+      added++;
+    });
+
+    const gpas=calcGPAs(s.transcript); if(gpas.uw!=='—')s.gpa=gpas.uw;
+    renderTranscript(s); renderSidebar();
+    if(fbDb&&fbCurrentUser)saveStudentToFirestore(s);
+    statusEl.style.color='var(--green)';
+    statusEl.textContent=`✅ ${added} courses imported!`;
+    input.value='';
+  }catch(err){
+    statusEl.style.color='var(--red)';
+    statusEl.textContent='❌ '+err.message;
+    console.error('[TranscriptUpload]',err);
+  }
 }
 
 function renderSchoolList(s){
