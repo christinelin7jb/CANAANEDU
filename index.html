@@ -1081,7 +1081,7 @@ const AG_REQS=[
   {key:'elec',label:'Elective / Other',color:'#95a5a6',uc:0,grad:0,desc:'Non-required'},
 ];
 const AG_COLOR={};AG_REQS.forEach(r=>AG_COLOR[r.key]=r.color);
-const GP={'A+':4,'A':4,'A-':3.7,'B+':3.3,'B':3,'B-':2.7,'C+':2.3,'C':2,'C-':1.7,'D+':1.3,'D':1,'D-':0.7,'F':0};
+const GP={'A+':4,'A':4,'A-':4,'B+':3,'B':3,'B-':3,'C+':2,'C':2,'C-':2,'D+':1,'D':1,'D-':1,'F':0};
 const GP_IB={'7':4.0,'6':3.7,'5':3.3,'4':3.0,'3':2.0,'2':1.0,'1':0.0};
 const GP_AL={'A*':4.0,'A':4.0,'B':3.0,'C':2.0,'D':1.0,'E':0.0,'U':0.0};
 function chineseToGPA(n){const v=parseFloat(n);if(isNaN(v))return null;if(v>=90)return 4.0;if(v>=85)return 3.7;if(v>=80)return 3.3;if(v>=75)return 3.0;if(v>=70)return 2.7;if(v>=65)return 2.3;if(v>=60)return 2.0;return 0.0;}
@@ -1314,22 +1314,32 @@ function seedData(){
 function gradeColor(g){return {9:'#2ec98a',10:'#4a90d9',11:'#c9a84c',12:'#e05c5c'}[g]||'#888';}
 function tierLabel(t){return {t10:'Top 10',t25:'Top 25',t50:'Top 50',t100:'Top 100',la:'Liberal Arts'}[t]||t;}
 function hookLabel(h){return {legacy:'Legacy',athlete:'Athlete',firstgen:'First-Gen',urm:'URM',intl:'International'}[h]||'';}
+function courseEffGPA(c){
+  const sys=c.gradeSystem||'us';
+  if(c.grade1!==undefined||c.grade2!==undefined){
+    const p1=gradeToGPA(c.grade1,sys);
+    const p2=gradeToGPA(c.grade2,sys);
+    if(p1!==null&&p2!==null)return(p1+p2)/2;
+    return p1!==null?p1:p2;
+  }
+  return gradeToGPA(c.grade,sys);
+}
 function calcGPAs(tr){
-  const v=(tr||[]).map(c=>({...c,_gp:gradeToGPA(c.grade,c.gradeSystem)})).filter(c=>c._gp!==null);
+  const v=(tr||[]).map(c=>({...c,_gp:courseEffGPA(c)})).filter(c=>c._gp!==null);
   if(!v.length)return{uw:'—',w:'—'};
   const uw=v.reduce((a,c)=>a+c._gp,0)/v.length;
   const w=v.reduce((a,c)=>a+c._gp+(HB[c.level]||0),0)/v.length;
   return{uw:uw.toFixed(2),w:Math.min(5,w).toFixed(2)};
 }
 function calcYearGPA(cs){
-  const v=(cs||[]).map(c=>({...c,_gp:gradeToGPA(c.grade,c.gradeSystem)})).filter(c=>c._gp!==null);
+  const v=(cs||[]).map(c=>({...c,_gp:courseEffGPA(c)})).filter(c=>c._gp!==null);
   return v.length?(v.reduce((a,c)=>a+c._gp,0)/v.length).toFixed(2):null;
 }
 function gradeGP(g){return GP[g]!==undefined?GP[g]:null;}
-function gradeCol(g,sys){const p=gradeToGPA(g,sys||'us');if(p===null)return'var(--muted)';if(p>=3.7)return'var(--green)';if(p>=3)return'var(--blue)';if(p>=2)return'var(--orange)';return'var(--red)';}
+function gradeCol(g,sys){const p=gradeToGPA(g,sys||'us');if(p===null)return'var(--muted)';if(p>=4)return'var(--green)';if(p>=3)return'var(--blue)';if(p>=2)return'var(--orange)';return'var(--red)';}
 function getAGStatus(tr,grade){
   const done={};AG_REQS.forEach(r=>done[r.key]=0);
-  (tr||[]).forEach(c=>{if(done[c.ag]!==undefined)done[c.ag]+=(c.sem==='Full'?1:0.5);});
+  (tr||[]).forEach(c=>{if(done[c.ag]!==undefined){if(c.grade1!==undefined||c.grade2!==undefined){const h1=c.grade1&&c.grade1!=='IP'&&c.grade1!=='W';const h2=c.grade2&&c.grade2!=='IP'&&c.grade2!=='W';done[c.ag]+=(h1&&h2?1:0.5);}else{done[c.ag]+=(c.sem==='Full'?1:0.5);}}});
   return AG_REQS.map(r=>{
     const d=done[r.key]||0,t=Math.max(r.uc,r.grad)||0;
     return{...r,done:d,target:t,pct:t>0?Math.min(1,d/t):1,met:t>0&&d>=t,ip:grade<12&&d<t};
@@ -1918,8 +1928,8 @@ function renderTranscript(s){
           <div style="display:flex;align-items:center;gap:12px">${ygpa?`<span style="font-size:11px;color:rgba(255,255,255,0.75)">GPA <strong style="color:#ffffff">${ygpa}</strong></span>`:''}<span style="font-size:10.5px;color:rgba(255,255,255,0.75)">${cs.length} courses</span></div>
         </div>
         <div class="tr-yb" id="tryb-${yr}">
-          <div class="cr ch" style="grid-template-columns:2fr 1.2fr 80px 40px 90px 68px 80px 30px"><div class="cc ch">Course</div><div class="cc ch">Area</div><div class="cc ch">Level</div><div class="cc ch">Sys</div><div class="cc ch">Grade (orig)</div><div class="cc ch">US GPA</div><div class="cc ch">Term</div><div class="cc ch"></div></div>
-          ${cs.map(c=>{const ugpa=gradeToGPA(c.grade,c.gradeSystem);const sys=c.gradeSystem||'us';return`<div class="cr" style="grid-template-columns:2fr 1.2fr 80px 44px 90px 68px 80px 30px"><div class="cc" style="font-weight:500">${c.subject}</div><div class="cc"><span style="display:flex;align-items:center;gap:5px"><div style="width:16px;height:16px;border-radius:50%;background:${AG_COLOR[c.ag]||'#888'};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:var(--bg);flex-shrink:0">${c.ag.toUpperCase()}</div><span style="font-size:10px;color:var(--muted)">${AG_REQS.find(r=>r.key===c.ag)?.label.split('—')[0]?.trim()||c.ag}</span></span></div><div class="cc"><span class="lb ${c.level==='AP'?'lb-ap':c.level==='IB'?'lb-ib':c.level==='Honors'?'lb-h':'lb-r'}">${c.level}</span></div><div class="cc"><span style="font-size:9px;font-weight:700;padding:2px 5px;border-radius:5px;background:rgba(255,255,255,0.06);color:var(--muted);white-space:nowrap">${sysLabel(sys)}</span></div><div class="cc"><span style="font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:${gradeCol(c.grade,sys)}">${c.grade||'—'}</span></div><div class="cc"><span style="font-family:'DM Mono',monospace;font-size:12px;color:${ugpa!==null?(ugpa>=3.7?'var(--green)':ugpa>=3?'var(--blue)':ugpa>=2?'var(--orange)':'var(--red)'):'var(--muted)'}">${ugpa!==null?ugpa.toFixed(2):'—'}</span></div><div class="cc" style="font-size:11px;color:var(--muted)">${c.sem}</div><div class="cc"><button class="del-btn" onclick="delCourse(${s.id},${c.id})">✕</button></div></div>`;}).join('')}
+          <div class="cr ch" style="grid-template-columns:2fr 1.2fr 80px 40px 76px 76px 68px 30px"><div class="cc ch">Course</div><div class="cc ch">Area</div><div class="cc ch">Level</div><div class="cc ch">Sys</div><div class="cc ch">Sem 1</div><div class="cc ch">Sem 2</div><div class="cc ch">Avg GPA</div><div class="cc ch"></div></div>
+          ${cs.map(c=>{const sys=c.gradeSystem||'us';const g1=c.grade1!==undefined?c.grade1:c.grade;const g2=c.grade2!==undefined?c.grade2:null;const avgGpa=courseEffGPA(c);return`<div class="cr" style="grid-template-columns:2fr 1.2fr 80px 44px 76px 76px 68px 30px"><div class="cc" style="font-weight:500">${c.subject}</div><div class="cc"><span style="display:flex;align-items:center;gap:5px"><div style="width:16px;height:16px;border-radius:50%;background:${AG_COLOR[c.ag]||'#888'};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:var(--bg);flex-shrink:0">${c.ag.toUpperCase()}</div><span style="font-size:10px;color:var(--muted)">${AG_REQS.find(r=>r.key===c.ag)?.label.split('—')[0]?.trim()||c.ag}</span></span></div><div class="cc"><span class="lb ${c.level==='AP'?'lb-ap':c.level==='IB'?'lb-ib':c.level==='Honors'?'lb-h':'lb-r'}">${c.level}</span></div><div class="cc"><span style="font-size:9px;font-weight:700;padding:2px 5px;border-radius:5px;background:rgba(255,255,255,0.06);color:var(--muted);white-space:nowrap">${sysLabel(sys)}</span></div><div class="cc"><span style="font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:${gradeCol(g1,sys)}">${g1||'—'}</span></div><div class="cc"><span style="font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:${gradeCol(g2,sys)}">${g2||'—'}</span></div><div class="cc"><span style="font-family:'DM Mono',monospace;font-size:12px;color:${avgGpa!==null?(avgGpa>=4?'var(--green)':avgGpa>=3?'var(--blue)':avgGpa>=2?'var(--orange)':'var(--red)'):'var(--muted)'}">${avgGpa!==null?avgGpa.toFixed(2):'—'}</span></div><div class="cc"><button class="del-btn" onclick="delCourse(${s.id},${c.id})">✕</button></div></div>`;}).join('')}
           <div class="add-cr" style="flex-wrap:wrap;row-gap:5px">
             <input class="mi" id="cn-${yr}" placeholder="Course name" style="flex:2;min-width:120px">
             <select class="ms" id="cag-${yr}">${AG_REQS.map(r=>`<option value="${r.key}">${r.key.toUpperCase()} — ${r.label.split('—')[0].trim()}</option>`).join('')}</select>
@@ -1930,10 +1940,11 @@ function renderTranscript(s){
               <option value="al">A-Level</option>
               <option value="cn">Chinese (百分制)</option>
             </select>
-            <select class="ms" id="cgr-${yr}" style="min-width:58px"><option value="">Grade</option>${['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','IP','W'].map(g=>`<option>${g}</option>`).join('')}</select>
-            <input class="mi" id="cgr-cn-${yr}" placeholder="e.g. 92" style="width:62px;display:none">
+            <span style="font-size:10px;color:var(--muted);align-self:center">S1:</span><select class="ms" id="cgr1-${yr}" style="min-width:55px"><option value="">—</option>${['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','IP','W'].map(g=>`<option>${g}</option>`).join('')}</select>
+            <input class="mi" id="cgr1-cn-${yr}" placeholder="S1 score" style="width:58px;display:none">
+            <span style="font-size:10px;color:var(--muted);align-self:center">S2:</span><select class="ms" id="cgr2-${yr}" style="min-width:55px"><option value="">—</option>${['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','IP','W'].map(g=>`<option>${g}</option>`).join('')}</select>
+            <input class="mi" id="cgr2-cn-${yr}" placeholder="S2 score" style="width:58px;display:none">
             <input class="mi" id="ccr-${yr}" value="10" style="width:38px">
-            <select class="ms" id="csm-${yr}"><option value="Full">Full Yr</option><option value="Sem1">Sem 1</option><option value="Sem2">Sem 2</option></select>
             <button class="btn btn-gold btn-sm" onclick="addCourse(${s.id},${yr})" style="white-space:nowrap">+ Add</button>
           </div>
         </div>
@@ -1957,8 +1968,8 @@ function renderRigor(tr,s){
   const ag=getAGStatus(tr,s.grade);
   ag.filter(r=>r.uc>0&&!r.met).forEach(r=>flags.push({t:'lo',m:`<strong>${r.label.split('—')[0].trim()}</strong> needs ${(r.uc-r.done).toFixed(1)} more year(s)`}));
   if((s.sat||0)<1200&&s.grade>=11)flags.push({t:'md',m:'Test scores below competitive range for target tier'});
-  const weak=tr.filter(c=>{const p=gradeToGPA(c.grade,c.gradeSystem);return p!==null&&p<2.0;});
-  if(weak.length)flags.push({t:'lo',m:`${weak.length} course(s) with C− or below: ${weak.map(c=>c.subject).join(', ')}`});
+  const weak=tr.filter(c=>{const p=courseEffGPA(c);return p!==null&&p<2.0;});
+  if(weak.length)flags.push({t:'lo',m:`${weak.length} course(s) with D or below: ${weak.map(c=>c.subject).join(', ')}`});
   if(ap+ib>=8&&ag.filter(r=>r.uc>0).every(r=>r.met))flags.push({t:'hi',m:'Exceptional rigor + all A–G met — strong for top schools'});
   return`<div class="cb ${lvl}" style="margin-bottom:10px"><span class="cb-ico">${lvl==='hi'?'✓':'⚠'}</span><div class="cb-txt"><span class="cb-lbl">${msg}</span>${rigorPct}% advanced coursework</div></div>
     ${[['AP',ap],['IB',ib],['Honors',hon],['Regular (Academic)',reg]].map(([l,n])=>`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px"><span style="font-size:11px;color:var(--muted)">${l}</span><div style="display:flex;align-items:center;gap:6px"><div class="mini-bar" style="width:70px"><div class="mini-fill" style="width:${tot>0?Math.round(n/tot*100):0}%;background:var(--gold)"></div></div><span style="font-size:11px;font-family:'DM Mono',monospace">${n}</span></div></div>`).join('')}
@@ -1969,31 +1980,35 @@ function renderRigor(tr,s){
 function toggleYr(yr){const b=document.getElementById('tryb-'+yr);if(b)b.style.display=b.style.display==='none'?'':'none';}
 function setDefaultGradeSys(sid,sys){
   const s=students.find(x=>x.id===sid);if(s)s.defaultGradeSys=sys;
-  // update all open year-selectors to match
   document.querySelectorAll('[id^="csys-"]').forEach(sel=>sel.value=sys);
-  document.querySelectorAll('[id^="cgr-"]').forEach(sel=>{
-    const yr=sel.id.replace('cgr-','');
-    if(!isNaN(yr))updateGradeOpts(parseInt(yr));
-  });
+  document.querySelectorAll('[id^="csys-"]').forEach(sel=>{const yr=sel.id.replace('csys-','');if(!isNaN(yr))updateGradeOpts(parseInt(yr));});
 }
 function updateGradeOpts(yr){
   const sys=document.getElementById('csys-'+yr).value;
-  const sel=document.getElementById('cgr-'+yr);
-  const cn=document.getElementById('cgr-cn-'+yr);
-  if(sys==='cn'){sel.style.display='none';cn.style.display='';cn.placeholder='e.g. 92';}
-  else{sel.style.display='';cn.style.display='none';}
-  sel.innerHTML='<option value="">Grade</option>';
+  const sel1=document.getElementById('cgr1-'+yr);
+  const sel2=document.getElementById('cgr2-'+yr);
+  const cn1=document.getElementById('cgr1-cn-'+yr);
+  const cn2=document.getElementById('cgr2-cn-'+yr);
   const opts={us:['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','IP','W'],ib:['7','6','5','4','3','2','1','IP'],al:['A*','A','B','C','D','E','U']};
-  if(opts[sys])opts[sys].forEach(g=>{const o=document.createElement('option');o.value=g;o.textContent=g;sel.appendChild(o);});
+  if(sys==='cn'){
+    if(sel1)sel1.style.display='none';if(sel2)sel2.style.display='none';
+    if(cn1){cn1.style.display='';cn1.placeholder='S1 score';}if(cn2){cn2.style.display='';cn2.placeholder='S2 score';}
+  }else{
+    if(sel1)sel1.style.display='';if(sel2)sel2.style.display='';
+    if(cn1)cn1.style.display='none';if(cn2)cn2.style.display='none';
+  }
+  [sel1,sel2].forEach((sel,i)=>{if(!sel)return;sel.innerHTML=`<option value="">—</option>`;if(opts[sys])opts[sys].forEach(g=>{const o=document.createElement('option');o.value=g;o.textContent=g;sel.appendChild(o);});});
 }
 function addCourse(sid,year){
   const s=students.find(x=>x.id===sid);if(!s)return;
   const name=document.getElementById('cn-'+year).value.trim();if(!name)return;
   if(!s.transcript)s.transcript=[];
   const sys=document.getElementById('csys-'+year).value||'us';
-  const gradeRaw=sys==='cn'?document.getElementById('cgr-cn-'+year).value.trim():document.getElementById('cgr-'+year).value;
-  const grade=gradeRaw||'IP';
-  s.transcript.push({id:Date.now(),year,subject:name,ag:document.getElementById('cag-'+year).value,level:document.getElementById('clv-'+year).value,gradeSystem:sys,grade,credits:parseInt(document.getElementById('ccr-'+year).value)||10,sem:document.getElementById('csm-'+year).value});
+  const g1Raw=sys==='cn'?document.getElementById('cgr1-cn-'+year)?.value.trim():document.getElementById('cgr1-'+year)?.value;
+  const g2Raw=sys==='cn'?document.getElementById('cgr2-cn-'+year)?.value.trim():document.getElementById('cgr2-'+year)?.value;
+  const grade1=g1Raw||null;
+  const grade2=g2Raw||null;
+  s.transcript.push({id:Date.now(),year,subject:name,ag:document.getElementById('cag-'+year).value,level:document.getElementById('clv-'+year).value,gradeSystem:sys,grade1,grade2,credits:parseInt(document.getElementById('ccr-'+year).value)||10});
   const gpas=calcGPAs(s.transcript);if(gpas.uw!=='—')s.gpa=gpas.uw;
   renderTranscript(s);renderSidebar();
   if(fbDb&&fbCurrentUser)saveStudentToFirestore(s);
@@ -2031,14 +2046,15 @@ Return ONLY a valid JSON array (no markdown, no prose). Each element:
   "subject": "course name",
   "year": 9|10|11|12,
   "level": "Regular"|"Honors"|"AP"|"IB"|"College",
-  "grade": "A"|"A+"|"B+"|"7"|"95" (original grade as shown),
+  "grade1": "A"|"B+"|"7"|"95" or null (Semester 1 grade),
+  "grade2": "A"|"B+"|"7"|"95" or null (Semester 2 grade),
   "gradeSystem": "us"|"ib"|"al"|"cn",
   "ag": "a"|"b"|"c"|"d"|"e"|"f"|"g",
-  "sem": "Sem1"|"Sem2"|"Full Yr",
   "credits": 10
 }
 ag mapping: a=History/Social Sci, b=English, c=Math, d=Lab Science, e=World Language, f=Visual/Performing Arts, g=Elective/Other.
 gradeSystem: us=US letter A-F, ib=IB 1-7, al=A-Level A*-E, cn=Chinese 0-100.
+If a course shows separate Semester 1 and Semester 2 grades, put them in grade1 and grade2. If only one grade is shown, put it in grade1 and set grade2 to null.
 If year/grade level is unclear, infer from context. Include EVERY course row visible.`;
 
     const isPdf = mime==='application/pdf';
@@ -2083,9 +2099,9 @@ If year/grade level is unclear, infer from context. Include EVERY course row vis
         ag: (c.ag||'g').toLowerCase(),
         level: ['Regular','Honors','AP','IB','College'].includes(c.level)?c.level:'Regular',
         gradeSystem: ['us','ib','al','cn'].includes(c.gradeSystem)?c.gradeSystem:'us',
-        grade: String(c.grade||'IP'),
-        credits: parseInt(c.credits)||10,
-        sem: ['Sem1','Sem2','Full Yr'].includes(c.sem)?c.sem:'Full Yr'
+        grade1: c.grade1?String(c.grade1):null,
+        grade2: c.grade2?String(c.grade2):null,
+        credits: parseInt(c.credits)||10
       });
       added++;
     });
@@ -2329,7 +2345,7 @@ Recent notes: ${s.meetings.slice(0,2).map(m=>m.content).join(' | ')||'None'}
   else if(type==='timeline')prompt=`${base}\nCreate a month-by-month action plan from now through final deadlines. Grade ${s.grade} specific. Include 3 most critical actions right now.`;
   else if(type==='transcript'){
     const tr=s.transcript||[];const gpas=calcGPAs(tr);
-    prompt=`${base}\nTranscript analysis: UW GPA ${gpas.uw}, W GPA ${gpas.w}, ${tr.filter(c=>c.level==='AP'||c.level==='IB').length} AP/IB courses.\nCourse list: ${tr.map(c=>`${c.subject}(Gr${c.year},${c.level},${c.grade||'IP'})`).join('; ')}\n\nProvide: overall assessment, UC A-G compliance, rigor analysis, grade trends, specific course recommendations, and red flags for admissions.`;
+    prompt=`${base}\nTranscript analysis: UW GPA ${gpas.uw}, W GPA ${gpas.w}, ${tr.filter(c=>c.level==='AP'||c.level==='IB').length} AP/IB courses.\nCourse list: ${tr.map(c=>{const g=c.grade1!==undefined?`S1:${c.grade1||'—'}/S2:${c.grade2||'—'}`:c.grade||'IP';return`${c.subject}(Gr${c.year},${c.level},${g})`;}).join('; ')}\n\nProvide: overall assessment, UC A-G compliance, rigor analysis, grade trends, specific course recommendations, and red flags for admissions.`;
   }
   else if(type==='cohort'){
     const summary=students.map(s=>`${s.firstName} ${s.lastName}(Gr${s.grade},GPA${s.gpa},SAT${s.sat||'—'},${tierLabel(s.tier)},${getUrgency(s).level} urgency)`).join('; ');
