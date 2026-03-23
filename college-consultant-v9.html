@@ -1867,7 +1867,7 @@ function renderTranscript(s){
     </div>
     <div class="card">
       <div class="card-hd"><span class="ico">📋</span>Course History</div>
-      <p style="font-size:11px;color:var(--muted);margin-bottom:14px">Click year to expand. Use + Add row to log courses.</p>
+      <p style="font-size:11px;color:var(--muted);margin-bottom:14px">Click year to expand. Use + Add row to log courses. Click ✏ to edit an existing course.</p>
       ${years.map(yr=>{const cs=tr.filter(c=>c.year===yr),ygpa=calcYearGPA(cs);return`<div class="tr-year">
         <div class="tr-yh" onclick="toggleYr(${yr})">
           <div class="tr-yh-l"><span class="gp" style="background:${gradeColor(yr)}">${yr}th</span>Grade ${yr} — ${['','','','','','','','','','Freshman','Sophomore','Junior','Senior'][yr]}${yr===s.grade?' <span style="font-size:9px;background:rgba(201,168,76,.18);color:var(--gold);padding:2px 6px;border-radius:8px">Current</span>':''}</div>
@@ -1875,7 +1875,7 @@ function renderTranscript(s){
         </div>
         <div class="tr-yb" id="tryb-${yr}">
           <div class="cr ch" style="grid-template-columns:2fr 1.2fr 80px 40px 90px 68px 90px 54px"><div class="cc ch">Course</div><div class="cc ch">Area</div><div class="cc ch">Level</div><div class="cc ch">Sys</div><div class="cc ch">Grade (orig)</div><div class="cc ch">US GPA</div><div class="cc ch">Term</div><div class="cc ch"></div></div>
-          ${cs.map(c=>{const ugpa=gradeToGPA(c.grade,c.gradeSystem);const sys=c.gradeSystem||'us';const isSummerRetake=c.isRetake||c.sem==='Summer';const hasRetake=tr.some(r=>r.isRetake&&r.retakeOf===c.id);const termDisplay=isSummerRetake?`<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;padding:2px 6px;border-radius:8px;background:rgba(201,168,76,0.15);color:var(--gold)">☀ Summer${c.isRetake?' Retake':''}</span>`:`<span style="font-size:11px;color:var(--muted)">${c.sem}</span>`;const courseNameDisplay=`<span style="font-weight:500;${hasRetake?'color:var(--muted);text-decoration:line-through;':''}">${c.subject}</span>${hasRetake?'<span style="font-size:9px;background:rgba(201,168,76,0.13);color:var(--gold);padding:1px 5px;border-radius:6px;margin-left:5px">→ retaken</span>':''}`;return`<div class="cr" style="grid-template-columns:2fr 1.2fr 80px 44px 90px 68px 90px 54px${isSummerRetake?';background:rgba(201,168,76,0.04);border-left:2px solid rgba(201,168,76,0.3)':''}"><div class="cc">${courseNameDisplay}</div><div class="cc"><span style="display:flex;align-items:center;gap:5px"><div style="width:16px;height:16px;border-radius:50%;background:${AG_COLOR[c.ag]||'#888'};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:var(--bg);flex-shrink:0">${c.ag.toUpperCase()}</div><span style="font-size:10px;color:var(--muted)">${AG_REQS.find(r=>r.key===c.ag)?.label.split('—')[0]?.trim()||c.ag}</span></span></div><div class="cc"><span class="lb ${c.level==='AP'?'lb-ap':c.level==='IB'?'lb-ib':c.level==='Honors'?'lb-h':'lb-r'}">${c.level}</span></div><div class="cc"><span style="font-size:9px;font-weight:700;padding:2px 5px;border-radius:5px;background:rgba(255,255,255,0.06);color:var(--muted);white-space:nowrap">${sysLabel(sys)}</span></div><div class="cc"><span style="font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:${gradeCol(c.grade,sys)}">${c.grade||'—'}</span></div><div class="cc"><span style="font-family:'DM Mono',monospace;font-size:12px;color:${ugpa!==null?(ugpa>=3.7?'var(--green)':ugpa>=3?'var(--blue)':ugpa>=2?'var(--orange)':'var(--red)'):'var(--muted)'}">${ugpa!==null?ugpa.toFixed(2):'—'}</span></div><div class="cc">${termDisplay}</div><div class="cc" style="display:flex;align-items:center;gap:4px">${!isSummerRetake?`<button class="del-btn" title="Add Summer Retake" style="color:var(--gold);opacity:0.7;font-size:13px" onclick="triggerRetake(${s.id},${yr},${c.id})">☀</button>`:''}<button class="del-btn" onclick="delCourse(${s.id},${c.id})">✕</button></div></div>`;}).join('')}
+          ${cs.map(c=>{const ugpa=gradeToGPA(c.grade,c.gradeSystem);const sys=c.gradeSystem||'us';const isSummerRetake=c.isRetake||c.sem==='Summer';const hasRetake=tr.some(r=>r.isRetake&&r.retakeOf===c.id);const termDisplay=isSummerRetake?`<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;padding:2px 6px;border-radius:8px;background:rgba(201,168,76,0.15);color:var(--gold)">☀ Summer${c.isRetake?' Retake':''}</span>`:`<span style="font-size:11px;color:var(--muted)">${c.sem}</span>`;const courseNameDisplay=`<span style="font-weight:500;${hasRetake?'color:var(--muted);text-decoration:line-through;':''}">${c.subject}</span>${hasRetake?'<span style="font-size:9px;background:rgba(201,168,76,0.13);color:var(--gold);padding:1px 5px;border-radius:6px;margin-left:5px">→ retaken</span>':''}`;return`<div class="cr" id="cr-${c.id}" style="grid-template-columns:2fr 1.2fr 80px 44px 90px 68px 90px 54px${isSummerRetake?';background:rgba(201,168,76,0.04);border-left:2px solid rgba(201,168,76,0.3)':''}"><div class="cc">${courseNameDisplay}</div><div class="cc"><span style="display:flex;align-items:center;gap:5px"><div style="width:16px;height:16px;border-radius:50%;background:${AG_COLOR[c.ag]||'#888'};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:var(--bg);flex-shrink:0">${c.ag.toUpperCase()}</div><span style="font-size:10px;color:var(--muted)">${AG_REQS.find(r=>r.key===c.ag)?.label.split('—')[0]?.trim()||c.ag}</span></span></div><div class="cc"><span class="lb ${c.level==='AP'?'lb-ap':c.level==='IB'?'lb-ib':c.level==='Honors'?'lb-h':'lb-r'}">${c.level}</span></div><div class="cc"><span style="font-size:9px;font-weight:700;padding:2px 5px;border-radius:5px;background:rgba(255,255,255,0.06);color:var(--muted);white-space:nowrap">${sysLabel(sys)}</span></div><div class="cc"><span style="font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:${gradeCol(c.grade,sys)}">${c.grade||'—'}</span></div><div class="cc"><span style="font-family:'DM Mono',monospace;font-size:12px;color:${ugpa!==null?(ugpa>=3.7?'var(--green)':ugpa>=3?'var(--blue)':ugpa>=2?'var(--orange)':'var(--red)'):'var(--muted)'}">${ugpa!==null?ugpa.toFixed(2):'—'}</span></div><div class="cc">${termDisplay}</div><div class="cc" style="display:flex;align-items:center;gap:4px">${!isSummerRetake?`<button class="del-btn" title="Add Summer Retake" style="color:var(--gold);opacity:0.7;font-size:13px" onclick="triggerRetake(${s.id},${yr},${c.id})">☀</button>`:''}<button class="del-btn" title="Edit course" style="color:var(--blue);opacity:0.85;font-size:12px" onclick="editCourse(${s.id},${c.id})">✏</button><button class="del-btn" onclick="delCourse(${s.id},${c.id})">✕</button></div></div>`;}).join('')}
           <div class="add-cr" style="flex-wrap:wrap;row-gap:5px">
             <input class="mi" id="cn-${yr}" placeholder="Course name" style="flex:2;min-width:120px">
             <select class="ms" id="cag-${yr}">${AG_REQS.map(r=>`<option value="${r.key}">${r.key.toUpperCase()} — ${r.label.split('—')[0].trim()}</option>`).join('')}</select>
@@ -1986,6 +1986,54 @@ function triggerRetake(sid,yr,courseId){
   // Scroll to the add form and highlight it
   if(nameEl){nameEl.scrollIntoView({behavior:'smooth',block:'center'});nameEl.focus();nameEl.style.outline='2px solid var(--gold)';}
   setTimeout(()=>{if(nameEl)nameEl.style.outline='';},2000);
+}
+
+function editCourse(sid,cid){
+  const s=students.find(x=>x.id===sid);if(!s)return;
+  const c=s.transcript.find(x=>x.id===cid);if(!c)return;
+  const row=document.getElementById('cr-'+cid);if(!row)return;
+  const sys=c.gradeSystem||'us';
+  const gradeOptsMap={us:['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','IP','W'],ib:['7','6','5','4','3','2','1','IP'],al:['A*','A','B','C','D','E','U']};
+  const agOpts=AG_REQS.map(r=>`<option value="${r.key}"${c.ag===r.key?' selected':''}>${r.key.toUpperCase()} — ${r.label.split('—')[0].trim()}</option>`).join('');
+  const lvlOpts=['Regular','Honors','AP','IB','College'].map(l=>`<option${c.level===l?' selected':''}>${l}</option>`).join('');
+  const sysOpts=[['us','US (A–F)'],['ib','IB (1–7)'],['al','A-Level'],['cn','Chinese']].map(([v,t])=>`<option value="${v}"${sys===v?' selected':''}>${t}</option>`).join('');
+  const semOpts=[['Full','Full Yr'],['Sem1','Sem 1'],['Sem2','Sem 2'],['Summer','☀ Summer']].map(([v,t])=>`<option value="${v}"${c.sem===v?' selected':''}>${t}</option>`).join('');
+  let gradeField;
+  if(sys==='cn'){gradeField=`<input id="ecgr-${cid}" class="mi" value="${c.grade||''}" placeholder="e.g. 92" style="width:70px;font-size:11px">`;}
+  else{const opts=(gradeOptsMap[sys]||gradeOptsMap.us).map(g=>`<option${c.grade===g?' selected':''}>${g}</option>`).join('');gradeField=`<select id="ecgr-${cid}" class="ms" style="min-width:70px"><option value="">Grade</option>${opts}</select>`;}
+  row.innerHTML=`<div style="grid-column:1/-1;display:flex;flex-wrap:wrap;gap:5px;align-items:center;padding:6px 0;border-top:1px solid rgba(201,168,76,0.2);border-bottom:1px solid rgba(201,168,76,0.2)">
+    <input id="ecn-${cid}" class="mi" value="${c.subject||''}" placeholder="Course name" style="flex:2;min-width:130px">
+    <select id="ecag-${cid}" class="ms">${agOpts}</select>
+    <select id="eclv-${cid}" class="ms">${lvlOpts}</select>
+    <select id="ecsys-${cid}" class="ms" style="color:var(--blue)" onchange="updateEditGradeOpts(${cid})">${sysOpts}</select>
+    <span id="ecgr-wrap-${cid}">${gradeField}</span>
+    <input id="eccr-${cid}" class="mi" value="${c.credits||10}" style="width:38px" title="Credits">
+    <select id="ecsm-${cid}" class="ms">${semOpts}</select>
+    <button class="btn btn-gold btn-sm" onclick="saveCourseEdit(${sid},${cid})">Save</button>
+    <button class="btn btn-out btn-sm" onclick="renderTranscript(students.find(x=>x.id===${sid}))">Cancel</button>
+  </div>`;}
+function updateEditGradeOpts(cid){
+  const sysEl=document.getElementById('ecsys-'+cid);if(!sysEl)return;
+  const sys=sysEl.value;
+  const wrap=document.getElementById('ecgr-wrap-'+cid);if(!wrap)return;
+  const gradeOptsMap={us:['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','IP','W'],ib:['7','6','5','4','3','2','1','IP'],al:['A*','A','B','C','D','E','U']};
+  if(sys==='cn'){wrap.innerHTML=`<input id="ecgr-${cid}" class="mi" placeholder="e.g. 92" style="width:70px;font-size:11px">`;}
+  else{const opts=(gradeOptsMap[sys]||gradeOptsMap.us).map(g=>`<option>${g}</option>`).join('');wrap.innerHTML=`<select id="ecgr-${cid}" class="ms" style="min-width:70px"><option value="">Grade</option>${opts}</select>`;}
+}
+function saveCourseEdit(sid,cid){
+  const s=students.find(x=>x.id===sid);if(!s)return;
+  const c=s.transcript.find(x=>x.id===cid);if(!c)return;
+  const name=document.getElementById('ecn-'+cid)?.value.trim();if(!name){alert('Course name is required.');return;}
+  c.subject=name;
+  c.ag=document.getElementById('ecag-'+cid)?.value||c.ag;
+  c.level=document.getElementById('eclv-'+cid)?.value||c.level;
+  c.gradeSystem=document.getElementById('ecsys-'+cid)?.value||c.gradeSystem;
+  c.grade=document.getElementById('ecgr-'+cid)?.value||c.grade;
+  c.credits=parseInt(document.getElementById('eccr-'+cid)?.value)||c.credits;
+  c.sem=document.getElementById('ecsm-'+cid)?.value||c.sem;
+  const gpas=calcGPAs(s.transcript);if(gpas.uw!=='—')s.gpa=gpas.uw;
+  renderTranscript(s);renderSidebar();
+  if(typeof saveToFirebase==='function')saveToFirebase(s);
 }
 
 // ══════════════════════════════════════════════════════
