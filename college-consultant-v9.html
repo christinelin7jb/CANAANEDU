@@ -2241,7 +2241,7 @@ function saveCourseEdit(sid,cid){
   c.sem=document.getElementById('ecsm-'+cid)?.value||c.sem;
   const gpas=calcGPAs(s.transcript);if(gpas.uw!=='—')s.gpa=gpas.uw;
   renderTranscript(s);renderSidebar();
-  if(typeof saveToFirebase==='function')saveToFirebase(s);
+  if(typeof saveStudentToFirestore==='function'){saveStudentToFirestore(s);logActivity(`edited a course in <strong>${s.firstName} ${s.lastName}</strong>'s transcript`);}
 }
 
 // ══════════════════════════════════════════════════════
