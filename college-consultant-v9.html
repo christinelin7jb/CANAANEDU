@@ -3990,10 +3990,22 @@ async function initFirebase(cfg){
     // ── STEP 2: getRedirectResult — THE ONLY PLACE redirect errors surface ──
     // With signInWithRedirect, errors NEVER throw in signInWithRedirect() itself.
     // They only appear here, after the page reloads back from Google.
+    // IMPORTANT: In Incognito / Safari strict mode, third-party cookie blocking causes
+    // getRedirectResult() to return NULL (not an error!). We detect this via the
+    // _authRedirectPending flag set before the redirect.
     fbAuth.getRedirectResult().then(result=>{
       if(result && result.user){
         // Success already handled by onAuthStateChanged above
         console.log('[Auth] getRedirectResult: success for', result.user.email);
+      } else if(_isPending === '1'){
+        // _isPending was set before redirect, but we got back null with no error.
+        // This is the "silent swallow" caused by browser third-party cookie blocking
+        // (Incognito mode, Safari ITP, Firefox strict mode, etc.).
+        // getRedirectResult() returns null instead of throwing, so .catch() never fires.
+        console.warn('[Auth] getRedirectResult: null result with pending flag — likely third-party cookie block (Incognito/Safari)');
+        sessionStorage.removeItem('_authRedirectPending');
+        _showLoginScreen();
+        showAuthError('Sign-in blocked by browser privacy settings. This typically happens in Incognito/Private mode or Safari. Please try: (1) Use a normal (non-incognito) browser window, or (2) Allow third-party cookies for this site in your browser settings.');
       }
     }).catch(e=>{
       console.error('[Auth] getRedirectResult ERROR:', e.code, e.message);
