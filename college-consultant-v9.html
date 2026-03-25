@@ -3954,25 +3954,29 @@ async function initFirebase(cfg){
     fbAuth = firebase.auth();
     fbDb   = firebase.firestore();
 
-    // Handle redirect result (from signInWithRedirect)
-    try{
-      const result = await fbAuth.getRedirectResult();
-      if(result && result.user){
-        fbCurrentUser = result.user;
-        onSignedIn(result.user);
-        return;
-      }
-    }catch(e){
-      console.warn('Redirect result:', e.message);
-    }
+    // Show "checking" state while Firebase resolves existing session
+    document.getElementById('signInArea').style.display='none';
+    const _authMsg = document.getElementById('authError');
+    if(_authMsg){ _authMsg.textContent='Checking authentication…'; _authMsg.style.color='var(--muted)'; _authMsg.style.display='block'; }
 
-    fbAuth.onAuthStateChanged(user=>{
+    fbAuth.onAuthStateChanged(async user=>{
       if(user){
         fbCurrentUser = user;
-        onSignedIn(user);
+        try{
+          await onSignedIn(user);
+        }catch(e){
+          console.error('onSignedIn error:', e);
+          document.getElementById('authScreen').style.display='flex';
+          document.getElementById('signInArea').style.display='block';
+          const btn=document.querySelector('.btn-google');
+          if(btn){btn.disabled=false;btn.innerHTML='<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"> Sign in with Google';}
+          showAuthError('Login setup error: '+(e.message||String(e)));
+        }
       } else {
         document.getElementById('authScreen').style.display='flex';
         document.getElementById('signInArea').style.display='block';
+        const _m=document.getElementById('authError');
+        if(_m&&_m.textContent==='Checking authentication…'){_m.style.display='none';}
       }
     });
   }catch(e){
@@ -3991,18 +3995,35 @@ function loadScript(src){
 }
 
 async function signInWithGoogle(){
+  const btn=document.querySelector('.btn-google');
   try{
+    showAuthError('');
+    if(btn){btn.disabled=true;btn.textContent='Signing in…';}
     const provider = new firebase.auth.GoogleAuthProvider();
-    provider.setCustomParameters({hd: ''});  // allow any google account
-    await fbAuth.signInWithRedirect(provider);
+    provider.setCustomParameters({prompt:'select_account'});
+    await fbAuth.signInWithPopup(provider);
+    // onAuthStateChanged handles the rest
   }catch(e){
-    showAuthError(e.message);
+    if(btn){btn.disabled=false;btn.innerHTML='<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"> Sign in with Google';}
+    if(e.code==='auth/popup-closed-by-user'||e.code==='auth/cancelled-popup-request'){
+      showAuthError('Sign-in cancelled. Please try again.');
+    }else if(e.code==='auth/unauthorized-domain'){
+      showAuthError('This domain is not authorized in Firebase. Ask your admin to add it under Authentication → Settings → Authorized domains.');
+    }else if(e.code==='auth/popup-blocked'){
+      showAuthError('Pop-up blocked by browser. Please allow pop-ups for this site and try again.');
+    }else{
+      showAuthError('Sign-in failed: '+(e.message||e.code));
+    }
+    console.error('signInWithGoogle error:', e.code, e.message);
   }
 }
 
 function showAuthError(msg){
   const el=document.getElementById('authError');
-  el.textContent=msg; el.style.display='block';
+  if(!msg){el.style.display='none';return;}
+  el.textContent=msg;
+  el.style.color='var(--red)';
+  el.style.display='block';
 }
 
 async function signOut(){
@@ -4030,11 +4051,11 @@ async function onSignedIn(user){
   nm.textContent=user.displayName||user.email;
   if(user.photoURL){ av.innerHTML=`<img src="${user.photoURL}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`; }
 
-  // Register presence
-  await registerPresence(user);
+  // Register presence (non-fatal — new users may not have Firestore access yet)
+  try{ await registerPresence(user); }catch(e){ console.warn('registerPresence failed:', e.code, e.message); }
 
-  // Register user profile in /users collection (for sharing)
-  await registerUserProfile(user);
+  // Register user profile in /users collection (non-fatal)
+  try{ await registerUserProfile(user); }catch(e){ console.warn('registerUserProfile failed:', e.code, e.message); }
 
   // Start real-time listeners
   subscribeUsers();
