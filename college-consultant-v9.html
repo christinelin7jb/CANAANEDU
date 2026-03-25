@@ -3891,6 +3891,8 @@ const FB_CONFIG_KEY = 'canaan_fb_config';
 let fbApp=null, fbAuth=null, fbDb=null, fbCurrentUser=null;
 let _unsubStudents=null, _unsubDeadlines=null, _unsubPresence=null, _unsubFeed=null;
 let _presenceRef=null, _syncSaveTimer=null;
+// Guard: once a user successfully signs in, never redirect to login on transient null state
+let _signedInOnce = false;
 
 function loadFbConfig(){
   // Pre-configured for Canaan Education — no manual setup needed
@@ -3963,18 +3965,29 @@ async function initFirebase(cfg){
 
     // onAuthStateChanged fires for existing sessions (page refresh) and after signInWithPopup
     fbAuth.onAuthStateChanged(async user=>{
+      console.log('🔥 [AUTH STATE CHANGED] User:', user ? user.email : 'NULL', '| _signedInOnce:', _signedInOnce);
       if(user){
         fbCurrentUser = user;
-        console.log('[Auth] onAuthStateChanged: signed in as', user.email);
+        _signedInOnce = true;
+        console.log('🔥 [AUTH] ✅ User confirmed:', user.email, '| uid:', user.uid, '| emailVerified:', user.emailVerified);
         try{
+          console.log('🔥 [AUTH] → calling onSignedIn…');
           await onSignedIn(user);
+          console.log('🔥 [AUTH] ✅ onSignedIn() completed successfully');
         }catch(e){
-          console.error('[Auth] onSignedIn error:', e);
-          _showLoginScreen();
-          showAuthError('Login setup error: '+(e.message||String(e)));
+          // DO NOT redirect to login — user is authenticated; just log the error
+          console.error('🔥 [AUTH] ❌ onSignedIn() threw an error (NOT redirecting to login):', e);
+          // Show non-fatal warning in UI but stay on main page
+          showAuthError('⚠️ Setup warning: '+(e.message||String(e)));
         }
       } else {
-        console.log('[Auth] onAuthStateChanged: no user');
+        console.log('🔥 [AUTH STATE CHANGED] NULL user received. _signedInOnce =', _signedInOnce);
+        if(_signedInOnce){
+          // Transient null after successful sign-in (Firebase popup race condition) — IGNORE
+          console.warn('🔥 [AUTH] ⚠️ Got null user AFTER successful sign-in — ignoring transient null to prevent flashback!');
+          return;
+        }
+        console.log('🔥 [AUTH] No user, no prior sign-in — showing login screen');
         const _m=document.getElementById('authError');
         if(_m && _m.textContent==='Checking authentication…') _m.style.display='none';
         _showLoginScreen();
@@ -4073,29 +4086,54 @@ function showAccountMenu(){
 
 // ── After sign-in ──
 async function onSignedIn(user){
+  console.log('🔥 [onSignedIn] STEP 1 — hiding authScreen, showing presenceBar');
   document.getElementById('authScreen').style.display='none';
   document.getElementById('presenceBar').style.display='flex';
 
   // Update my avatar/name in topbar
+  console.log('🔥 [onSignedIn] STEP 2 — updating avatar/name in topbar');
   const av=document.getElementById('myAvatar');
   const nm=document.getElementById('myName');
-  av.textContent=(user.displayName||user.email||'?')[0].toUpperCase();
-  nm.textContent=user.displayName||user.email;
-  if(user.photoURL){ av.innerHTML=`<img src="${user.photoURL}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`; }
+  if(!av) console.error('🔥 [onSignedIn] ❌ #myAvatar element NOT FOUND in DOM!');
+  if(!nm) console.error('🔥 [onSignedIn] ❌ #myName element NOT FOUND in DOM!');
+  if(av) av.textContent=(user.displayName||user.email||'?')[0].toUpperCase();
+  if(nm) nm.textContent=user.displayName||user.email;
+  if(user.photoURL && av){ av.innerHTML=`<img src="${user.photoURL}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`; }
+  console.log('🔥 [onSignedIn] STEP 2 ✅ avatar/name updated');
 
   // Register presence (non-fatal — new users may not have Firestore access yet)
-  try{ await registerPresence(user); }catch(e){ console.warn('registerPresence failed:', e.code, e.message); }
+  console.log('🔥 [onSignedIn] STEP 3 — registerPresence…');
+  try{
+    await registerPresence(user);
+    console.log('🔥 [onSignedIn] STEP 3 ✅ registerPresence OK');
+  }catch(e){
+    console.warn('🔥 [onSignedIn] STEP 3 ⚠️ registerPresence failed (non-fatal):', e.code, e.message, e);
+  }
 
   // Register user profile in /users collection (non-fatal)
-  try{ await registerUserProfile(user); }catch(e){ console.warn('registerUserProfile failed:', e.code, e.message); }
+  console.log('🔥 [onSignedIn] STEP 4 — registerUserProfile…');
+  try{
+    await registerUserProfile(user);
+    console.log('🔥 [onSignedIn] STEP 4 ✅ registerUserProfile OK');
+  }catch(e){
+    console.warn('🔥 [onSignedIn] STEP 4 ⚠️ registerUserProfile failed (non-fatal):', e.code, e.message, e);
+  }
 
   // Start real-time listeners
+  console.log('🔥 [onSignedIn] STEP 5 — starting Firestore listeners…');
   subscribeUsers();
+  console.log('🔥 [onSignedIn] STEP 5a subscribeUsers() called');
   subscribeStudents();
+  console.log('🔥 [onSignedIn] STEP 5b subscribeStudents() called');
   subscribeDeadlines();
+  console.log('🔥 [onSignedIn] STEP 5c subscribeDeadlines() called');
   subscribePresence();
+  console.log('🔥 [onSignedIn] STEP 5d subscribePresence() called');
   subscribeActivityFeed();
+  console.log('🔥 [onSignedIn] STEP 5e subscribeActivityFeed() called');
   subscribeInvitations();
+  console.log('🔥 [onSignedIn] STEP 5f subscribeInvitations() called');
+  console.log('🔥 [onSignedIn] ✅ ALL STEPS COMPLETE — user should now see main app');
 }
 
 // ── Presence ──
