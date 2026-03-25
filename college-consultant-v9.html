@@ -3948,40 +3948,89 @@ async function initFirebase(cfg){
       await loadScript('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js');
       await loadScript('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js');
     }
-    if(!firebase.apps.length){
-      firebase.initializeApp(cfg);
-    }
+    if(!firebase.apps.length) firebase.initializeApp(cfg);
     fbAuth = firebase.auth();
     fbDb   = firebase.firestore();
 
-    // Show "checking" state while Firebase resolves existing session
+    // Show "checking" state — hide the button while we figure out auth state
     document.getElementById('signInArea').style.display='none';
-    const _authMsg = document.getElementById('authError');
-    if(_authMsg){ _authMsg.textContent='Checking authentication…'; _authMsg.style.color='var(--muted)'; _authMsg.style.display='block'; }
+    const _isPending = sessionStorage.getItem('_authRedirectPending');
+    const _msgEl = document.getElementById('authError');
+    if(_msgEl){
+      _msgEl.textContent = _isPending ? 'Completing Google sign-in…' : 'Checking authentication…';
+      _msgEl.style.color = 'var(--muted)';
+      _msgEl.style.display = 'block';
+    }
 
+    // ── STEP 1: onAuthStateChanged handles BOTH existing sessions and successful redirects ──
     fbAuth.onAuthStateChanged(async user=>{
       if(user){
         fbCurrentUser = user;
+        sessionStorage.removeItem('_authRedirectPending');
+        console.log('[Auth] onAuthStateChanged: signed in as', user.email);
         try{
           await onSignedIn(user);
         }catch(e){
-          console.error('onSignedIn error:', e);
-          document.getElementById('authScreen').style.display='flex';
-          document.getElementById('signInArea').style.display='block';
-          const btn=document.querySelector('.btn-google');
-          if(btn){btn.disabled=false;btn.innerHTML='<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"> Sign in with Google';}
+          console.error('[Auth] onSignedIn error:', e);
+          _showLoginScreen();
           showAuthError('Login setup error: '+(e.message||String(e)));
         }
       } else {
-        document.getElementById('authScreen').style.display='flex';
-        document.getElementById('signInArea').style.display='block';
+        console.log('[Auth] onAuthStateChanged: no user');
+        // Don't clear error here — let getRedirectResult error (if any) stay visible
+        // Only hide the "checking" placeholder text
         const _m=document.getElementById('authError');
-        if(_m&&_m.textContent==='Checking authentication…'){_m.style.display='none';}
+        if(_m && (_m.textContent==='Checking authentication…'||_m.textContent==='Completing Google sign-in…')){
+          _m.style.display='none';
+        }
+        _showLoginScreen();
       }
     });
+
+    // ── STEP 2: getRedirectResult — THE ONLY PLACE redirect errors surface ──
+    // With signInWithRedirect, errors NEVER throw in signInWithRedirect() itself.
+    // They only appear here, after the page reloads back from Google.
+    fbAuth.getRedirectResult().then(result=>{
+      if(result && result.user){
+        // Success already handled by onAuthStateChanged above
+        console.log('[Auth] getRedirectResult: success for', result.user.email);
+      }
+    }).catch(e=>{
+      console.error('[Auth] getRedirectResult ERROR:', e.code, e.message);
+      sessionStorage.removeItem('_authRedirectPending');
+      _showLoginScreen();
+      showAuthError(_formatAuthError(e));
+    });
+
   }catch(e){
-    console.error('Firebase init failed:', e);
-    showAuthError('Firebase connection failed: '+e.message+'. Check your config values.');
+    console.error('[Auth] Firebase init failed:', e);
+    showAuthError('Firebase connection failed: '+e.message);
+    _showLoginScreen();
+  }
+}
+
+function _showLoginScreen(){
+  document.getElementById('authScreen').style.display='flex';
+  document.getElementById('signInArea').style.display='block';
+  const btn=document.querySelector('.btn-google');
+  if(btn&&btn.disabled){
+    btn.disabled=false;
+    btn.innerHTML='<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"> Sign in with Google';
+  }
+}
+
+function _formatAuthError(e){
+  switch(e.code){
+    case 'auth/unauthorized-domain':
+      return 'Error: This domain is not authorized. Go to Firebase Console → Authentication → Settings → Authorized domains and add "'+location.hostname+'".';
+    case 'auth/account-exists-with-different-credential':
+      return 'Error: An account already exists with this email using a different sign-in method.';
+    case 'auth/user-disabled':
+      return 'Error: This account has been disabled. Contact your administrator.';
+    case 'auth/network-request-failed':
+      return 'Network error. Check your internet connection and try again.';
+    default:
+      return 'Sign-in failed ('+(e.code||'unknown')+'): '+(e.message||String(e));
   }
 }
 
@@ -3995,26 +4044,24 @@ function loadScript(src){
 }
 
 async function signInWithGoogle(){
+  console.log('[Auth] Login button clicked'); // diagnostic: confirm event binding works
   const btn=document.querySelector('.btn-google');
   try{
     showAuthError('');
-    if(btn){btn.disabled=true;btn.textContent='Signing in…';}
+    if(btn){btn.disabled=true;btn.innerHTML='<span style="opacity:.7;font-size:13px">Redirecting to Google…</span>';}
+    // Flag so we show "Completing sign-in…" message when the page reloads back
+    sessionStorage.setItem('_authRedirectPending','1');
     const provider = new firebase.auth.GoogleAuthProvider();
     provider.setCustomParameters({prompt:'select_account'});
-    await fbAuth.signInWithPopup(provider);
-    // onAuthStateChanged handles the rest
+    await fbAuth.signInWithRedirect(provider);
+    // ↑ Page navigates away here. Nothing below this line runs.
+    // Any sign-in error will appear in getRedirectResult().catch() above after reload.
   }catch(e){
+    // This only fires for rare pre-redirect failures (e.g. fbAuth not initialized yet)
+    sessionStorage.removeItem('_authRedirectPending');
     if(btn){btn.disabled=false;btn.innerHTML='<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"> Sign in with Google';}
-    if(e.code==='auth/popup-closed-by-user'||e.code==='auth/cancelled-popup-request'){
-      showAuthError('Sign-in cancelled. Please try again.');
-    }else if(e.code==='auth/unauthorized-domain'){
-      showAuthError('This domain is not authorized in Firebase. Ask your admin to add it under Authentication → Settings → Authorized domains.');
-    }else if(e.code==='auth/popup-blocked'){
-      showAuthError('Pop-up blocked by browser. Please allow pop-ups for this site and try again.');
-    }else{
-      showAuthError('Sign-in failed: '+(e.message||e.code));
-    }
-    console.error('signInWithGoogle error:', e.code, e.message);
+    showAuthError('Could not start sign-in: '+(e.message||e.code));
+    console.error('[Auth] signInWithRedirect immediate error:', e.code, e.message);
   }
 }
 
