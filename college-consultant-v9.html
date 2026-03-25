@@ -474,7 +474,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
     </div>
 
     <div id="signInArea">
-      <button class="btn-google" onclick="signInWithGoogle()">
+      <button class="btn-google" onclick="signInWithGoogle(event)">
         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
         Sign in with Google
       </button>
@@ -3952,21 +3952,19 @@ async function initFirebase(cfg){
     fbAuth = firebase.auth();
     fbDb   = firebase.firestore();
 
-    // Show "checking" state — hide the button while we figure out auth state
+    // Hide button while checking if user is already signed in
     document.getElementById('signInArea').style.display='none';
-    const _isPending = sessionStorage.getItem('_authRedirectPending');
     const _msgEl = document.getElementById('authError');
     if(_msgEl){
-      _msgEl.textContent = _isPending ? 'Completing Google sign-in…' : 'Checking authentication…';
+      _msgEl.textContent = 'Checking authentication…';
       _msgEl.style.color = 'var(--muted)';
       _msgEl.style.display = 'block';
     }
 
-    // ── STEP 1: onAuthStateChanged handles BOTH existing sessions and successful redirects ──
+    // onAuthStateChanged fires for existing sessions (page refresh) and after signInWithPopup
     fbAuth.onAuthStateChanged(async user=>{
       if(user){
         fbCurrentUser = user;
-        sessionStorage.removeItem('_authRedirectPending');
         console.log('[Auth] onAuthStateChanged: signed in as', user.email);
         try{
           await onSignedIn(user);
@@ -3977,41 +3975,10 @@ async function initFirebase(cfg){
         }
       } else {
         console.log('[Auth] onAuthStateChanged: no user');
-        // Don't clear error here — let getRedirectResult error (if any) stay visible
-        // Only hide the "checking" placeholder text
         const _m=document.getElementById('authError');
-        if(_m && (_m.textContent==='Checking authentication…'||_m.textContent==='Completing Google sign-in…')){
-          _m.style.display='none';
-        }
+        if(_m && _m.textContent==='Checking authentication…') _m.style.display='none';
         _showLoginScreen();
       }
-    });
-
-    // ── STEP 2: getRedirectResult — THE ONLY PLACE redirect errors surface ──
-    // With signInWithRedirect, errors NEVER throw in signInWithRedirect() itself.
-    // They only appear here, after the page reloads back from Google.
-    // IMPORTANT: In Incognito / Safari strict mode, third-party cookie blocking causes
-    // getRedirectResult() to return NULL (not an error!). We detect this via the
-    // _authRedirectPending flag set before the redirect.
-    fbAuth.getRedirectResult().then(result=>{
-      if(result && result.user){
-        // Success already handled by onAuthStateChanged above
-        console.log('[Auth] getRedirectResult: success for', result.user.email);
-      } else if(_isPending === '1'){
-        // _isPending was set before redirect, but we got back null with no error.
-        // This is the "silent swallow" caused by browser third-party cookie blocking
-        // (Incognito mode, Safari ITP, Firefox strict mode, etc.).
-        // getRedirectResult() returns null instead of throwing, so .catch() never fires.
-        console.warn('[Auth] getRedirectResult: null result with pending flag — likely third-party cookie block (Incognito/Safari)');
-        sessionStorage.removeItem('_authRedirectPending');
-        _showLoginScreen();
-        showAuthError('Sign-in blocked by browser privacy settings. This typically happens in Incognito/Private mode or Safari. Please try: (1) Use a normal (non-incognito) browser window, or (2) Allow third-party cookies for this site in your browser settings.');
-      }
-    }).catch(e=>{
-      console.error('[Auth] getRedirectResult ERROR:', e.code, e.message);
-      sessionStorage.removeItem('_authRedirectPending');
-      _showLoginScreen();
-      showAuthError(_formatAuthError(e));
     });
 
   }catch(e){
@@ -4041,6 +4008,8 @@ function _formatAuthError(e){
       return 'Error: This account has been disabled. Contact your administrator.';
     case 'auth/network-request-failed':
       return 'Network error. Check your internet connection and try again.';
+    case 'auth/popup-blocked':
+      return 'Pop-up was blocked by your browser. Please allow pop-ups for this site and try again.';
     default:
       return 'Sign-in failed ('+(e.code||'unknown')+'): '+(e.message||String(e));
   }
@@ -4055,25 +4024,29 @@ function loadScript(src){
   });
 }
 
-async function signInWithGoogle(){
-  console.log('[Auth] Login button clicked'); // diagnostic: confirm event binding works
+async function signInWithGoogle(e){
+  if(e) e.preventDefault(); // prevent any form submission / page reload
+  console.log('[Auth] Login button clicked');
   const btn=document.querySelector('.btn-google');
   try{
     showAuthError('');
-    if(btn){btn.disabled=true;btn.innerHTML='<span style="opacity:.7;font-size:13px">Redirecting to Google…</span>';}
-    // Flag so we show "Completing sign-in…" message when the page reloads back
-    sessionStorage.setItem('_authRedirectPending','1');
+    if(btn){btn.disabled=true;btn.innerHTML='<span style="opacity:.7;font-size:13px">Opening Google sign-in…</span>';}
+    // Explicit local persistence — survives incognito tab close gracefully
+    await fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
     const provider = new firebase.auth.GoogleAuthProvider();
     provider.setCustomParameters({prompt:'select_account'});
-    await fbAuth.signInWithRedirect(provider);
-    // ↑ Page navigates away here. Nothing below this line runs.
-    // Any sign-in error will appear in getRedirectResult().catch() above after reload.
-  }catch(e){
-    // This only fires for rare pre-redirect failures (e.g. fbAuth not initialized yet)
-    sessionStorage.removeItem('_authRedirectPending');
+    // signInWithPopup works in incognito/Safari — no cross-domain cookie needed
+    await fbAuth.signInWithPopup(provider);
+    // onAuthStateChanged above will fire and call onSignedIn()
+  }catch(err){
+    // Restore button — never reload the page
     if(btn){btn.disabled=false;btn.innerHTML='<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"> Sign in with Google';}
-    showAuthError('Could not start sign-in: '+(e.message||e.code));
-    console.error('[Auth] signInWithRedirect immediate error:', e.code, e.message);
+    if(err.code==='auth/popup-closed-by-user'||err.code==='auth/cancelled-popup-request'){
+      showAuthError('Sign-in cancelled. Please try again.');
+    } else {
+      showAuthError(_formatAuthError(err));
+    }
+    console.error('[Auth] signInWithPopup error:', err.code, err.message);
   }
 }
 
