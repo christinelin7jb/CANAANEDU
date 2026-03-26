@@ -3537,6 +3537,8 @@ const FB_CONFIG_KEY = 'canaan_fb_config';
 let fbApp=null, fbAuth=null, fbDb=null, fbCurrentUser=null;
 let _unsubStudents=null, _unsubDeadlines=null, _unsubPresence=null, _unsubFeed=null;
 let _presenceRef=null, _syncSaveTimer=null;
+// Guard: once a user successfully signs in, never redirect to login on transient null state
+let _signedInOnce = false;
 
 function loadFbConfig(){
   // Pre-configured for Canaan Education — no manual setup needed
@@ -3594,36 +3596,81 @@ async function initFirebase(cfg){
       await loadScript('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js');
       await loadScript('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js');
     }
-    if(!firebase.apps.length){
-      firebase.initializeApp(cfg);
-    }
+    if(!firebase.apps.length) firebase.initializeApp(cfg);
     fbAuth = firebase.auth();
     fbDb   = firebase.firestore();
 
-    // Handle redirect result (from signInWithRedirect)
-    try{
-      const result = await fbAuth.getRedirectResult();
-      if(result && result.user){
-        fbCurrentUser = result.user;
-        onSignedIn(result.user);
-        return;
-      }
-    }catch(e){
-      console.warn('Redirect result:', e.message);
+    // Hide button while checking if user is already signed in
+    document.getElementById('signInArea').style.display='none';
+    const _msgEl = document.getElementById('authError');
+    if(_msgEl){
+      _msgEl.textContent = 'Checking authentication…';
+      _msgEl.style.color = 'var(--muted)';
+      _msgEl.style.display = 'block';
     }
 
-    fbAuth.onAuthStateChanged(user=>{
+    // onAuthStateChanged fires for existing sessions (page refresh) and after signInWithPopup
+    fbAuth.onAuthStateChanged(async user=>{
+      console.log('🔥 [AUTH STATE CHANGED] User:', user ? user.email : 'NULL', '| _signedInOnce:', _signedInOnce);
       if(user){
         fbCurrentUser = user;
-        onSignedIn(user);
+        _signedInOnce = true;
+        console.log('🔥 [AUTH] ✅ User confirmed:', user.email, '| uid:', user.uid, '| emailVerified:', user.emailVerified);
+        try{
+          console.log('🔥 [AUTH] → calling onSignedIn…');
+          await onSignedIn(user);
+          console.log('🔥 [AUTH] ✅ onSignedIn() completed successfully');
+        }catch(e){
+          // DO NOT redirect to login — user is authenticated; just log the error
+          console.error('🔥 [AUTH] ❌ onSignedIn() threw an error (NOT redirecting to login):', e);
+          // Show non-fatal warning in UI but stay on main page
+          showAuthError('⚠️ Setup warning: '+(e.message||String(e)));
+        }
       } else {
-        document.getElementById('authScreen').style.display='flex';
-        document.getElementById('signInArea').style.display='block';
+        console.log('🔥 [AUTH STATE CHANGED] NULL user received. _signedInOnce =', _signedInOnce);
+        if(_signedInOnce){
+          // Transient null after successful sign-in (Firebase popup race condition) — IGNORE
+          console.warn('🔥 [AUTH] ⚠️ Got null user AFTER successful sign-in — ignoring transient null to prevent flashback!');
+          return;
+        }
+        console.log('🔥 [AUTH] No user, no prior sign-in — showing login screen');
+        const _m=document.getElementById('authError');
+        if(_m && _m.textContent==='Checking authentication…') _m.style.display='none';
+        _showLoginScreen();
       }
     });
+
   }catch(e){
-    console.error('Firebase init failed:', e);
-    showAuthError('Firebase connection failed: '+e.message+'. Check your config values.');
+    console.error('[Auth] Firebase init failed:', e);
+    showAuthError('Firebase connection failed: '+e.message);
+    _showLoginScreen();
+  }
+}
+
+function _showLoginScreen(){
+  document.getElementById('authScreen').style.display='flex';
+  document.getElementById('signInArea').style.display='block';
+  const btn=document.querySelector('.btn-google');
+  if(btn&&btn.disabled){
+    btn.disabled=false;
+    btn.innerHTML='<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"> Sign in with Google';
+  }
+}
+
+function _formatAuthError(e){
+  switch(e.code){
+    case 'auth/unauthorized-domain':
+      return 'Error: This domain is not authorized. Go to Firebase Console → Authentication → Settings → Authorized domains and add "'+location.hostname+'".';
+    case 'auth/account-exists-with-different-credential':
+      return 'Error: An account already exists with this email using a different sign-in method.';
+    case 'auth/user-disabled':
+      return 'Error: This account has been disabled. Contact your administrator.';
+    case 'auth/network-request-failed':
+      return 'Network error. Check your internet connection and try again.';
+    case 'auth/popup-blocked':
+      return 'Pop-up was blocked by your browser. Please allow pop-ups for this site and try again.';
+    default:
+      return 'Sign-in failed ('+(e.code||'unknown')+'): '+(e.message||String(e));
   }
 }
 
@@ -3636,19 +3683,38 @@ function loadScript(src){
   });
 }
 
-async function signInWithGoogle(){
+async function signInWithGoogle(e){
+  if(e) e.preventDefault(); // prevent any form submission / page reload
+  console.log('[Auth] Login button clicked');
+  const btn=document.querySelector('.btn-google');
   try{
+    showAuthError('');
+    if(btn){btn.disabled=true;btn.innerHTML='<span style="opacity:.7;font-size:13px">Opening Google sign-in…</span>';}
+    // Explicit local persistence — survives incognito tab close gracefully
+    await fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
     const provider = new firebase.auth.GoogleAuthProvider();
-    provider.setCustomParameters({hd: ''});  // allow any google account
-    await fbAuth.signInWithRedirect(provider);
-  }catch(e){
-    showAuthError(e.message);
+    provider.setCustomParameters({prompt:'select_account'});
+    // signInWithPopup works in incognito/Safari — no cross-domain cookie needed
+    await fbAuth.signInWithPopup(provider);
+    // onAuthStateChanged above will fire and call onSignedIn()
+  }catch(err){
+    // Restore button — never reload the page
+    if(btn){btn.disabled=false;btn.innerHTML='<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"> Sign in with Google';}
+    if(err.code==='auth/popup-closed-by-user'||err.code==='auth/cancelled-popup-request'){
+      showAuthError('Sign-in cancelled. Please try again.');
+    } else {
+      showAuthError(_formatAuthError(err));
+    }
+    console.error('[Auth] signInWithPopup error:', err.code, err.message);
   }
 }
 
 function showAuthError(msg){
   const el=document.getElementById('authError');
-  el.textContent=msg; el.style.display='block';
+  if(!msg){el.style.display='none';return;}
+  el.textContent=msg;
+  el.style.color='var(--red)';
+  el.style.display='block';
 }
 
 async function signOut(){
@@ -3666,29 +3732,54 @@ function showAccountMenu(){
 
 // ── After sign-in ──
 async function onSignedIn(user){
+  console.log('🔥 [onSignedIn] STEP 1 — hiding authScreen, showing presenceBar');
   document.getElementById('authScreen').style.display='none';
   document.getElementById('presenceBar').style.display='flex';
 
   // Update my avatar/name in topbar
+  console.log('🔥 [onSignedIn] STEP 2 — updating avatar/name in topbar');
   const av=document.getElementById('myAvatar');
   const nm=document.getElementById('myName');
-  av.textContent=(user.displayName||user.email||'?')[0].toUpperCase();
-  nm.textContent=user.displayName||user.email;
-  if(user.photoURL){ av.innerHTML=`<img src="${user.photoURL}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`; }
+  if(!av) console.error('🔥 [onSignedIn] ❌ #myAvatar element NOT FOUND in DOM!');
+  if(!nm) console.error('🔥 [onSignedIn] ❌ #myName element NOT FOUND in DOM!');
+  if(av) av.textContent=(user.displayName||user.email||'?')[0].toUpperCase();
+  if(nm) nm.textContent=user.displayName||user.email;
+  if(user.photoURL && av){ av.innerHTML=`<img src="${user.photoURL}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`; }
+  console.log('🔥 [onSignedIn] STEP 2 ✅ avatar/name updated');
 
-  // Register presence
-  await registerPresence(user);
+  // Register presence (non-fatal — new users may not have Firestore access yet)
+  console.log('🔥 [onSignedIn] STEP 3 — registerPresence…');
+  try{
+    await registerPresence(user);
+    console.log('🔥 [onSignedIn] STEP 3 ✅ registerPresence OK');
+  }catch(e){
+    console.warn('🔥 [onSignedIn] STEP 3 ⚠️ registerPresence failed (non-fatal):', e.code, e.message, e);
+  }
 
-  // Register user profile in /users collection (for sharing)
-  await registerUserProfile(user);
+  // Register user profile in /users collection (non-fatal)
+  console.log('🔥 [onSignedIn] STEP 4 — registerUserProfile…');
+  try{
+    await registerUserProfile(user);
+    console.log('🔥 [onSignedIn] STEP 4 ✅ registerUserProfile OK');
+  }catch(e){
+    console.warn('🔥 [onSignedIn] STEP 4 ⚠️ registerUserProfile failed (non-fatal):', e.code, e.message, e);
+  }
 
   // Start real-time listeners
+  console.log('🔥 [onSignedIn] STEP 5 — starting Firestore listeners…');
   subscribeUsers();
+  console.log('🔥 [onSignedIn] STEP 5a subscribeUsers() called');
   subscribeStudents();
+  console.log('🔥 [onSignedIn] STEP 5b subscribeStudents() called');
   subscribeDeadlines();
+  console.log('🔥 [onSignedIn] STEP 5c subscribeDeadlines() called');
   subscribePresence();
+  console.log('🔥 [onSignedIn] STEP 5d subscribePresence() called');
   subscribeActivityFeed();
+  console.log('🔥 [onSignedIn] STEP 5e subscribeActivityFeed() called');
   subscribeInvitations();
+  console.log('🔥 [onSignedIn] STEP 5f subscribeInvitations() called');
+  console.log('🔥 [onSignedIn] ✅ ALL STEPS COMPLETE — user should now see main app');
 }
 
 // ── Presence ──
