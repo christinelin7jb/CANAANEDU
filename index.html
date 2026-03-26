@@ -3830,7 +3830,7 @@ async function registerUserProfile(user){
     await fbDb.collection('users').doc(user.uid).set({
       uid: user.uid,
       name: user.displayName || user.email,
-      email: user.email,
+      email: user.email.toLowerCase(),
       photo: user.photoURL || null,
       initial: (user.displayName||user.email||'?')[0].toUpperCase(),
       color: COLORS[Math.abs(hashStr(user.uid)) % COLORS.length],
@@ -3998,6 +3998,17 @@ async function sendInvitation(sid, toEmail){
   if((s.sharedWith||[]).some(uid=>{ const c=allConsultants.find(x=>x.uid===uid); return c&&c.email&&c.email.toLowerCase()===toEmail; })){
     alert('This consultant already has access.');return;
   }
+  // ── Sender Check: look up recipient UID — BLOCK if user not found ──
+  const userSnap = await fbDb.collection('users').where('email','==',toEmail).limit(1).get();
+  if(userSnap.empty){
+    alert('User not found or hasn\'t logged in yet.\nAsk them to sign in at least once before you invite them.');
+    return;
+  }
+  const toUid = userSnap.docs[0].data().uid;
+  if(!toUid){
+    alert('User profile is incomplete. Ask them to sign in again to refresh their profile.');
+    return;
+  }
   await fbDb.collection('invitations').add({
     studentId: sid,
     studentName: `${s.firstName} ${s.lastName}`,
@@ -4005,6 +4016,7 @@ async function sendInvitation(sid, toEmail){
     fromName: fbCurrentUser.displayName||fbCurrentUser.email,
     fromEmail: fbCurrentUser.email.toLowerCase(),
     toEmail,
+    toUid,
     status: 'pending',
     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
   });
@@ -4014,19 +4026,29 @@ async function sendInvitation(sid, toEmail){
 
 async function acceptInvitation(inviteId, studentId, fromName){
   try{
-    const s=students.find(x=>x.id===studentId);
-    const uid=fbCurrentUser.uid;
-    // Add current user to student's sharedWith
-    const sw=s?[...(s.sharedWith||[]),uid]:[uid];
-    const uniqueSw=[...new Set(sw)];
-    if(s){ s.sharedWith=uniqueSw; }
-    await Promise.all([
-      fbDb.collection('invitations').doc(inviteId).update({status:'accepted',acceptedAt:firebase.firestore.FieldValue.serverTimestamp(),toUid:uid}),
-      fbDb.collection('students').doc(String(studentId)).update({sharedWith:uniqueSw}),
-    ]);
+    const uid = fbCurrentUser.uid;
+
+    // Step 1: Mark invitation accepted — allowed because toEmail == request.auth.token.email
+    await fbDb.collection('invitations').doc(inviteId).update({
+      status: 'accepted',
+      acceptedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      toUid: uid,
+    });
+
+    // Step 2: Add self to student's sharedWith — allowed by Firestore rule:
+    //   "user may add only their own UID to sharedWith if not already present"
+    const s = students.find(x=>x.id===studentId);
+    const sw = s ? [...(s.sharedWith||[]), uid] : [uid];
+    const uniqueSw = [...new Set(sw)];
+    if(s) s.sharedWith = uniqueSw;
+    await fbDb.collection('students').doc(String(studentId)).update({sharedWith: uniqueSw});
+
     logActivity(`accepted collaboration invite for <strong>${s?.firstName||''} ${s?.lastName||''}</strong>`);
     document.getElementById('notifPanel').style.display='none';
-  }catch(e){ alert('Failed to accept: '+e.message); }
+  }catch(e){
+    // Distinguish which step failed for clearer error messages
+    alert('Failed to accept: '+e.message+'\n\nIf this is a permissions error, ask your Firestore admin to update security rules (see CLAUDE.md §Rules).');
+  }
 }
 
 async function declineInvitation(inviteId){
