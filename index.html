@@ -4020,34 +4020,28 @@ async function sendInvitation(sid, toEmail){
     status: 'pending',
     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
   });
+  // Owner pre-grants access: add recipient UID to sharedWith now, while owner has permission
+  await fbDb.collection('students').doc(String(sid)).update({
+    sharedWith: firebase.firestore.FieldValue.arrayUnion(toUid)
+  });
+  if(!s.sharedWith) s.sharedWith=[];
+  if(!s.sharedWith.includes(toUid)) s.sharedWith.push(toUid);
   logActivity(`invited <em>${toEmail}</em> to collaborate on <strong>${s.firstName} ${s.lastName}</strong>`);
   openShareModal(sid); // refresh modal
 }
 
 async function acceptInvitation(inviteId, studentId, fromName){
   try{
-    const uid = fbCurrentUser.uid;
-
-    // Step 1: Mark invitation accepted — allowed because toEmail == request.auth.token.email
+    // Only update the invitation status — sharedWith was already set by the owner when sending
     await fbDb.collection('invitations').doc(inviteId).update({
       status: 'accepted',
       acceptedAt: firebase.firestore.FieldValue.serverTimestamp(),
-      toUid: uid,
     });
-
-    // Step 2: Add self to student's sharedWith — allowed by Firestore rule:
-    //   "user may add only their own UID to sharedWith if not already present"
-    const s = students.find(x=>x.id===studentId);
-    const sw = s ? [...(s.sharedWith||[]), uid] : [uid];
-    const uniqueSw = [...new Set(sw)];
-    if(s) s.sharedWith = uniqueSw;
-    await fbDb.collection('students').doc(String(studentId)).update({sharedWith: uniqueSw});
-
+    const s=students.find(x=>x.id===studentId);
     logActivity(`accepted collaboration invite for <strong>${s?.firstName||''} ${s?.lastName||''}</strong>`);
     document.getElementById('notifPanel').style.display='none';
   }catch(e){
-    // Distinguish which step failed for clearer error messages
-    alert('Failed to accept: '+e.message+'\n\nIf this is a permissions error, ask your Firestore admin to update security rules (see CLAUDE.md §Rules).');
+    alert('Failed to accept: '+e.message);
   }
 }
 
