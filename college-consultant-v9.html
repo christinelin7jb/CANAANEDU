@@ -4289,7 +4289,7 @@ let _pendingInvites = []; // invites TO me (pending)
 
 function subscribeInvitations(){
   if(!fbDb||!fbCurrentUser) return;
-  const myEmail = fbCurrentUser.email.toLowerCase();
+  const myEmail = (fbCurrentUser.email||'').toLowerCase();
   _unsubInvitations = fbDb.collection('invitations')
     .where('toEmail','==',myEmail)
     .where('status','==','pending')
@@ -4340,10 +4340,10 @@ function renderNotifList(){
 }
 
 async function sendInvitation(sid, toEmail){
-  toEmail=toEmail.trim().toLowerCase();
+  toEmail=(toEmail||'').trim().toLowerCase();
   if(!toEmail||!toEmail.includes('@')){alert('Please enter a valid email address.');return;}
   const s=students.find(x=>x.id===sid); if(!s) return;
-  if(toEmail===fbCurrentUser.email.toLowerCase()){alert("You can't invite yourself.");return;}
+  if(toEmail===(fbCurrentUser.email||'').toLowerCase()){alert("You can't invite yourself.");return;}
   // Check duplicate
   const existing=await fbDb.collection('invitations')
     .where('studentId','==',sid).where('toEmail','==',toEmail).where('status','==','pending').get();
@@ -4368,7 +4368,7 @@ async function sendInvitation(sid, toEmail){
     studentName: `${s.firstName} ${s.lastName}`,
     fromUid: fbCurrentUser.uid,
     fromName: fbCurrentUser.displayName||fbCurrentUser.email,
-    fromEmail: fbCurrentUser.email.toLowerCase(),
+    fromEmail: (fbCurrentUser.email||'').toLowerCase(),
     toEmail,
     toUid,
     status: 'pending',
