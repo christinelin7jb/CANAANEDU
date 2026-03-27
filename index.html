@@ -3986,48 +3986,65 @@ function renderNotifList(){
 }
 
 async function sendInvitation(sid, toEmail){
-  toEmail=toEmail.trim().toLowerCase();
-  if(!toEmail||!toEmail.includes('@')){alert('Please enter a valid email address.');return;}
-  const s=students.find(x=>x.id===sid); if(!s) return;
-  if(toEmail===fbCurrentUser.email.toLowerCase()){alert("You can't invite yourself.");return;}
-  // Check duplicate
-  const existing=await fbDb.collection('invitations')
-    .where('studentId','==',sid).where('toEmail','==',toEmail).where('status','==','pending').get();
-  if(!existing.empty){alert('An invitation has already been sent to this email.');return;}
-  // Check if already a collaborator
-  if((s.sharedWith||[]).some(uid=>{ const c=allConsultants.find(x=>x.uid===uid); return c&&c.email&&c.email.toLowerCase()===toEmail; })){
-    alert('This consultant already has access.');return;
+  try{
+    toEmail=(toEmail||'').trim().toLowerCase();
+    if(!toEmail||!toEmail.includes('@')){alert('Please enter a valid email address.');return;}
+    if(!fbDb){alert('Not connected to database. Please refresh and sign in again.');return;}
+    if(!fbCurrentUser){alert('You must be signed in to send invitations.');return;}
+    const s=students.find(x=>x.id===sid||x.id===String(sid));
+    if(!s){alert('Student not found (id='+sid+').');return;}
+    if(toEmail===fbCurrentUser.email.toLowerCase()){alert("You can't invite yourself.");return;}
+
+    // Check duplicate pending invitation
+    const existing=await fbDb.collection('invitations')
+      .where('studentId','==',sid).where('toEmail','==',toEmail).where('status','==','pending').get();
+    if(!existing.empty){alert('An invitation has already been sent to this email.');return;}
+
+    // Check if already a collaborator via sharedWith
+    if((s.sharedWith||[]).some(uid=>{
+      const c=allConsultants.find(x=>x.uid===uid);
+      return c&&c.email&&c.email.toLowerCase()===toEmail;
+    })){alert('This consultant already has access.');return;}
+
+    // Look up recipient UID in users collection
+    const userSnap=await fbDb.collection('users').where('email','==',toEmail).limit(1).get();
+    if(userSnap.empty){
+      alert('User not found or hasn\'t logged in yet.\nAsk them to sign in at least once before you invite them.');
+      return;
+    }
+    const recipientData=userSnap.docs[0].data();
+    const toUid=recipientData.uid||userSnap.docs[0].id;
+    if(!toUid){
+      alert('User profile is incomplete. Ask them to sign in again to refresh their profile.');
+      return;
+    }
+
+    // Create invitation record
+    await fbDb.collection('invitations').add({
+      studentId: sid,
+      studentName: `${s.firstName} ${s.lastName}`,
+      fromUid: fbCurrentUser.uid,
+      fromName: fbCurrentUser.displayName||fbCurrentUser.email,
+      fromEmail: fbCurrentUser.email.toLowerCase(),
+      toEmail,
+      toUid,
+      status: 'pending',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Pre-grant access: add recipient UID to sharedWith while owner has permission
+    await fbDb.collection('students').doc(String(sid)).update({
+      sharedWith: firebase.firestore.FieldValue.arrayUnion(toUid)
+    });
+    if(!s.sharedWith) s.sharedWith=[];
+    if(!s.sharedWith.includes(toUid)) s.sharedWith.push(toUid);
+
+    logActivity(`invited <em>${toEmail}</em> to collaborate on <strong>${s.firstName} ${s.lastName}</strong>`);
+    openShareModal(sid); // refresh modal
+  }catch(e){
+    console.error('[sendInvitation] error:', e);
+    alert('Failed to send invitation:\n'+(e.message||String(e))+'\n\nCheck the browser console for details.');
   }
-  // ── Sender Check: look up recipient UID — BLOCK if user not found ──
-  const userSnap = await fbDb.collection('users').where('email','==',toEmail).limit(1).get();
-  if(userSnap.empty){
-    alert('User not found or hasn\'t logged in yet.\nAsk them to sign in at least once before you invite them.');
-    return;
-  }
-  const toUid = userSnap.docs[0].data().uid;
-  if(!toUid){
-    alert('User profile is incomplete. Ask them to sign in again to refresh their profile.');
-    return;
-  }
-  await fbDb.collection('invitations').add({
-    studentId: sid,
-    studentName: `${s.firstName} ${s.lastName}`,
-    fromUid: fbCurrentUser.uid,
-    fromName: fbCurrentUser.displayName||fbCurrentUser.email,
-    fromEmail: fbCurrentUser.email.toLowerCase(),
-    toEmail,
-    toUid,
-    status: 'pending',
-    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-  });
-  // Owner pre-grants access: add recipient UID to sharedWith now, while owner has permission
-  await fbDb.collection('students').doc(String(sid)).update({
-    sharedWith: firebase.firestore.FieldValue.arrayUnion(toUid)
-  });
-  if(!s.sharedWith) s.sharedWith=[];
-  if(!s.sharedWith.includes(toUid)) s.sharedWith.push(toUid);
-  logActivity(`invited <em>${toEmail}</em> to collaborate on <strong>${s.firstName} ${s.lastName}</strong>`);
-  openShareModal(sid); // refresh modal
 }
 
 async function acceptInvitation(inviteId, studentId, fromName){
