@@ -3991,7 +3991,7 @@ async function sendInvitation(sid, toEmail){
     if(!toEmail||!toEmail.includes('@')){alert('Please enter a valid email address.');return;}
     if(!fbDb){alert('Not connected to database. Please refresh and sign in again.');return;}
     if(!fbCurrentUser){alert('You must be signed in to send invitations.');return;}
-    const s=students.find(x=>x.id===sid||x.id===String(sid));
+    const s=students.find(x=>String(x.id)===String(sid));
     if(!s){alert('Student not found (id='+sid+').');return;}
     if(toEmail===fbCurrentUser.email.toLowerCase()){alert("You can't invite yourself.");return;}
 
