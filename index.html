@@ -4125,8 +4125,8 @@ async function renderShareModal(s){
   const inviteSection=isOwner?`
     <div class="share-section-label">Invite by Email</div>
     <div class="invite-row">
-      <input class="invite-input" id="inviteEmailInput" type="email" placeholder="colleague@canaanedu.com" onkeydown="if(event.key==='Enter')sendInvitation(${s.id},this.value)">
-      <button class="invite-send" onclick="sendInvitation(${s.id},document.getElementById('inviteEmailInput').value)">Send Invite</button>
+      <input class="invite-input" id="inviteEmailInput" type="email" placeholder="colleague@canaanedu.com" onkeydown="if(event.key==='Enter')sendInvitation('${s.id}',this.value)">
+      <button class="invite-send" onclick="sendInvitation('${s.id}',document.getElementById('inviteEmailInput').value)">Send Invite</button>
     </div>
     <p style="font-size:10.5px;color:var(--muted);margin:0 0 4px">Your colleague will receive a notification and must accept before accessing this profile.</p>
   `:'<p style="font-size:11px;color:var(--muted)">Only the owner can invite collaborators.</p>';
