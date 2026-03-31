@@ -1327,6 +1327,15 @@ function calcGPAs(tr){
   const w=v.reduce((a,c)=>a+c._gp+(HB[c.level]||0),0)/v.length;
   return{uw:uw.toFixed(2),w:Math.min(5,w).toFixed(2)};
 }
+function calcUCGPAs(tr){
+  // UC only counts 10th and 11th grade courses
+  const ucTr=(tr||[]).filter(c=>c.year===10||c.year===11);
+  const v=ucTr.map(c=>({...c,_gp:courseEffGPA(c)})).filter(c=>c._gp!==null);
+  if(!v.length)return{uw:'—',w:'—'};
+  const uw=v.reduce((a,c)=>a+c._gp,0)/v.length;
+  const w=v.reduce((a,c)=>a+c._gp+(HB[c.level]||0),0)/v.length;
+  return{uw:uw.toFixed(2),w:Math.min(5,w).toFixed(2)};
+}
 function calcYearGPA(cs){
   const v=(cs||[]).map(c=>({...c,_gp:courseEffGPA(c)})).filter(c=>c._gp!==null);
   return v.length?(v.reduce((a,c)=>a+c._gp,0)/v.length).toFixed(2):null;
@@ -1794,7 +1803,7 @@ function openProfile(id){
 }
 
 function renderOverview(s){
-  const c=getConf(s),u=getUrgency(s),gpas=calcGPAs(s.transcript);
+  const c=getConf(s),u=getUrgency(s),gpas=calcGPAs(s.transcript),ucGpas=calcUCGPAs(s.transcript);
   const agSt=getAGStatus(s.transcript,s.grade);const metAG=agSt.filter(r=>r.uc>0&&r.met).length;
   const ep=essayProgress(s);
   const nextDLs=globalDeadlines.filter(d=>d.studentId===s.id&&!d.done&&new Date(d.date)>=new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,3);
@@ -1805,6 +1814,8 @@ function renderOverview(s){
           <div class="card-hd" style="display:flex;justify-content:space-between;align-items:center"><span><span class="ico">📊</span>Academic Profile</span><button class="btn btn-gold btn-sm" onclick="openEditStudent(${s.id})">✏ Edit Profile</button></div>
           ${pstat('GPA (Unweighted)',s.gpa||'—',s.gpa?'/4.0':'')}
           ${pstat('Weighted GPA',gpas.w,'/5.0')}
+          ${ucGpas.uw!=='—'?pstat('UC GPA (Unweighted)',`<span style="color:var(--gold)">${ucGpas.uw}</span>`,'<span style="color:var(--muted);font-size:11px">/4.0 · Gr.10–11</span>'):''}
+          ${ucGpas.w!=='—'?pstat('UC GPA (Weighted)',`<span style="color:var(--gold)">${ucGpas.w}</span>`,'<span style="color:var(--muted);font-size:11px">/5.0 · Gr.10–11</span>'):''}
           ${pstat('SAT',s.sat||'<span style="color:var(--muted)">Not taken</span>',s.sat?'/1600':'')}
           ${pstat('ACT',s.act||'<span style="color:var(--muted)">Not taken</span>',s.act?'/36':'')}
           ${pstat('Major',s.major,'')}
@@ -1887,6 +1898,7 @@ function renderTranscript(s){
     <div class="gpa-boxes">
       <div class="gb"><div class="gb-v">${gpas.uw}</div><div class="gb-l">US GPA (Unweighted)</div></div>
       <div class="gb"><div class="gb-v">${gpas.w}</div><div class="gb-l">US GPA (Weighted)</div></div>
+      ${(()=>{const uc=calcUCGPAs(tr);return`<div class="gb" style="border-color:rgba(201,168,76,.4);background:rgba(201,168,76,.05)" title="UC GPA: 10th &amp; 11th grade courses only"><div class="gb-v" style="color:var(--gold)">${uc.uw}</div><div class="gb-l">UC GPA (Unweighted)</div></div><div class="gb" style="border-color:rgba(201,168,76,.4);background:rgba(201,168,76,.05)" title="UC GPA: 10th &amp; 11th grade courses only"><div class="gb-v" style="color:var(--gold)">${uc.w}</div><div class="gb-l">UC GPA (Weighted)</div></div>`;})()}
       <div class="gb"><div class="gb-v">${ap}</div><div class="gb-l">AP / IB Courses</div></div>
       <div class="gb"><div class="gb-v">${tr.length}</div><div class="gb-l">Total Courses</div></div>
       ${(()=>{const sys={};(tr).forEach(c=>{const k=c.gradeSystem||'us';sys[k]=(sys[k]||0)+1;});const keys=Object.keys(sys).filter(k=>k!=='us');return keys.length?keys.map(k=>`<div class="gb" style="border-color:rgba(74,144,217,.3)"><div class="gb-v" style="font-size:18px;color:var(--blue)">${sys[k]}</div><div class="gb-l">${({ib:'IB',al:'A-Level',cn:'Chinese'})[k]||k} courses</div></div>`).join(''):'';})()} 
