@@ -922,6 +922,24 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   <div style="display:flex;gap:8px"><button class="btn btn-gold" onclick="addStudent()">Add Student</button><button class="btn btn-out" onclick="closeMo('moAddStudent')">Cancel</button></div>
 </div></div>
 
+<!-- Edit Student Profile -->
+<div class="mo" id="moEditStudent"><div class="md">
+  <button class="md-close" onclick="closeMo('moEditStudent')">✕</button>
+  <div class="md-title">Edit Student Profile</div>
+  <div class="fr"><div class="fg"><label class="fl">First Name</label><input class="fi" id="eFN" placeholder="First"></div><div class="fg"><label class="fl">Last Name</label><input class="fi" id="eLN" placeholder="Last"></div></div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Grade</label><select class="fse" id="eGrade"><option value="9">9th</option><option value="10">10th</option><option value="11">11th</option><option value="12">12th</option></select></div>
+    <div class="fg"><label class="fl">GPA (Unweighted)</label><input class="fi" id="eGPA" type="number" placeholder="3.85" step="0.01"></div>
+  </div>
+  <div class="fr"><div class="fg"><label class="fl">SAT</label><input class="fi" id="eSAT" type="number" placeholder="1480"></div><div class="fg"><label class="fl">ACT</label><input class="fi" id="eACT" type="number" placeholder="33"></div></div>
+  <div class="fg"><label class="fl">Major / Intended Field</label><input class="fi" id="eMajor" placeholder="Computer Science"></div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Target Tier</label><select class="fse" id="eTier"><option value="t10">Top 10</option><option value="t25">Top 25</option><option value="t50">Top 50</option><option value="t100">Top 100</option><option value="la">Liberal Arts</option></select></div>
+    <div class="fg"><label class="fl">Hook</label><select class="fse" id="eHook"><option value="">None</option><option value="legacy">Legacy</option><option value="athlete">Athlete</option><option value="firstgen">First-Gen</option><option value="urm">URM</option><option value="intl">International</option></select></div>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:4px"><button class="btn btn-gold" onclick="saveEditStudent()">Save Changes</button><button class="btn btn-out" onclick="closeMo('moEditStudent')">Cancel</button></div>
+</div></div>
+
 <!-- Add Deadline -->
 <div class="mo" id="moAddDeadline"><div class="md">
   <button class="md-close" onclick="closeMo('moAddDeadline')">✕</button>
@@ -1744,6 +1762,7 @@ function openProfile(id){
     <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0">
       <button class="btn btn-gold btn-sm" onclick="openMeetingBrief(${s.id})">⚡ Pre-Meeting Brief</button>
       <button class="btn btn-blue btn-sm" onclick="openParentReport(${s.id})">📄 Parent Report</button>
+      <button class="btn btn-out btn-sm" onclick="openEditStudent(${s.id})" style="border-color:rgba(201,168,76,0.4);color:var(--gold)">✏ Edit Profile</button>
       <button class="btn btn-out btn-sm" onclick="openShareModal(${s.id})" style="border-color:rgba(255,255,255,0.2)">👥 Share</button>
       ${(()=>{
         const collabs=[...((s.sharedWith||[]).map(uid=>allConsultants.find(c=>c.uid===uid)).filter(Boolean))];
@@ -3842,6 +3861,40 @@ function addStudent(){
   const s={id:Date.now(),firstName:fn,lastName:ln,grade:parseInt(document.getElementById('nGrade').value),gpa:parseFloat(document.getElementById('nGPA').value)||null,sat:parseInt(document.getElementById('nSAT').value)||null,act:parseInt(document.getElementById('nACT').value)||null,major:document.getElementById('nMajor').value||'Undecided',tier:document.getElementById('nTier').value,hook:document.getElementById('nHook').value,activities:document.getElementById('nECs').value||'',meetings:document.getElementById('nNotes').value?[{date:new Date().toISOString().split('T')[0],content:document.getElementById('nNotes').value,tag:'General'}]:[],color:COLORS[students.length%COLORS.length],transcript:[],essays:[],deadlines:[]};
   students.push(s);closeMo('moAddStudent');
   ['nFN','nLN','nGPA','nSAT','nACT','nMajor','nECs','nNotes'].forEach(id=>document.getElementById(id).value='');
+  renderSidebar();renderDashboard();populateDropdowns();updateUrgBadge();openProfile(s.id);
+}
+
+let _editStudentId = null;
+function openEditStudent(id){
+  const s=students.find(x=>x.id===id);if(!s)return;
+  _editStudentId=id;
+  document.getElementById('eFN').value=s.firstName||'';
+  document.getElementById('eLN').value=s.lastName||'';
+  document.getElementById('eGrade').value=s.grade||11;
+  document.getElementById('eGPA').value=s.gpa||'';
+  document.getElementById('eSAT').value=s.sat||'';
+  document.getElementById('eACT').value=s.act||'';
+  document.getElementById('eMajor').value=s.major||'';
+  document.getElementById('eTier').value=s.tier||'t50';
+  document.getElementById('eHook').value=s.hook||'';
+  openMo('moEditStudent');
+}
+
+function saveEditStudent(){
+  const s=students.find(x=>x.id===_editStudentId);if(!s)return;
+  const fn=document.getElementById('eFN').value.trim(),ln=document.getElementById('eLN').value.trim();
+  if(!fn||!ln)return;
+  s.firstName=fn;
+  s.lastName=ln;
+  s.grade=parseInt(document.getElementById('eGrade').value);
+  s.gpa=parseFloat(document.getElementById('eGPA').value)||null;
+  s.sat=parseInt(document.getElementById('eSAT').value)||null;
+  s.act=parseInt(document.getElementById('eACT').value)||null;
+  s.major=document.getElementById('eMajor').value||'Undecided';
+  s.tier=document.getElementById('eTier').value;
+  s.hook=document.getElementById('eHook').value;
+  closeMo('moEditStudent');
+  if(typeof fbDb!=='undefined'&&fbDb){saveStudentToFirestore(s);logActivity(`updated profile for <strong>${s.firstName} ${s.lastName}</strong>`);}
   renderSidebar();renderDashboard();populateDropdowns();updateUrgBadge();openProfile(s.id);
 }
 
