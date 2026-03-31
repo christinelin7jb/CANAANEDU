@@ -2956,7 +2956,7 @@ async function searchScorecard() {
   if (!results.length) { out.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:8px">No results found. Try a different name.</div>'; return; }
   out.innerHTML = results.map(r => {
     const p = parseScorecardResult(r);
-    const alreadyIn = schoolDB.some(s => s.scorecardId === p.scorecardId || s.name.toLowerCase() === p.name.toLowerCase());
+    const alreadyIn = schoolDB.some(s => s.scorecardId === p.scorecardId || (s.name||'').toLowerCase() === (p.name||'').toLowerCase());
     return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#ffffff;border:1px solid var(--border);border-radius:8px;margin-bottom:6px">
       <div style="flex:1">
         <div style="font-size:13px;font-weight:600;color:var(--cream)">${p.name}</div>
@@ -3013,7 +3013,7 @@ async function refreshAllSchools() {
     const data = await fetchScorecard(`school.name=${encodeURIComponent(searchName)}&school.degrees_awarded.predominant=3&school.operating=1`).catch(() => null);
     if (!data || !data.results || !data.results.length) { failed.push(school.name); continue; }
     // Pick best match
-    const match = data.results.find(r => r['school.name'].toLowerCase().includes(school.name.toLowerCase().split(' ')[0])) || data.results[0];
+    const match = data.results.find(r => (r['school.name']||'').toLowerCase().includes((school.name||'').toLowerCase().split(' ')[0])) || data.results[0];
     const p = parseScorecardResult(match);
     if (p.acceptance != null) { school.acceptance = p.acceptance; }
     if (p.sat25) { school.sat25 = p.sat25; school.sat75 = p.sat75; }
@@ -3830,7 +3830,7 @@ async function registerUserProfile(user){
     await fbDb.collection('users').doc(user.uid).set({
       uid: user.uid,
       name: user.displayName || user.email,
-      email: user.email.toLowerCase(),
+      email: (user.email||'').toLowerCase(),
       photo: user.photoURL || null,
       initial: (user.displayName||user.email||'?')[0].toUpperCase(),
       color: COLORS[Math.abs(hashStr(user.uid)) % COLORS.length],
