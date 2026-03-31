@@ -2068,7 +2068,7 @@ function editCourse(sid,cid){
   const usG=['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','P','IP','W'];
   const ibG=['7','6','5','4','3','2','1'];
   const alG=['A*','A','B','C','D','E'];
-  function grOpts(sy,sel){const gs=sy==='ib'?ibG:sy==='al'?alG:usG;return gs.map(g=>`<option${g===sel?' selected':''}>${g}</option>`).join('');}
+  function grOpts(sy,sel){const gs=sy==='ib'?ibG:sy==='al'?alG:usG;return`<option value=""${!sel?' selected':''}>—</option>`+gs.map(g=>`<option${g===sel?' selected':''}>${g}</option>`).join('');}
   function grInput(idStr,sy,val){return sy==='cn'?`<input class="mi" id="${idStr}" value="${val||''}" style="width:56px;font-size:11px">`:`<select class="ms" id="${idStr}" style="font-size:11px">${grOpts(sy,val)}</select>`;}
   rowEl.innerHTML=`
     <div class="cc"><input class="mi" id="ec-subj-${cid}" value="${c.subject.replace(/"/g,'&quot;')}" style="width:100%;font-size:12px"></div>
@@ -2090,7 +2090,7 @@ function updateEditGradeInputs(cid){
   const usG=['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','P','IP','W'];
   const ibG=['7','6','5','4','3','2','1'];
   const alG=['A*','A','B','C','D','E'];
-  function grOpts(s){const gs=s==='ib'?ibG:s==='al'?alG:usG;return gs.map(g=>`<option>${g}</option>`).join('');}
+  function grOpts(s){const gs=s==='ib'?ibG:s==='al'?alG:usG;return`<option value="">—</option>`+gs.map(g=>`<option>${g}</option>`).join('');}
   const g1w=document.getElementById('ec-g1w-'+cid);
   const g2w=document.getElementById('ec-g2w-'+cid);
   if(g1w)g1w.innerHTML=sy==='cn'?`<input class="mi" id="ec-g1-${cid}" placeholder="S1" style="width:56px;font-size:11px">`:`<select class="ms" id="ec-g1-${cid}" style="font-size:11px">${grOpts(sy)}</select>`;
