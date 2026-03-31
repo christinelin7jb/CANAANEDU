@@ -1868,7 +1868,7 @@ function pstat(l,v,s){return`<div style="display:flex;justify-content:space-betw
 function renderTranscript(s){
   const tr=s.transcript||[],gpas=calcGPAs(tr),agSt=getAGStatus(tr,s.grade);
   const ap=tr.filter(c=>c.level==='AP'||c.level==='IB').length;
-  const years=[9,10,11,12].filter(y=>y<=s.grade||tr.some(c=>c.year===y));
+  const years=[9,10,11,12];
   const ucReqs=agSt.filter(r=>r.uc>0),metCount=ucReqs.filter(r=>r.met).length;
   const allMet=metCount===ucReqs.length;
   document.getElementById('trContent').innerHTML=`
@@ -1920,7 +1920,7 @@ function renderTranscript(s){
       <p style="font-size:11px;color:var(--muted);margin-bottom:14px">Click year to expand. Use + Add row to log courses, or upload a PDF/photo for AI auto-import.</p>
       ${years.map(yr=>{const cs=tr.filter(c=>c.year===yr),ygpa=calcYearGPA(cs);
         const sumKey='s'+yr;const sumCs=tr.filter(c=>c.year===sumKey);const sumGpa=calcYearGPA(sumCs);
-        const showSummer=yr<12&&(s.grade>yr||sumCs.length>0);
+        const showSummer=yr<12&&(s.grade>=yr||sumCs.length>0);
         return`<div class="tr-year">
         <div class="tr-yh" onclick="toggleYr(${yr})">
           <div class="tr-yh-l"><span class="gp" style="background:${gradeColor(yr)}">${yr}th</span>Grade ${yr} — ${['','','','','','','','','','Freshman','Sophomore','Junior','Senior'][yr]}${yr===s.grade?' <span style="font-size:9px;background:rgba(201,168,76,.18);color:var(--gold);padding:2px 6px;border-radius:8px">Current</span>':''}</div>
