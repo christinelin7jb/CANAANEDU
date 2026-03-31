@@ -1082,13 +1082,13 @@ const GP_IB={'7':4.0,'6':3.7,'5':3.3,'4':3.0,'3':2.0,'2':1.0,'1':0.0};
 const GP_AL={'A*':4.0,'A':4.0,'B':3.0,'C':2.0,'D':1.0,'E':0.0,'U':0.0};
 function chineseToGPA(n){const v=parseFloat(n);if(isNaN(v))return null;if(v>=90)return 4.0;if(v>=85)return 3.7;if(v>=80)return 3.3;if(v>=75)return 3.0;if(v>=70)return 2.7;if(v>=65)return 2.3;if(v>=60)return 2.0;return 0.0;}
 const GRADE_SYSTEMS=[
-  {key:'us',label:'US (A–F)',grades:['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','IP','W']},
+  {key:'us',label:'US (A–F)',grades:['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','P','IP','W']},
   {key:'ib',label:'IB (1–7)',grades:['7','6','5','4','3','2','1','IP']},
   {key:'al',label:'A-Level',grades:['A*','A','B','C','D','E','U']},
   {key:'cn',label:'Chinese (百分制)',grades:[]},
 ];
 function gradeToGPA(grade,system){
-  if(!grade||grade==='IP'||grade==='W'||grade==='—')return null;
+  if(!grade||grade==='IP'||grade==='W'||grade==='P'||grade==='—')return null;
   const sys=system||'us';
   if(sys==='us'){const v=GP[grade];return v!==undefined?v:null;}
   if(sys==='ib'){const v=GP_IB[String(grade)];return v!==undefined?v:null;}
@@ -1097,7 +1097,7 @@ function gradeToGPA(grade,system){
   return null;
 }
 function gradeDisplay(grade,system){
-  if(!grade||grade==='IP'||grade==='W')return grade||'—';
+  if(!grade||grade==='IP'||grade==='W'||grade==='P')return grade||'—';
   const gp=gradeToGPA(grade,system);
   if(gp===null)return grade;
   const sys=system||'us';
@@ -1951,9 +1951,9 @@ function renderTranscript(s){
               <option value="al">A-Level</option>
               <option value="cn">Chinese (百分制)</option>
             </select>
-            <span style="font-size:10px;color:var(--muted);align-self:center">S1:</span><select class="ms" id="cgr1-${yr}" style="min-width:55px"><option value="">—</option>${['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','IP','W'].map(g=>`<option>${g}</option>`).join('')}</select>
+            <span style="font-size:10px;color:var(--muted);align-self:center">S1:</span><select class="ms" id="cgr1-${yr}" style="min-width:55px"><option value="">—</option>${['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','P','IP','W'].map(g=>`<option>${g}</option>`).join('')}</select>
             <input class="mi" id="cgr1-cn-${yr}" placeholder="S1 score" style="width:58px;display:none">
-            <span style="font-size:10px;color:var(--muted);align-self:center">S2:</span><select class="ms" id="cgr2-${yr}" style="min-width:55px"><option value="">—</option>${['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','IP','W'].map(g=>`<option>${g}</option>`).join('')}</select>
+            <span style="font-size:10px;color:var(--muted);align-self:center">S2:</span><select class="ms" id="cgr2-${yr}" style="min-width:55px"><option value="">—</option>${['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','P','IP','W'].map(g=>`<option>${g}</option>`).join('')}</select>
             <input class="mi" id="cgr2-cn-${yr}" placeholder="S2 score" style="width:58px;display:none">
             <input class="mi" id="ccr-${yr}" value="10" style="width:38px">
             <button class="btn btn-gold btn-sm" onclick="addCourse(${s.id},'${yr}')" style="white-space:nowrap">+ Add</button>
@@ -1978,9 +1978,9 @@ function renderTranscript(s){
               <option value="al">A-Level</option>
               <option value="cn">Chinese (百分制)</option>
             </select>
-            <span style="font-size:10px;color:var(--muted);align-self:center">S1:</span><select class="ms" id="cgr1-${sumKey}" style="min-width:55px"><option value="">—</option>${['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','IP','W'].map(g=>`<option>${g}</option>`).join('')}</select>
+            <span style="font-size:10px;color:var(--muted);align-self:center">S1:</span><select class="ms" id="cgr1-${sumKey}" style="min-width:55px"><option value="">—</option>${['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','P','IP','W'].map(g=>`<option>${g}</option>`).join('')}</select>
             <input class="mi" id="cgr1-cn-${sumKey}" placeholder="S1 score" style="width:58px;display:none">
-            <span style="font-size:10px;color:var(--muted);align-self:center">S2:</span><select class="ms" id="cgr2-${sumKey}" style="min-width:55px"><option value="">—</option>${['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','IP','W'].map(g=>`<option>${g}</option>`).join('')}</select>
+            <span style="font-size:10px;color:var(--muted);align-self:center">S2:</span><select class="ms" id="cgr2-${sumKey}" style="min-width:55px"><option value="">—</option>${['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','P','IP','W'].map(g=>`<option>${g}</option>`).join('')}</select>
             <input class="mi" id="cgr2-cn-${sumKey}" placeholder="S2 score" style="width:58px;display:none">
             <input class="mi" id="ccr-${sumKey}" value="10" style="width:38px">
             <button class="btn btn-gold btn-sm" onclick="addCourse(${s.id},'${sumKey}')" style="white-space:nowrap">+ Add</button>
@@ -2027,7 +2027,7 @@ function updateGradeOpts(yr){
   const sel2=document.getElementById('cgr2-'+yr);
   const cn1=document.getElementById('cgr1-cn-'+yr);
   const cn2=document.getElementById('cgr2-cn-'+yr);
-  const opts={us:['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','IP','W'],ib:['7','6','5','4','3','2','1','IP'],al:['A*','A','B','C','D','E','U']};
+  const opts={us:['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','P','IP','W'],ib:['7','6','5','4','3','2','1','IP'],al:['A*','A','B','C','D','E','U']};
   if(sys==='cn'){
     if(sel1)sel1.style.display='none';if(sel2)sel2.style.display='none';
     if(cn1){cn1.style.display='';cn1.placeholder='S1 score';}if(cn2){cn2.style.display='';cn2.placeholder='S2 score';}
@@ -2065,7 +2065,7 @@ function editCourse(sid,cid){
   const sys=c.gradeSystem||'us';
   const g1=c.grade1!==undefined?c.grade1:(c.grade||'');
   const g2=c.grade2!==undefined?c.grade2:'';
-  const usG=['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','IP','W'];
+  const usG=['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','P','IP','W'];
   const ibG=['7','6','5','4','3','2','1'];
   const alG=['A*','A','B','C','D','E'];
   function grOpts(sy,sel){const gs=sy==='ib'?ibG:sy==='al'?alG:usG;return gs.map(g=>`<option${g===sel?' selected':''}>${g}</option>`).join('');}
@@ -2087,7 +2087,7 @@ function editCourse(sid,cid){
 function updateEditGradeInputs(cid){
   const sEl=document.getElementById('ec-sys-'+cid);if(!sEl)return;
   const sy=sEl.value;
-  const usG=['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','IP','W'];
+  const usG=['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','P','IP','W'];
   const ibG=['7','6','5','4','3','2','1'];
   const alG=['A*','A','B','C','D','E'];
   function grOpts(s){const gs=s==='ib'?ibG:s==='al'?alG:usG;return gs.map(g=>`<option>${g}</option>`).join('');}
