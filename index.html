@@ -1328,13 +1328,45 @@ function calcGPAs(tr){
   return{uw:uw.toFixed(2),w:Math.min(5,w).toFixed(2)};
 }
 function calcUCGPAs(tr){
-  // UC only counts 10th and 11th grade courses
-  const ucTr=(tr||[]).filter(c=>c.year===10||c.year===11);
-  const v=ucTr.map(c=>({...c,_gp:courseEffGPA(c)})).filter(c=>c._gp!==null);
-  if(!v.length)return{uw:'—',w:'—'};
-  const uw=v.reduce((a,c)=>a+c._gp,0)/v.length;
-  const w=v.reduce((a,c)=>a+c._gp+(HB[c.level]||0),0)/v.length;
-  return{uw:uw.toFixed(2),w:Math.min(5,w).toFixed(2)};
+  // UC GPA official rules:
+  // - Only A-G courses (not elective)
+  // - Summers: s9→10th pool, s10→10th pool, s11→11th pool
+  // - No plus/minus: A+/A/A-=4, B+/B/B-=3, C+/C/C-=2, D+/D/D-=1, F=0
+  // - Honors bonus +1/semester for AP,IB,College,Honors (grade C or better only)
+  // - Max 4 honors pts in 10th pool; max 8 honors pts total
+  // - Do not round
+  function ucPts(g,sys){
+    if(!g||g===''||g==='—'||g==='IP'||g==='W'||g==='P')return null;
+    if(sys==='ib'){const n=parseInt(g);if(isNaN(n))return null;if(n>=6)return 4;if(n===5)return 3;if(n===4)return 2;if(n>=1)return 1;return null;}
+    if(sys==='al'){if(g==='A*'||g==='A')return 4;if(g==='B')return 3;if(g==='C')return 2;if(g==='D')return 1;if(g==='E'||g==='U')return 0;return null;}
+    if(sys==='cn'){const v=parseFloat(g);if(isNaN(v))return null;if(v>=90)return 4;if(v>=80)return 3;if(v>=70)return 2;if(v>=60)return 1;return 0;}
+    // US: strip +/- for UC
+    const b=g.replace(/[+-]/g,'');
+    if(b==='A')return 4;if(b==='B')return 3;if(b==='C')return 2;if(b==='D')return 1;if(b==='F')return 0;
+    return null;
+  }
+  const isUCYr=y=>y===10||y===11||y==='s9'||y==='s10'||y==='s11';
+  const is10th=y=>y==='s9'||y===10||y==='s10';
+  const isHon=lv=>lv==='AP'||lv==='IB'||lv==='College'||lv==='Honors';
+  const ucCourses=(tr||[]).filter(c=>c.ag&&c.ag!=='elec'&&isUCYr(c.year));
+  if(!ucCourses.length)return{uw:'—',w:'—'};
+  let pts=0,cnt=0,hTot=0,h10=0;
+  ucCourses.forEach(c=>{
+    const sys=c.gradeSystem||'us',hon=isHon(c.level),in10=is10th(c.year);
+    const addGrade=p=>{
+      if(p===null)return;
+      pts+=p;cnt++;
+      if(hon&&p>=2&&hTot<8&&(!in10||h10<4)){hTot++;if(in10)h10++;}
+    };
+    if(c.grade1!==undefined||c.grade2!==undefined){
+      addGrade(ucPts(c.grade1,sys));addGrade(ucPts(c.grade2,sys));
+    } else {
+      addGrade(ucPts(c.grade,sys));
+    }
+  });
+  if(!cnt)return{uw:'—',w:'—'};
+  const trunc2=n=>( Math.floor(n*100)/100).toFixed(2);
+  return{uw:trunc2(pts/cnt),w:trunc2((pts+hTot)/cnt)};
 }
 function calcYearGPA(cs){
   const v=(cs||[]).map(c=>({...c,_gp:courseEffGPA(c)})).filter(c=>c._gp!==null);
