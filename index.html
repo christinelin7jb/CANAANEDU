@@ -51,21 +51,6 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .add-s:hover{background:rgba(255,255,255,0.08);border-style:solid;color:#ffffff;}
 
 /* ── NOTIFICATION BELL ── */
-.notif-bell{position:relative;background:none;border:none;cursor:pointer;font-size:15px;padding:3px 6px;border-radius:6px;transition:background .15s;line-height:1;}
-.notif-bell:hover{background:rgba(255,255,255,0.07);}
-.notif-badge{position:absolute;top:-2px;right:-2px;background:var(--red);color:#fff;font-size:8px;font-weight:700;min-width:14px;height:14px;border-radius:7px;display:flex;align-items:center;justify-content:center;padding:0 3px;font-family:'DM Mono',monospace;}
-.notif-panel{position:absolute;top:44px;right:90px;width:340px;background:#111a2e;border:1px solid var(--border);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,0.7);z-index:400;overflow:hidden;}
-.notif-panel-hd{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--border);font-size:12px;font-weight:600;color:var(--cream);}
-.notif-item{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,0.05);}
-.notif-item:last-child{border-bottom:none;}
-.notif-student{font-size:12.5px;font-weight:600;color:var(--cream);margin-bottom:2px;}
-.notif-from{font-size:11px;color:var(--muted);margin-bottom:8px;}
-.notif-actions{display:flex;gap:6px;}
-.notif-accept{padding:4px 12px;border-radius:6px;background:rgba(46,201,138,0.15);border:1px solid rgba(46,201,138,0.3);color:var(--green);font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;}
-.notif-accept:hover{background:rgba(46,201,138,0.25);}
-.notif-decline{padding:4px 12px;border-radius:6px;background:rgba(220,50,50,0.08);border:1px solid rgba(220,50,50,0.25);color:var(--red);font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;}
-.notif-decline:hover{background:rgba(220,50,50,0.15);}
-.notif-empty{padding:16px 14px;font-size:11.5px;color:var(--muted);text-align:center;}
 /* ── INVITE INPUT ── */
 .invite-row{display:flex;gap:6px;margin-bottom:10px;}
 .invite-input{flex:1;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:7px;padding:7px 10px;color:var(--cream);font-size:12px;font-family:'DM Sans',sans-serif;outline:none;}
@@ -486,18 +471,6 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   <span style="color:rgba(255,255,255,0.15);margin:0 4px">|</span>
   <span style="font-size:10.5px;color:var(--muted)">Online now:</span>
   <div id="presenceAvatars" style="display:flex;gap:4px"></div>
-  <!-- Notification Bell -->
-  <button id="notifBell" class="notif-bell" onclick="toggleNotifPanel()" title="Collaboration invitations">
-    🔔
-    <span id="notifBadge" class="notif-badge" style="display:none">0</span>
-  </button>
-  <div id="notifPanel" class="notif-panel" style="display:none">
-    <div class="notif-panel-hd">
-      <span>📬 Collaboration Invitations</span>
-      <button onclick="toggleNotifPanel()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;line-height:1">✕</button>
-    </div>
-    <div id="notifList"><div class="notif-empty">No pending invitations</div></div>
-  </div>
   <div class="my-account" id="myAccount" onclick="showAccountMenu()">
     <div class="av" id="myAvatar" style="width:24px;height:24px;font-size:10px;background:var(--gold)">?</div>
     <span id="myName" style="font-size:11.5px;color:var(--text)">You</span>
@@ -3929,76 +3902,18 @@ function timeAgo(date){
   return Math.floor(s/86400)+'d ago';
 }
 
-// ── Invitations ──
-let _unsubInvitations = null;
-let _pendingInvites = []; // invites TO me (pending)
-
-function subscribeInvitations(){
-  if(!fbDb||!fbCurrentUser) return;
-  const myEmail = (fbCurrentUser.email||'').toLowerCase();
-  _unsubInvitations = fbDb.collection('invitations')
-    .where('toEmail','==',myEmail)
-    .where('status','==','pending')
-    .onSnapshot(snap=>{
-      _pendingInvites = snap.docs.map(d=>({id:d.id,...d.data()}));
-      updateNotifBadge(_pendingInvites.length);
-      renderNotifList();
-    });
-}
-
-function updateNotifBadge(n){
-  const badge=document.getElementById('notifBadge');
-  const bell=document.getElementById('notifBell');
-  if(!badge||!bell) return;
-  badge.textContent=n;
-  badge.style.display=n>0?'flex':'none';
-  bell.style.animation=n>0?'pulse 2s infinite':'none';
-}
-
-function toggleNotifPanel(){
-  const panel=document.getElementById('notifPanel');
-  panel.style.display=panel.style.display==='none'?'block':'none';
-}
-
-// Close panel when clicking outside
-document.addEventListener('click',e=>{
-  const panel=document.getElementById('notifPanel');
-  const bell=document.getElementById('notifBell');
-  if(panel&&bell&&!panel.contains(e.target)&&!bell.contains(e.target)){
-    panel.style.display='none';
-  }
-});
-
-function renderNotifList(){
-  const el=document.getElementById('notifList'); if(!el) return;
-  if(!_pendingInvites.length){
-    el.innerHTML='<div class="notif-empty">No pending invitations</div>'; return;
-  }
-  el.innerHTML=_pendingInvites.map(inv=>`
-    <div class="notif-item">
-      <div class="notif-student">👤 ${inv.studentName||'A student'}</div>
-      <div class="notif-from">Invited by <strong style="color:var(--cream)">${inv.fromName||inv.fromEmail}</strong> to collaborate on this student's profile</div>
-      <div class="notif-actions">
-        <button class="notif-accept" onclick="acceptInvitation('${inv.id}',${inv.studentId},'${(inv.fromName||inv.fromEmail).replace(/'/g,"\\'")}')">✓ Accept</button>
-        <button class="notif-decline" onclick="declineInvitation('${inv.id}')">✕ Decline</button>
-      </div>
-    </div>`).join('');
-}
+// ── Invitations (removed — sharing is now immediate, no accept/decline needed) ──
+function subscribeInvitations(){ /* no-op */ }
 
 async function sendInvitation(sid, toEmail){
   try{
     toEmail=(toEmail||'').trim().toLowerCase();
     if(!toEmail||!toEmail.includes('@')){alert('Please enter a valid email address.');return;}
     if(!fbDb){alert('Not connected to database. Please refresh and sign in again.');return;}
-    if(!fbCurrentUser){alert('You must be signed in to send invitations.');return;}
+    if(!fbCurrentUser){alert('You must be signed in to share.');return;}
     const s=students.find(x=>String(x.id)===String(sid));
     if(!s){alert('Student not found (id='+sid+').');return;}
-    if(toEmail===(fbCurrentUser.email||'').toLowerCase()){alert("You can't invite yourself.");return;}
-
-    // Check duplicate pending invitation
-    const existing=await fbDb.collection('invitations')
-      .where('studentId','==',sid).where('toEmail','==',toEmail).where('status','==','pending').get();
-    if(!existing.empty){alert('An invitation has already been sent to this email.');return;}
+    if(toEmail===(fbCurrentUser.email||'').toLowerCase()){alert("You can't share with yourself.");return;}
 
     // Check if already a collaborator via sharedWith
     if((s.sharedWith||[]).some(uid=>{
@@ -4009,7 +3924,7 @@ async function sendInvitation(sid, toEmail){
     // Look up recipient UID in users collection
     const userSnap=await fbDb.collection('users').where('email','==',toEmail).limit(1).get();
     if(userSnap.empty){
-      alert('User not found or hasn\'t logged in yet.\nAsk them to sign in at least once before you invite them.');
+      alert('User not found or hasn\'t signed in yet.\nAsk them to sign in at least once first.');
       return;
     }
     const recipientData=userSnap.docs[0].data();
@@ -4019,57 +3934,21 @@ async function sendInvitation(sid, toEmail){
       return;
     }
 
-    // Create invitation record
-    await fbDb.collection('invitations').add({
-      studentId: sid,
-      studentName: `${s.firstName} ${s.lastName}`,
-      fromUid: fbCurrentUser.uid,
-      fromName: fbCurrentUser.displayName||fbCurrentUser.email,
-      fromEmail: (fbCurrentUser.email||'').toLowerCase(),
-      toEmail,
-      toUid,
-      status: 'pending',
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    });
-
-    // Pre-grant access: add recipient UID to sharedWith while owner has permission
+    // Grant access immediately — no invitation needed
     await fbDb.collection('students').doc(String(sid)).update({
       sharedWith: firebase.firestore.FieldValue.arrayUnion(toUid)
     });
     if(!s.sharedWith) s.sharedWith=[];
     if(!s.sharedWith.includes(toUid)) s.sharedWith.push(toUid);
 
-    logActivity(`invited <em>${toEmail}</em> to collaborate on <strong>${s.firstName} ${s.lastName}</strong>`);
+    logActivity(`shared <strong>${s.firstName} ${s.lastName}</strong> with <em>${toEmail}</em>`);
     openShareModal(sid); // refresh modal
   }catch(e){
     console.error('[sendInvitation] error:', e);
-    alert('Failed to send invitation:\n'+(e.message||String(e))+'\n\nCheck the browser console for details.');
+    alert('Failed to share:\n'+(e.message||String(e))+'\n\nCheck the browser console for details.');
   }
 }
 
-async function acceptInvitation(inviteId, studentId, fromName){
-  try{
-    // Only update the invitation status — sharedWith was already set by the owner when sending
-    await fbDb.collection('invitations').doc(inviteId).update({
-      status: 'accepted',
-      acceptedAt: firebase.firestore.FieldValue.serverTimestamp(),
-    });
-    const s=students.find(x=>x.id===studentId);
-    logActivity(`accepted collaboration invite for <strong>${s?.firstName||''} ${s?.lastName||''}</strong>`);
-    document.getElementById('notifPanel').style.display='none';
-  }catch(e){
-    alert('Failed to accept: '+e.message);
-  }
-}
-
-async function declineInvitation(inviteId){
-  await fbDb.collection('invitations').doc(inviteId).update({status:'declined'});
-}
-
-async function cancelInvitation(inviteId, sid){
-  await fbDb.collection('invitations').doc(inviteId).delete();
-  const s=students.find(x=>x.id===sid); if(s) renderShareModal(s);
-}
 
 // ── Share / Collaboration ──
 async function openShareModal(sid){
@@ -4116,43 +3995,20 @@ async function renderShareModal(s){
     </div>`),
   ].join('');
 
-  // ── Pending invitations sent FROM this owner FOR this student ──
-  let pendingRows='';
-  if(fbDb&&isOwner){
-    try{
-      const snap=await fbDb.collection('invitations')
-        .where('studentId','==',s.id).where('status','==','pending').get();
-      pendingRows=snap.docs.map(d=>{
-        const inv=d.data();
-        return `<div class="collab-row">
-          <div class="collab-info">
-            <div class="collab-av" style="background:#444;color:var(--muted);font-size:11px">✉</div>
-            <div><div class="collab-name">${inv.toEmail}</div><div class="collab-email">Invitation sent — awaiting response</div></div>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <span class="pending-tag">Pending</span>
-            <button class="share-toggle remove" onclick="cancelInvitation('${d.id}',${s.id})">Cancel</button>
-          </div>
-        </div>`;
-      }).join('');
-    }catch(e){ /* ignore */ }
-  }
-
-  // ── Invite input (owner only) ──
+  // ── Share input (owner only) ──
   const inviteSection=isOwner?`
-    <div class="share-section-label">Invite by Email</div>
+    <div class="share-section-label">Share by Email</div>
     <div class="invite-row">
       <input class="invite-input" id="inviteEmailInput" type="email" placeholder="colleague@canaanedu.com" onkeydown="if(event.key==='Enter')sendInvitation('${s.id}',this.value)">
-      <button class="invite-send" onclick="sendInvitation('${s.id}',document.getElementById('inviteEmailInput').value)">Send Invite</button>
+      <button class="invite-send" onclick="sendInvitation('${s.id}',document.getElementById('inviteEmailInput').value)">Share</button>
     </div>
-    <p style="font-size:10.5px;color:var(--muted);margin:0 0 4px">Your colleague will receive a notification and must accept before accessing this profile.</p>
-  `:'<p style="font-size:11px;color:var(--muted)">Only the owner can invite collaborators.</p>';
+    <p style="font-size:10.5px;color:var(--muted);margin:0 0 4px">Access is granted immediately — your colleague will see this profile in their portal right away.</p>
+  `:'<p style="font-size:11px;color:var(--muted)">Only the owner can share this profile.</p>';
 
   document.getElementById('shareContent').innerHTML=`
     ${inviteSection}
     <div class="share-section-label" style="margin-top:14px">Collaborators with Access</div>
-    ${currentRows||'<div style="font-size:11px;color:var(--muted);padding:6px 0">No collaborators yet.</div>'}
-    ${pendingRows?`<div class="share-section-label" style="margin-top:14px">Pending Invitations</div>${pendingRows}`:''}`;
+    ${currentRows||'<div style="font-size:11px;color:var(--muted);padding:6px 0">No collaborators yet.</div>'}`;
 }
 
 
