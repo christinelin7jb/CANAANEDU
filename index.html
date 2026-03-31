@@ -279,6 +279,9 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .tr-yh{display:flex;align-items:center;justify-content:space-between;padding:9px 13px;background:#1a3672;border:1px solid var(--border);border-radius:7px 7px 0 0;cursor:pointer;}
 .tr-yh-l{font-family:'Cormorant Garamond',serif;font-size:13.5px;color:#ffffff;display:flex;align-items:center;gap:9px;}
 .tr-yb{border:1px solid var(--border);border-top:none;border-radius:0 0 7px 7px;overflow:hidden;}
+.tr-year-summer{margin-bottom:16px;margin-left:20px;}
+.tr-yh-summer{display:flex;align-items:center;justify-content:space-between;padding:7px 13px;background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.35);border-radius:7px 7px 0 0;cursor:pointer;}
+.tr-yb-summer{border:1px solid rgba(201,168,76,0.25);border-top:none;border-radius:0 0 7px 7px;overflow:hidden;}
 .cr{display:grid;grid-template-columns:2fr 1.2fr 80px 64px 68px 80px 30px;align-items:center;border-bottom:1px solid rgba(201,168,76,0.05);}
 .cr:last-child{border-bottom:none;}
 .cr:hover{background:rgba(201,168,76,0.03);}
@@ -1915,7 +1918,10 @@ function renderTranscript(s){
         </div>
       </div>
       <p style="font-size:11px;color:var(--muted);margin-bottom:14px">Click year to expand. Use + Add row to log courses, or upload a PDF/photo for AI auto-import.</p>
-      ${years.map(yr=>{const cs=tr.filter(c=>c.year===yr),ygpa=calcYearGPA(cs);return`<div class="tr-year">
+      ${years.map(yr=>{const cs=tr.filter(c=>c.year===yr),ygpa=calcYearGPA(cs);
+        const sumKey='s'+yr;const sumCs=tr.filter(c=>c.year===sumKey);const sumGpa=calcYearGPA(sumCs);
+        const showSummer=yr<12&&(s.grade>yr||sumCs.length>0);
+        return`<div class="tr-year">
         <div class="tr-yh" onclick="toggleYr(${yr})">
           <div class="tr-yh-l"><span class="gp" style="background:${gradeColor(yr)}">${yr}th</span>Grade ${yr} — ${['','','','','','','','','','Freshman','Sophomore','Junior','Senior'][yr]}${yr===s.grade?' <span style="font-size:9px;background:rgba(201,168,76,.18);color:var(--gold);padding:2px 6px;border-radius:8px">Current</span>':''}</div>
           <div style="display:flex;align-items:center;gap:12px">${ygpa?`<span style="font-size:11px;color:rgba(255,255,255,0.75)">GPA <strong style="color:#ffffff">${ygpa}</strong></span>`:''}<span style="font-size:10.5px;color:rgba(255,255,255,0.75)">${cs.length} courses</span></div>
@@ -1927,7 +1933,7 @@ function renderTranscript(s){
             <input class="mi" id="cn-${yr}" placeholder="Course name" style="flex:2;min-width:120px">
             <select class="ms" id="cag-${yr}">${AG_REQS.map(r=>`<option value="${r.key}">${r.key.toUpperCase()} — ${r.label.split('—')[0].trim()}</option>`).join('')}</select>
             <select class="ms" id="clv-${yr}"><option>Regular</option><option>Honors</option><option>AP</option><option>IB</option><option>College</option></select>
-            <select class="ms" id="csys-${yr}" onchange="updateGradeOpts(${yr})" style="color:var(--blue)">
+            <select class="ms" id="csys-${yr}" onchange="updateGradeOpts('${yr}')" style="color:var(--blue)">
               <option value="us">US (A–F)</option>
               <option value="ib">IB (1–7)</option>
               <option value="al">A-Level</option>
@@ -1938,16 +1944,43 @@ function renderTranscript(s){
             <span style="font-size:10px;color:var(--muted);align-self:center">S2:</span><select class="ms" id="cgr2-${yr}" style="min-width:55px"><option value="">—</option>${['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','IP','W'].map(g=>`<option>${g}</option>`).join('')}</select>
             <input class="mi" id="cgr2-cn-${yr}" placeholder="S2 score" style="width:58px;display:none">
             <input class="mi" id="ccr-${yr}" value="10" style="width:38px">
-            <button class="btn btn-gold btn-sm" onclick="addCourse(${s.id},${yr})" style="white-space:nowrap">+ Add</button>
+            <button class="btn btn-gold btn-sm" onclick="addCourse(${s.id},'${yr}')" style="white-space:nowrap">+ Add</button>
           </div>
         </div>
-      </div>`;}).join('')}
+      </div>
+      ${showSummer?`<div class="tr-year-summer">
+        <div class="tr-yh-summer" onclick="toggleYr('${sumKey}')">
+          <div class="tr-yh-l" style="color:var(--gold)"><span style="font-size:13px">☀</span>Summer after ${yr===9?'Freshman':yr===10?'Sophomore':yr===11?'Junior':yr+'th'}</div>
+          <div style="display:flex;align-items:center;gap:12px">${sumGpa?`<span style="font-size:11px;color:rgba(201,168,76,0.8)">GPA <strong style="color:var(--gold)">${sumGpa}</strong></span>`:''}<span style="font-size:10.5px;color:rgba(201,168,76,0.7)">${sumCs.length} course${sumCs.length!==1?'s':''}</span></div>
+        </div>
+        <div class="tr-yb-summer" id="tryb-${sumKey}" style="display:none">
+          <div class="cr ch" style="grid-template-columns:2fr 1.2fr 80px 40px 76px 76px 68px 62px"><div class="cc ch">Course</div><div class="cc ch">Area</div><div class="cc ch">Level</div><div class="cc ch">Sys</div><div class="cc ch">Sem 1</div><div class="cc ch">Sem 2</div><div class="cc ch">Avg GPA</div><div class="cc ch"></div></div>
+          ${sumCs.map(c=>{const sys=c.gradeSystem||'us';const g1=c.grade1!==undefined?c.grade1:c.grade;const g2=c.grade2!==undefined?c.grade2:null;const avgGpa=courseEffGPA(c);return`<div class="cr" id="cr-${c.id}" style="grid-template-columns:2fr 1.2fr 80px 44px 76px 76px 68px 62px"><div class="cc" style="font-weight:500">${c.subject}</div><div class="cc"><span style="display:flex;align-items:center;gap:5px"><div style="width:16px;height:16px;border-radius:50%;background:${AG_COLOR[c.ag]||'#888'};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:var(--bg);flex-shrink:0">${c.ag.toUpperCase()}</div><span style="font-size:10px;color:var(--muted)">${AG_REQS.find(r=>r.key===c.ag)?.label.split('—')[0]?.trim()||c.ag}</span></span></div><div class="cc"><span class="lb ${c.level==='AP'?'lb-ap':c.level==='IB'?'lb-ib':c.level==='Honors'?'lb-h':'lb-r'}">${c.level}</span></div><div class="cc"><span style="font-size:9px;font-weight:700;padding:2px 5px;border-radius:5px;background:rgba(255,255,255,0.06);color:var(--muted);white-space:nowrap">${sysLabel(sys)}</span></div><div class="cc"><span style="font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:${gradeCol(g1,sys)}">${g1||'—'}</span></div><div class="cc"><span style="font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:${gradeCol(g2,sys)}">${g2||'—'}</span></div><div class="cc"><span style="font-family:'DM Mono',monospace;font-size:12px;color:${avgGpa!==null?(avgGpa>=4?'var(--green)':avgGpa>=3?'var(--blue)':avgGpa>=2?'var(--orange)':'var(--red)'):'var(--muted)'}">${avgGpa!==null?avgGpa.toFixed(2):'—'}</span></div><div class="cc" style="display:flex;align-items:center;gap:2px"><button class="edit-btn" onclick="editCourse(${s.id},${c.id})">✏</button><button class="del-btn" onclick="delCourse(${s.id},${c.id})">✕</button></div></div>`;}).join('')}
+          <div class="add-cr" style="flex-wrap:wrap;row-gap:5px">
+            <input class="mi" id="cn-${sumKey}" placeholder="Course name" style="flex:2;min-width:120px">
+            <select class="ms" id="cag-${sumKey}">${AG_REQS.map(r=>`<option value="${r.key}">${r.key.toUpperCase()} — ${r.label.split('—')[0].trim()}</option>`).join('')}</select>
+            <select class="ms" id="clv-${sumKey}"><option>Regular</option><option>Honors</option><option>AP</option><option>IB</option><option>College</option></select>
+            <select class="ms" id="csys-${sumKey}" onchange="updateGradeOpts('${sumKey}')" style="color:var(--gold)">
+              <option value="us">US (A–F)</option>
+              <option value="ib">IB (1–7)</option>
+              <option value="al">A-Level</option>
+              <option value="cn">Chinese (百分制)</option>
+            </select>
+            <span style="font-size:10px;color:var(--muted);align-self:center">S1:</span><select class="ms" id="cgr1-${sumKey}" style="min-width:55px"><option value="">—</option>${['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','IP','W'].map(g=>`<option>${g}</option>`).join('')}</select>
+            <input class="mi" id="cgr1-cn-${sumKey}" placeholder="S1 score" style="width:58px;display:none">
+            <span style="font-size:10px;color:var(--muted);align-self:center">S2:</span><select class="ms" id="cgr2-${sumKey}" style="min-width:55px"><option value="">—</option>${['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','IP','W'].map(g=>`<option>${g}</option>`).join('')}</select>
+            <input class="mi" id="cgr2-cn-${sumKey}" placeholder="S2 score" style="width:58px;display:none">
+            <input class="mi" id="ccr-${sumKey}" value="10" style="width:38px">
+            <button class="btn btn-gold btn-sm" onclick="addCourse(${s.id},'${sumKey}')" style="white-space:nowrap">+ Add</button>
+          </div>
+        </div>
+      </div>`:''}`;}).join('')}
     </div>`;
   // Sync default grade system picker
   const defSel=document.getElementById('defaultGradeSys-'+s.id);
   if(defSel&&s.defaultGradeSys)defSel.value=s.defaultGradeSys;
   // Pre-set all year grade-system selectors to student default
-  if(s.defaultGradeSys){document.querySelectorAll('[id^="csys-"]').forEach(sel=>sel.value=s.defaultGradeSys);document.querySelectorAll('[id^="csys-"]').forEach(sel=>{const yr=sel.id.replace('csys-','');if(!isNaN(yr))updateGradeOpts(parseInt(yr));});}
+  if(s.defaultGradeSys){document.querySelectorAll('[id^="csys-"]').forEach(sel=>sel.value=s.defaultGradeSys);document.querySelectorAll('[id^="csys-"]').forEach(sel=>{const yr=sel.id.replace('csys-','');updateGradeOpts(yr);});}
 }
 function renderRigor(tr,s){
   const ap=tr.filter(c=>c.level==='AP').length,ib=tr.filter(c=>c.level==='IB').length,hon=tr.filter(c=>c.level==='Honors').length,reg=tr.filter(c=>c.level==='Regular'&&c.ag!=='pe'&&c.ag!=='elec').length;
@@ -1974,10 +2007,10 @@ function toggleYr(yr){const b=document.getElementById('tryb-'+yr);if(b)b.style.d
 function setDefaultGradeSys(sid,sys){
   const s=students.find(x=>x.id===sid);if(s)s.defaultGradeSys=sys;
   document.querySelectorAll('[id^="csys-"]').forEach(sel=>sel.value=sys);
-  document.querySelectorAll('[id^="csys-"]').forEach(sel=>{const yr=sel.id.replace('csys-','');if(!isNaN(yr))updateGradeOpts(parseInt(yr));});
+  document.querySelectorAll('[id^="csys-"]').forEach(sel=>{const yr=sel.id.replace('csys-','');updateGradeOpts(yr);});
 }
 function updateGradeOpts(yr){
-  const sys=document.getElementById('csys-'+yr).value;
+  const sys=(document.getElementById('csys-'+yr)||{}).value;if(!sys)return;
   const sel1=document.getElementById('cgr1-'+yr);
   const sel2=document.getElementById('cgr2-'+yr);
   const cn1=document.getElementById('cgr1-cn-'+yr);
