@@ -1795,7 +1795,7 @@ function renderOverview(s){
     <div class="g2">
       <div>
         <div class="card">
-          <div class="card-hd"><span class="ico">📊</span>Academic Profile</div>
+          <div class="card-hd" style="display:flex;justify-content:space-between;align-items:center"><span><span class="ico">📊</span>Academic Profile</span><button class="btn btn-gold btn-sm" onclick="openEditStudent(${s.id})">✏ Edit Profile</button></div>
           ${pstat('GPA (Unweighted)',s.gpa||'—',s.gpa?'/4.0':'')}
           ${pstat('Weighted GPA',gpas.w,'/5.0')}
           ${pstat('SAT',s.sat||'<span style="color:var(--muted)">Not taken</span>',s.sat?'/1600':'')}
