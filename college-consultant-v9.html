@@ -1354,7 +1354,7 @@ function seedData(){
 // ══════════════════════════════════════════════════════
 // HELPERS
 // ══════════════════════════════════════════════════════
-function gradeColor(g){return {9:'#2ec98a',10:'#4a90d9',11:'#c9a84c',12:'#e05c5c'}[g]||'#888';}
+function gradeColor(g){return {9:'#2ec98a','9s':'#d4a017',10:'#4a90d9','10s':'#d4a017',11:'#c9a84c','11s':'#d4a017',12:'#e05c5c'}[g]||'#888';}
 function tierLabel(t){return {t10:'Top 10',t25:'Top 25',t50:'Top 50',t100:'Top 100',la:'Liberal Arts'}[t]||t;}
 function hookLabel(h){return {legacy:'Legacy',athlete:'Athlete',firstgen:'First-Gen',urm:'URM',intl:'International'}[h]||'';}
 function calcGPAs(tr){
@@ -1861,7 +1861,11 @@ function pstat(l,v,s){return`<div style="display:flex;justify-content:space-betw
 function renderTranscript(s){
   const tr=s.transcript||[],gpas=calcGPAs(tr),agSt=getAGStatus(tr,s.grade);
   const ap=tr.filter(c=>c.level==='AP'||c.level==='IB').length;
-  const years=[9,10,11,12].filter(y=>y<=s.grade||tr.some(c=>c.year===y));
+  const allYearsSeq=[9,'9s',10,'10s',11,'11s',12];
+  const years=allYearsSeq.filter(y=>{
+    if(typeof y==='number') return y<=s.grade||tr.some(c=>c.year===y);
+    const base=parseInt(y);return base<s.grade||tr.some(c=>c.year===y);
+  });
   const ucReqs=agSt.filter(r=>r.uc>0),metCount=ucReqs.filter(r=>r.met).length;
   const allMet=metCount===ucReqs.length;
   document.getElementById('trContent').innerHTML=`
@@ -1906,19 +1910,19 @@ function renderTranscript(s){
     <div class="card">
       <div class="card-hd"><span class="ico">📋</span>Course History</div>
       <p style="font-size:11px;color:var(--muted);margin-bottom:14px">Click year to expand. Use + Add row to log courses. Click ✏ to edit an existing course.</p>
-      ${years.map(yr=>{const cs=tr.filter(c=>c.year===yr),ygpa=calcYearGPA(cs);return`<div class="tr-year">
-        <div class="tr-yh" onclick="toggleYr(${yr})">
-          <div class="tr-yh-l"><span class="gp" style="background:${gradeColor(yr)}">${yr}th</span>Grade ${yr} — ${['','','','','','','','','','Freshman','Sophomore','Junior','Senior'][yr]}${yr===s.grade?' <span style="font-size:9px;background:rgba(201,168,76,.18);color:var(--gold);padding:2px 6px;border-radius:8px">Current</span>':''}</div>
-          <div style="display:flex;align-items:center;gap:12px">${ygpa?`<span style="font-size:11px;color:var(--muted)">GPA <strong style="color:var(--cream)">${ygpa}</strong></span>`:''}<span style="font-size:10.5px;color:var(--muted)">${cs.length} courses</span></div>
+      ${years.map(yr=>{const cs=tr.filter(c=>c.year===yr),ygpa=calcYearGPA(cs);const isSumYr=typeof yr==='string'&&yr.endsWith('s');const baseGrade=isSumYr?parseInt(yr):yr;return`<div class="tr-year"${isSumYr?' style="border-left:2px solid rgba(212,160,23,0.35);margin-left:8px;padding-left:4px"':''}>
+        <div class="tr-yh" onclick="toggleYr('${yr}')" style="${isSumYr?'background:rgba(212,160,23,0.06);':''}">
+          <div class="tr-yh-l"><span class="gp" style="background:${gradeColor(yr)};font-size:${isSumYr?'10px':'11px'}">${isSumYr?'☀':baseGrade+'th'}</span>${isSumYr?`<span style="color:var(--gold);font-weight:600">Summer</span> <span style="color:var(--muted);font-size:11px">— After ${baseGrade}th Grade</span>`:` Grade ${yr} — ${['','','','','','','','','','Freshman','Sophomore','Junior','Senior'][yr]}${yr===s.grade?' <span style="font-size:9px;background:rgba(201,168,76,.18);color:var(--gold);padding:2px 6px;border-radius:8px">Current</span>':''}`}</div>
+          <div style="display:flex;align-items:center;gap:12px">${ygpa?`<span style="font-size:11px;color:var(--muted)">GPA <strong style="color:var(--cream)">${ygpa}</strong></span>`:''}<span style="font-size:10.5px;color:var(--muted)">${cs.length} course${cs.length!==1?'s':''}</span></div>
         </div>
         <div class="tr-yb" id="tryb-${yr}">
           <div class="cr ch" style="grid-template-columns:minmax(140px,1fr) minmax(80px,0.5fr) 75px 48px 88px 68px 88px 130px"><div class="cc ch">Course</div><div class="cc ch">Area</div><div class="cc ch">Level</div><div class="cc ch">Sys</div><div class="cc ch">Grade (orig)</div><div class="cc ch">US GPA</div><div class="cc ch">Term</div><div class="cc ch"></div></div>
-          ${cs.map(c=>{const ugpa=gradeToGPA(c.grade,c.gradeSystem);const sys=c.gradeSystem||'us';const isSummerRetake=c.isRetake||c.sem==='Summer';const hasRetake=tr.some(r=>r.isRetake&&r.retakeOf===c.id);const termDisplay=isSummerRetake?`<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;padding:2px 6px;border-radius:8px;background:rgba(201,168,76,0.15);color:var(--gold)">☀ Summer${c.isRetake?' Retake':''}</span>`:`<span style="font-size:11px;color:var(--muted)">${c.sem}</span>`;const courseNameDisplay=`<span style="font-weight:500;${hasRetake?'color:var(--muted);text-decoration:line-through;':''}">${c.subject}</span>${hasRetake?'<span style="font-size:9px;background:rgba(201,168,76,0.13);color:var(--gold);padding:1px 5px;border-radius:6px;margin-left:5px">→ retaken</span>':''}`;return`<div class="cr" id="cr-${c.id}" style="grid-template-columns:minmax(140px,1fr) minmax(80px,0.5fr) 75px 48px 88px 68px 88px 130px${isSummerRetake?';background:rgba(201,168,76,0.04);border-left:2px solid rgba(201,168,76,0.3)':''}"><div class="cc">${courseNameDisplay}</div><div class="cc"><span style="display:flex;align-items:center;gap:5px"><div style="width:16px;height:16px;border-radius:50%;background:${AG_COLOR[c.ag]||'#888'};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:var(--bg);flex-shrink:0">${c.ag.toUpperCase()}</div><span style="font-size:10px;color:var(--muted)">${AG_REQS.find(r=>r.key===c.ag)?.label.split('—')[0]?.trim()||c.ag}</span></span></div><div class="cc"><span class="lb ${c.level==='AP'?'lb-ap':c.level==='IB'?'lb-ib':c.level==='Honors'?'lb-h':'lb-r'}">${c.level}</span></div><div class="cc"><span style="font-size:9px;font-weight:700;padding:2px 5px;border-radius:5px;background:rgba(255,255,255,0.06);color:var(--muted);white-space:nowrap">${sysLabel(sys)}</span></div><div class="cc"><span style="font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:${gradeCol(c.grade,sys)}">${c.grade||'—'}</span></div><div class="cc"><span style="font-family:'DM Mono',monospace;font-size:12px;color:${ugpa!==null?(ugpa>=3.7?'var(--green)':ugpa>=3?'var(--blue)':ugpa>=2?'var(--orange)':'var(--red)'):'var(--muted)'}">${ugpa!==null?ugpa.toFixed(2):'—'}</span></div><div class="cc">${termDisplay}</div><div class="cc" style="display:flex;align-items:center;gap:5px;padding:4px 8px"><button onclick="editCourse(${s.id},${c.id})" style="background:rgba(74,144,217,0.15);border:1px solid rgba(74,144,217,0.4);color:#60a5fa;border-radius:4px;font-size:10px;font-weight:600;padding:3px 7px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap">Edit</button><button class="del-btn" style="font-size:13px;padding:4px" onclick="delCourse(${s.id},${c.id})">✕</button></div></div>`;}).join('')}
-          <div class="add-cr" style="flex-wrap:wrap;row-gap:5px">
+          ${cs.map(c=>{const ugpa=gradeToGPA(c.grade,c.gradeSystem);const sys=c.gradeSystem||'us';const isSummerRetake=c.isRetake||c.sem==='Summer'||isSumYr;const hasRetake=tr.some(r=>r.isRetake&&r.retakeOf===c.id);const termDisplay=isSummerRetake?`<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;padding:2px 6px;border-radius:8px;background:rgba(201,168,76,0.15);color:var(--gold)">☀ Summer${c.isRetake?' Retake':''}</span>`:`<span style="font-size:11px;color:var(--muted)">${c.sem}</span>`;const courseNameDisplay=`<span style="font-weight:500;${hasRetake?'color:var(--muted);text-decoration:line-through;':''}">${c.subject}</span>${hasRetake?'<span style="font-size:9px;background:rgba(201,168,76,0.13);color:var(--gold);padding:1px 5px;border-radius:6px;margin-left:5px">→ retaken</span>':''}`;return`<div class="cr" id="cr-${c.id}" style="grid-template-columns:minmax(140px,1fr) minmax(80px,0.5fr) 75px 48px 88px 68px 88px 130px${(isSummerRetake)?';background:rgba(201,168,76,0.04);border-left:2px solid rgba(201,168,76,0.3)':''}"><div class="cc">${courseNameDisplay}</div><div class="cc"><span style="display:flex;align-items:center;gap:5px"><div style="width:16px;height:16px;border-radius:50%;background:${AG_COLOR[c.ag]||'#888'};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:var(--bg);flex-shrink:0">${c.ag.toUpperCase()}</div><span style="font-size:10px;color:var(--muted)">${AG_REQS.find(r=>r.key===c.ag)?.label.split('—')[0]?.trim()||c.ag}</span></span></div><div class="cc"><span class="lb ${c.level==='AP'?'lb-ap':c.level==='IB'?'lb-ib':c.level==='Honors'?'lb-h':'lb-r'}">${c.level}</span></div><div class="cc"><span style="font-size:9px;font-weight:700;padding:2px 5px;border-radius:5px;background:rgba(255,255,255,0.06);color:var(--muted);white-space:nowrap">${sysLabel(sys)}</span></div><div class="cc"><span style="font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:${gradeCol(c.grade,sys)}">${c.grade||'—'}</span></div><div class="cc"><span style="font-family:'DM Mono',monospace;font-size:12px;color:${ugpa!==null?(ugpa>=3.7?'var(--green)':ugpa>=3?'var(--blue)':ugpa>=2?'var(--orange)':'var(--red)'):'var(--muted)'}">${ugpa!==null?ugpa.toFixed(2):'—'}</span></div><div class="cc">${termDisplay}</div><div class="cc" style="display:flex;align-items:center;gap:5px;padding:4px 8px"><button onclick="editCourse(${s.id},${c.id})" style="background:rgba(74,144,217,0.15);border:1px solid rgba(74,144,217,0.4);color:#60a5fa;border-radius:4px;font-size:10px;font-weight:600;padding:3px 7px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap">Edit</button><button class="del-btn" style="font-size:13px;padding:4px" onclick="delCourse(${s.id},${c.id})">✕</button></div></div>`;}).join('')}
+          <div class="add-cr" style="flex-wrap:wrap;row-gap:5px${isSumYr?';background:rgba(212,160,23,0.04);border-radius:6px;padding:8px':''}">
             <input class="mi" id="cn-${yr}" placeholder="Course name" style="flex:2;min-width:120px">
             <select class="ms" id="cag-${yr}">${AG_REQS.map(r=>`<option value="${r.key}">${r.key.toUpperCase()} — ${r.label.split('—')[0].trim()}</option>`).join('')}</select>
             <select class="ms" id="clv-${yr}"><option>Regular</option><option>Honors</option><option>AP</option><option>IB</option><option>College</option></select>
-            <select class="ms" id="csys-${yr}" onchange="updateGradeOpts(${yr})" style="color:var(--blue)">
+            <select class="ms" id="csys-${yr}" onchange="updateGradeOpts('${yr}')" style="color:var(--blue)">
               <option value="us">US (A–F)</option>
               <option value="ib">IB (1–7)</option>
               <option value="al">A-Level</option>
@@ -1927,9 +1931,9 @@ function renderTranscript(s){
             <select class="ms" id="cgr-${yr}" style="min-width:58px"><option value="">Grade</option>${['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','IP','W'].map(g=>`<option>${g}</option>`).join('')}</select>
             <input class="mi" id="cgr-cn-${yr}" placeholder="e.g. 92" style="width:62px;display:none">
             <input class="mi" id="ccr-${yr}" value="10" style="width:38px">
-            <select class="ms" id="csm-${yr}"><option value="Full">Full Yr</option><option value="Sem1">Sem 1</option><option value="Sem2">Sem 2</option><option value="Summer">☀ Summer</option></select>
+            <select class="ms" id="csm-${yr}">${isSumYr?`<option value="Summer" selected>☀ Summer</option><option value="Full">Full Yr</option><option value="Sem1">Sem 1</option><option value="Sem2">Sem 2</option>`:`<option value="Full">Full Yr</option><option value="Sem1">Sem 1</option><option value="Sem2">Sem 2</option><option value="Summer">☀ Summer</option>`}</select>
             <input class="mi" id="cretake-${yr}" type="hidden" value="">
-            <button class="btn btn-gold btn-sm" onclick="addCourse(${s.id},${yr})" style="white-space:nowrap">+ Add</button>
+            <button class="btn btn-gold btn-sm" onclick="addCourse(${s.id},'${yr}')" style="white-space:nowrap">+ Add</button>
           </div>
         </div>
       </div>`;}).join('')}
@@ -1938,7 +1942,7 @@ function renderTranscript(s){
   const defSel=document.getElementById('defaultGradeSys-'+s.id);
   if(defSel&&s.defaultGradeSys)defSel.value=s.defaultGradeSys;
   // Pre-set all year grade-system selectors to student default
-  if(s.defaultGradeSys){document.querySelectorAll('[id^="csys-"]').forEach(sel=>sel.value=s.defaultGradeSys);document.querySelectorAll('[id^="csys-"]').forEach(sel=>{const yr=sel.id.replace('csys-','');if(!isNaN(yr))updateGradeOpts(parseInt(yr));});}
+  if(s.defaultGradeSys){document.querySelectorAll('[id^="csys-"]').forEach(sel=>sel.value=s.defaultGradeSys);document.querySelectorAll('[id^="csys-"]').forEach(sel=>{const yr=sel.id.replace('csys-','');if(/^\d+s?$/.test(yr))updateGradeOpts(yr);});}
 }
 // ── Transcript File Import ─────────────────────────────
 // Keywords that indicate a course is NOT A-G eligible.
@@ -2157,7 +2161,7 @@ function setDefaultGradeSys(sid,sys){
   document.querySelectorAll('[id^="csys-"]').forEach(sel=>sel.value=sys);
   document.querySelectorAll('[id^="cgr-"]').forEach(sel=>{
     const yr=sel.id.replace('cgr-','');
-    if(!isNaN(yr))updateGradeOpts(parseInt(yr));
+    if(/^\d+s?$/.test(yr))updateGradeOpts(yr);
   });
 }
 function updateGradeOpts(yr){
