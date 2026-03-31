@@ -896,6 +896,24 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   <div style="display:flex;gap:8px"><button class="btn btn-gold" onclick="addStudent()">Add Student</button><button class="btn btn-out" onclick="closeMo('moAddStudent')">Cancel</button></div>
 </div></div>
 
+<!-- Edit Student Profile -->
+<div class="mo" id="moEditStudent"><div class="md">
+  <button class="md-close" onclick="closeMo('moEditStudent')">✕</button>
+  <div class="md-title">Edit Student Profile</div>
+  <div class="fr"><div class="fg"><label class="fl">First Name</label><input class="fi" id="eFN" placeholder="First"></div><div class="fg"><label class="fl">Last Name</label><input class="fi" id="eLN" placeholder="Last"></div></div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Grade</label><select class="fse" id="eGrade"><option value="9">9th</option><option value="10">10th</option><option value="11">11th</option><option value="12">12th</option></select></div>
+    <div class="fg"><label class="fl">GPA (Unweighted)</label><input class="fi" id="eGPA" type="number" placeholder="3.85" step="0.01"></div>
+  </div>
+  <div class="fr"><div class="fg"><label class="fl">SAT</label><input class="fi" id="eSAT" type="number" placeholder="1480"></div><div class="fg"><label class="fl">ACT</label><input class="fi" id="eACT" type="number" placeholder="33"></div></div>
+  <div class="fg"><label class="fl">Major / Intended Field</label><input class="fi" id="eMajor" placeholder="Computer Science"></div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Target Tier</label><select class="fse" id="eTier"><option value="t10">Top 10</option><option value="t25">Top 25</option><option value="t50">Top 50</option><option value="t100">Top 100</option><option value="la">Liberal Arts</option></select></div>
+    <div class="fg"><label class="fl">Hook</label><select class="fse" id="eHook"><option value="">None</option><option value="legacy">Legacy</option><option value="athlete">Athlete</option><option value="firstgen">First-Gen</option><option value="urm">URM</option><option value="intl">International</option></select></div>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:4px"><button class="btn btn-gold" onclick="saveEditStudent()">Save Changes</button><button class="btn btn-out" onclick="closeMo('moEditStudent')">Cancel</button></div>
+</div></div>
+
 <!-- Add Deadline -->
 <div class="mo" id="moAddDeadline"><div class="md">
   <button class="md-close" onclick="closeMo('moAddDeadline')">✕</button>
@@ -1781,7 +1799,7 @@ function renderOverview(s){
     <div class="g2">
       <div>
         <div class="card">
-          <div class="card-hd"><span class="ico">📊</span>Academic Profile</div>
+          <div class="card-hd" style="display:flex;justify-content:space-between;align-items:center"><span><span class="ico">📊</span>Academic Profile</span><button class="btn btn-gold btn-sm" onclick="openEditStudent(${s.id})">✏ Edit Profile</button></div>
           ${pstat('GPA (Unweighted)',s.gpa||'—',s.gpa?'/4.0':'')}
           ${pstat('Weighted GPA',gpas.w,'/5.0')}
           ${pstat('SAT',s.sat||'<span style="color:var(--muted)">Not taken</span>',s.sat?'/1600':'')}
@@ -3462,6 +3480,40 @@ function addStudent(){
   ['nFN','nLN','nGPA','nSAT','nACT','nMajor','nECs','nNotes'].forEach(id=>document.getElementById(id).value='');
   renderSidebar();renderDashboard();populateDropdowns();updateUrgBadge();openProfile(s.id);
   if(fbDb&&fbCurrentUser){fbDb.collection('students').doc(String(s.id)).set(serializeStudent(s));logActivity(`added new student <strong>${s.firstName} ${s.lastName}</strong>`);}
+}
+
+let _editStudentId = null;
+function openEditStudent(id){
+  const s=students.find(x=>x.id===id);if(!s)return;
+  _editStudentId=id;
+  document.getElementById('eFN').value=s.firstName||'';
+  document.getElementById('eLN').value=s.lastName||'';
+  document.getElementById('eGrade').value=s.grade||11;
+  document.getElementById('eGPA').value=s.gpa||'';
+  document.getElementById('eSAT').value=s.sat||'';
+  document.getElementById('eACT').value=s.act||'';
+  document.getElementById('eMajor').value=s.major||'';
+  document.getElementById('eTier').value=s.tier||'t50';
+  document.getElementById('eHook').value=s.hook||'';
+  openMo('moEditStudent');
+}
+
+function saveEditStudent(){
+  const s=students.find(x=>x.id===_editStudentId);if(!s)return;
+  const fn=document.getElementById('eFN').value.trim(),ln=document.getElementById('eLN').value.trim();
+  if(!fn||!ln)return;
+  s.firstName=fn;
+  s.lastName=ln;
+  s.grade=parseInt(document.getElementById('eGrade').value);
+  s.gpa=parseFloat(document.getElementById('eGPA').value)||null;
+  s.sat=parseInt(document.getElementById('eSAT').value)||null;
+  s.act=parseInt(document.getElementById('eACT').value)||null;
+  s.major=document.getElementById('eMajor').value||'Undecided';
+  s.tier=document.getElementById('eTier').value;
+  s.hook=document.getElementById('eHook').value;
+  closeMo('moEditStudent');
+  if(typeof fbDb!=='undefined'&&fbDb){saveStudentToFirestore(s);logActivity(`updated profile for <strong>${s.firstName} ${s.lastName}</strong>`);}
+  renderSidebar();renderDashboard();populateDropdowns();updateUrgBadge();openProfile(s.id);
 }
 
 function deleteStudent(id){
