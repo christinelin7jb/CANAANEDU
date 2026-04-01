@@ -1348,7 +1348,7 @@ function calcUCGPAs(tr){
   const isUCYr=y=>y===10||y===11||y==='s9'||y==='s10'||y==='s11';
   const is10th=y=>y==='s9'||y===10||y==='s10';
   const isHon=lv=>lv==='AP'||lv==='IB'||lv==='College'||lv==='Honors';
-  const ucCourses=(tr||[]).filter(c=>c.ag&&c.ag!=='elec'&&isUCYr(c.year));
+  const ucCourses=(tr||[]).filter(c=>c.ag&&c.ag!=='elec'&&c.ag!=='pe'&&isUCYr(c.year));
   if(!ucCourses.length)return{uw:'—',w:'—'};
   let pts=0,cnt=0,hTot=0,h10=0;
   ucCourses.forEach(c=>{
