@@ -1044,6 +1044,28 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   <div id="reportContent"></div>
 </div></div>
 
+<!-- Add School to Student List Modal -->
+<div class="mo" id="moAddSchoolToList"><div class="md" style="max-width:420px">
+  <button class="md-close" onclick="closeMo('moAddSchoolToList')">✕</button>
+  <div class="md-title">🏫 Add School</div>
+  <input type="hidden" id="slStudentId">
+  <div class="fg"><label class="fl">School Name</label>
+    <input class="fi" id="slSchoolName" list="slSchoolOptions" placeholder="e.g. UC San Diego" autocomplete="off">
+    <datalist id="slSchoolOptions"></datalist>
+  </div>
+  <div class="fg"><label class="fl">Category</label>
+    <select class="fse" id="slType">
+      <option value="reach">Reach</option>
+      <option value="match">Match</option>
+      <option value="safety">Safety</option>
+    </select>
+  </div>
+  <div class="fg"><label class="fl">Notes (optional)</label>
+    <input class="fi" id="slNotes" placeholder="e.g. Strong CS program">
+  </div>
+  <div style="display:flex;gap:8px"><button class="btn btn-gold" onclick="addSchoolToList()">Add</button><button class="btn btn-out" onclick="closeMo('moAddSchoolToList')">Cancel</button></div>
+</div></div>
+
 <!-- Pre-Meeting Brief Modal -->
 <div class="mo" id="moMeeting"><div class="md md-xl">
   <button class="md-close" onclick="closeMo('moMeeting')">✕</button>
@@ -2247,11 +2269,56 @@ If year/grade level is unclear, infer from context. Include EVERY course row vis
 }
 
 function renderSchoolList(s){
-  const matches=getMatchSchools(s);
-  document.getElementById('slContent').innerHTML=`<div class="card-hd"><span class="ico">🏫</span>Recommended School List</div>
+  const list=s.schoolList&&s.schoolList.length?s.schoolList:getMatchSchools(s).map((m,i)=>({id:i+1,name:m.name,type:m.type,notes:m.detail,chance:m.chance}));
+  if(!s.schoolList||!s.schoolList.length){s.schoolList=list;}
+  document.getElementById('slContent').innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <div class="card-hd" style="margin-bottom:0"><span class="ico">🏫</span>Recommended School List</div>
+      <button class="btn btn-gold btn-sm" onclick="openAddSchoolToList(${s.id})">+ Add School</button>
+    </div>
     <div style="display:flex;gap:6px;margin-bottom:12px"><span class="tag tr">● Reach</span><span class="tag to">● Match</span><span class="tag tg">● Safety</span></div>
-    ${matches.map((m,i)=>`<div class="si"><div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);width:18px">${i+1}</div><div style="width:7px;height:7px;border-radius:50%;background:${m.type==='safety'?'var(--green)':m.type==='match'?'var(--orange)':'var(--red)'};flex-shrink:0"></div><div class="si-info"><div class="si-name">${m.name}</div><div class="si-det">${m.detail}</div></div><div style="text-align:right"><div class="chance-n" style="color:${m.chance>40?'var(--green)':m.chance>15?'var(--orange)':'var(--red)'}">${m.chance}%</div><div class="chance-l">Est. chance</div></div></div>`).join('')}
+    ${list.map((m,i)=>`<div class="si"><div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);width:18px">${i+1}</div><div style="width:7px;height:7px;border-radius:50%;background:${m.type==='safety'?'var(--green)':m.type==='match'?'var(--orange)':'var(--red)'};flex-shrink:0"></div><div class="si-info"><div class="si-name">${m.name}</div><div class="si-det">${m.notes||''}</div></div><div style="display:flex;align-items:center;gap:10px"><div style="text-align:right"><div class="chance-n" style="color:${m.chance>40?'var(--green)':m.chance>15?'var(--orange)':'var(--red)'}">${m.chance}%</div><div class="chance-l">Est. chance</div></div><button class="del-btn" style="flex-shrink:0" onclick="deleteSchoolFromList(${s.id},${m.id})">✕</button></div></div>`).join('')}
     <p style="font-size:10px;color:var(--muted);margin-top:8px">* Estimates based on school database. Verify data in School Database for accuracy.</p>`;
+}
+function openAddSchoolToList(sid){
+  document.getElementById('slStudentId').value=sid;
+  document.getElementById('slSchoolName').value='';
+  document.getElementById('slType').value='reach';
+  document.getElementById('slNotes').value='';
+  // populate datalist
+  const dl=document.getElementById('slSchoolOptions');
+  dl.innerHTML=schoolDB.map(sc=>`<option value="${sc.name}">`).join('');
+  openMo('moAddSchoolToList');
+}
+function addSchoolToList(){
+  const sid=parseInt(document.getElementById('slStudentId').value);
+  const name=document.getElementById('slSchoolName').value.trim();
+  const type=document.getElementById('slType').value;
+  const notes=document.getElementById('slNotes').value.trim();
+  if(!name)return;
+  const s=students.find(x=>x.id===sid);if(!s)return;
+  if(!s.schoolList)s.schoolList=[];
+  // calc chance from schoolDB if available
+  const dbEntry=schoolDB.find(x=>x.name.toLowerCase()===name.toLowerCase());
+  let chance=type==='safety'?65:type==='match'?30:8;
+  if(dbEntry){
+    const sat=s.sat||(s.act?s.act*46:1200);
+    const hb={legacy:1.5,athlete:2.2,firstgen:1.2,urm:1.3,'':1}[s.hook||'']||1;
+    const fit=(sat-dbEntry.sat25)/(dbEntry.sat75-dbEntry.sat25+1);
+    const gfit=s.gpa>=dbEntry.gpaMin?1:(parseFloat(s.gpa)||0)/dbEntry.gpaMin;
+    let ch=dbEntry.acceptance*fit*gfit*hb*1.5;chance=Math.max(1,Math.min(88,Math.round(ch)));
+  }
+  const newId=Date.now();
+  s.schoolList.push({id:newId,name,type,notes,chance});
+  closeMo('moAddSchoolToList');
+  if(fbDb&&fbCurrentUser)saveStudentToFirestore(s);
+  renderSchoolList(s);
+}
+function deleteSchoolFromList(sid,schoolId){
+  const s=students.find(x=>x.id===sid);if(!s||!s.schoolList)return;
+  s.schoolList=s.schoolList.filter(x=>x.id!==schoolId);
+  if(fbDb&&fbCurrentUser)saveStudentToFirestore(s);
+  renderSchoolList(s);
 }
 function getMatchSchools(s){
   const sat=s.sat||(s.act?s.act*46:1200);
