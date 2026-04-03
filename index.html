@@ -2274,11 +2274,15 @@ function renderSchoolList(s){
   document.getElementById('slContent').innerHTML=`
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
       <div class="card-hd" style="margin-bottom:0"><span class="ico">🏫</span>Recommended School List</div>
-      <button class="btn btn-gold btn-sm" onclick="openAddSchoolToList(${s.id})">+ Add School</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm" id="aiRecalcBtn-${s.id}" style="background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.4);color:var(--gold);font-size:11px;padding:5px 10px;border-radius:6px;cursor:pointer" onclick="recalculateChancesWithAI(${s.id})">✦ AI Recalculate</button>
+        <button class="btn btn-gold btn-sm" onclick="openAddSchoolToList(${s.id})">+ Add School</button>
+      </div>
     </div>
     <div style="display:flex;gap:6px;margin-bottom:12px"><span class="tag tr">● Reach</span><span class="tag to">● Match</span><span class="tag tg">● Safety</span></div>
-    ${list.map((m,i)=>`<div class="si"><div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);width:18px">${i+1}</div><div style="width:7px;height:7px;border-radius:50%;background:${m.type==='safety'?'var(--green)':m.type==='match'?'var(--orange)':'var(--red)'};flex-shrink:0"></div><div class="si-info"><div class="si-name">${m.name}</div><div class="si-det">${m.notes||''}</div></div><div style="display:flex;align-items:center;gap:10px"><div style="text-align:right"><div class="chance-n" style="color:${m.chance>40?'var(--green)':m.chance>15?'var(--orange)':'var(--red)'}">${m.chance}%</div><div class="chance-l">Est. chance</div></div><button class="del-btn" style="flex-shrink:0" onclick="deleteSchoolFromList(${s.id},${m.id})">✕</button></div></div>`).join('')}
-    <p style="font-size:10px;color:var(--muted);margin-top:8px">* Estimates based on school database. Verify data in School Database for accuracy.</p>`;
+    ${list.map((m,i)=>`<div class="si" id="sl-row-${m.id}"><div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);width:18px">${i+1}</div><div style="width:7px;height:7px;border-radius:50%;background:${m.type==='safety'?'var(--green)':m.type==='match'?'var(--orange)':'var(--red)'};flex-shrink:0"></div><div class="si-info"><div class="si-name">${m.name}</div><div class="si-det">${m.notes||''}</div></div><div style="display:flex;align-items:center;gap:10px"><div style="text-align:right"><div class="chance-n" id="chance-val-${m.id}" style="color:${m.chance>40?'var(--green)':m.chance>15?'var(--orange)':'var(--red)'}">${m.chance}%</div><div class="chance-l">${m.aiChance?'AI est.':'Est. chance'}</div></div><button class="del-btn" style="flex-shrink:0" onclick="deleteSchoolFromList(${s.id},${m.id})">✕</button></div></div>`).join('')}
+    <div id="aiRecalcStatus-${s.id}" style="margin-top:8px"></div>
+    <p style="font-size:10px;color:var(--muted);margin-top:4px">* Estimates based on school database. Verify data in School Database for accuracy.</p>`;
 }
 function openAddSchoolToList(sid){
   document.getElementById('slStudentId').value=sid;
@@ -2319,6 +2323,85 @@ function deleteSchoolFromList(sid,schoolId){
   s.schoolList=s.schoolList.filter(x=>x.id!==schoolId);
   if(fbDb&&fbCurrentUser)saveStudentToFirestore(s);
   renderSchoolList(s);
+}
+async function recalculateChancesWithAI(sid){
+  const s=students.find(x=>x.id===sid);if(!s||!s.schoolList||!s.schoolList.length)return;
+  const btn=document.getElementById(`aiRecalcBtn-${sid}`);
+  const statusEl=document.getElementById(`aiRecalcStatus-${sid}`);
+  if(btn){btn.disabled=true;btn.textContent='✦ Calculating...';}
+  if(statusEl)statusEl.innerHTML=`<div style="font-size:11px;color:var(--gold);display:flex;align-items:center;gap:6px"><span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span> AI is evaluating admission chances based on your profile...</div>`;
+  try{
+    const claudeKey=localStorage.getItem('claudeKey')||'';
+    if(!claudeKey)throw new Error('Please enter your Claude API key in the sidebar first.');
+    // Build school info string with DB data where available
+    const schoolInfo=s.schoolList.map(m=>{
+      const db=schoolDB.find(x=>x.name.toLowerCase()===m.name.toLowerCase());
+      const dbStr=db?` (acceptance rate: ${db.acceptance}%, SAT 25th: ${db.sat25}, SAT 75th: ${db.sat75}, min GPA: ${db.gpaMin}${db.edBoost==='yes'?', ED boost: yes':''})`:' (no database entry)';
+      return `- ${m.name} [${m.type}]${dbStr}`;
+    }).join('\n');
+    const gpas=calcGPAs(s.transcript||[]);
+    const apCount=(s.transcript||[]).filter(c=>c.level==='AP'||c.level==='IB').length;
+    const prompt=`You are an expert college admissions consultant with deep knowledge of US college acceptance statistics and holistic admissions. Estimate the realistic admission probability for this specific student at each school.
+
+STUDENT PROFILE:
+- Name: ${s.firstName} ${s.lastName}, Grade ${s.grade}
+- Unweighted GPA: ${s.gpa}, Weighted GPA: ${gpas.w}
+- SAT: ${s.sat||'not taken'}, ACT: ${s.act||'not taken'}
+- Major interest: ${s.major||'undecided'}
+- Hook/Special factor: ${s.hook||'none'} (athlete=very significant boost, legacy=moderate boost, URM=moderate boost, firstgen=small boost)
+- AP/IB courses completed: ${apCount}
+- Activities: ${s.activities||'not listed'}
+- Target tier: ${s.tier||'not specified'}
+- A-G completion: ${agPct(s)}%
+- Essays status: ${(s.essays||[]).map(e=>`${e.title}(${e.status})`).join(', ')||'none started'}
+
+SCHOOLS TO EVALUATE:
+${schoolInfo}
+
+INSTRUCTIONS:
+1. Consider the student's full profile holistically — GPA, test scores, hook, course rigor, and activities together
+2. Factor in school-specific acceptance rates and typical admitted student profiles
+3. Account for hook bonuses realistically (athlete hook at schools with athletic recruitment is very significant)
+4. Give realistic, differentiated percentages — do NOT cluster all schools together
+5. Reach schools for this student should typically be 1-20%, match 20-55%, safety 55-90%
+
+Respond ONLY with a valid JSON object mapping school name to integer percentage (1-95). No explanation, no markdown, just JSON.
+Example format: {"MIT": 4, "UC Berkeley": 18, "UCLA": 12}
+
+Your response:`;
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':claudeKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:500,messages:[{role:'user',content:prompt}]})
+    });
+    const data=await res.json();
+    if(data.error)throw new Error(data.error.message||'API error');
+    const raw=(data.content?.map(b=>b.text||'').join('')||'').trim();
+    // Extract JSON from response
+    const jsonMatch=raw.match(/\{[\s\S]*\}/);
+    if(!jsonMatch)throw new Error('Could not parse AI response as JSON');
+    const chances=JSON.parse(jsonMatch[0]);
+    // Update each school's chance
+    let updated=0;
+    s.schoolList.forEach(m=>{
+      // Try exact match first, then case-insensitive
+      const key=Object.keys(chances).find(k=>k.toLowerCase()===m.name.toLowerCase())||
+                 Object.keys(chances).find(k=>m.name.toLowerCase().includes(k.toLowerCase())||k.toLowerCase().includes(m.name.toLowerCase()));
+      if(key!==undefined){
+        m.chance=Math.max(1,Math.min(95,Math.round(Number(chances[key]))));
+        m.aiChance=true;
+        updated++;
+      }
+    });
+    if(fbDb&&fbCurrentUser)saveStudentToFirestore(s);
+    renderSchoolList(s);
+    // Show success message after re-render
+    const newStatus=document.getElementById(`aiRecalcStatus-${sid}`);
+    if(newStatus)newStatus.innerHTML=`<div style="font-size:11px;color:var(--green);margin-top:4px">✓ AI updated ${updated}/${s.schoolList.length} schools · ${new Date().toLocaleTimeString()}</div>`;
+  }catch(e){
+    if(btn){btn.disabled=false;btn.textContent='✦ AI Recalculate';}
+    if(statusEl)statusEl.innerHTML=`<div style="font-size:11px;color:var(--red);margin-top:4px">✗ Error: ${e.message}</div>`;
+  }
 }
 function getMatchSchools(s){
   const sat=s.sat||(s.act?s.act*46:1200);
